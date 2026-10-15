@@ -1,0 +1,27 @@
+- id: jumlah-diagonal
+  judul: Jumlah diagonal utama
+  soal: "Diagonal utama adalah sel yang indeks baris dan kolomnya sama: `matriks[0][0]`, `matriks[1][1]`, dan `matriks[2][2]`. Tambahkan variabel `int jumlahDiagonal` (buat langsung di dalam main, di luar perulangan) yang menyimpan jumlah diagonal utama. Setelah semua perulangan selesai, cetak `Jumlah diagonal: 17` sebagai baris terakhir output. Tiga baris jumlah per baris tetap dicetak seperti semula."
+  cek:
+    - jenis: variabel
+      nama: jumlahDiagonal
+      tipe: int
+      harapan: 17
+    - jenis: output
+      harapan: "Jumlah baris 0: 8\nJumlah baris 1: 16\nJumlah baris 2: 21\nJumlah diagonal: 17"
+  petunjuk:
+    - "Sel diagonal punya ciri khusus: `i == j`. Hanya sel seperti itu yang perlu dijumlahkan."
+    - "Buat `int jumlahDiagonal = 0;` sebelum `for (int i ...`. Di dalam perulangan dalam, tambahkan `if (i == j) { jumlahDiagonal += matriks[i][j]; }`."
+    - "Setelah kurung kurawal penutup perulangan luar, tambahkan `System.out.println(\"Jumlah diagonal: \" + jumlahDiagonal);`. Cara lain yang lebih hemat langkah: satu perulangan saja yang menjumlahkan `matriks[k][k]`."
+
+- id: jumlah-kolom
+  judul: Jumlah per kolom
+  soal: "Ubah program agar menjumlahkan setiap **kolom**, bukan setiap baris. Output yang diharapkan tepat tiga baris: `Jumlah kolom 0: 12`, `Jumlah kolom 1: 13`, dan `Jumlah kolom 2: 20`."
+  cek:
+    - jenis: output
+      harapan: "Jumlah kolom 0: 12\nJumlah kolom 1: 13\nJumlah kolom 2: 20"
+    - jenis: harusMemakai
+      konstruksi: for
+  petunjuk:
+    - "Sekarang yang dipilih satu per satu adalah kolom `j`, lalu untuk setiap kolom kita menyusuri semua baris `i`."
+    - "Tukar peran kedua perulangan: perulangan luar memakai `j` dengan kondisi `j < matriks[0].length`, perulangan dalam memakai `i` dengan kondisi `i < matriks.length`."
+    - "Isi perulangan dalam tetap `jumlah += matriks[i][j];`. Jangan lupa mengganti teks yang dicetak menjadi `\"Jumlah kolom \" + j + \": \" + jumlah`."

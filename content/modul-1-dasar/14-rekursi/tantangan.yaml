@@ -1,0 +1,41 @@
+- id: pangkat-rekursif
+  judul: Pangkat secara rekursif
+  soal: "Tambahkan method rekursif `static int pangkat(int a, int n)` yang menghitung a pangkat n **tanpa** memakai for maupun while. Gunakan base case `pangkat(a, 0) = 1` dan recursive case `pangkat(a, n) = a * pangkat(a, n - 1)`. Di `main`, panggil method itu untuk mencetak dua baris: `2^10 = 1024` dan `3^4 = 81`."
+  cek:
+    - jenis: harusMemakai
+      konstruksi: "method:pangkat"
+    - jenis: harusMemakai
+      konstruksi: rekursi
+    - jenis: dilarangMemakai
+      konstruksi: for
+    - jenis: dilarangMemakai
+      konstruksi: while
+    - jenis: outputMemuat
+      harapan: "2^10 = 1024"
+    - jenis: outputMemuat
+      harapan: "3^4 = 81"
+  petunjuk:
+    - "Ikuti pola `faktorial`: satu baris base case dan satu baris recursive case. Base case-nya: jika `n == 0`, kembalikan 1."
+    - "Recursive case: `return a * pangkat(a, n - 1);`. Nilai `a` dikirim apa adanya, hanya `n` yang berkurang."
+    - "Cetak dengan `System.out.println(\"2^10 = \" + pangkat(2, 10));`. Tanda `^` di dalam tanda kutip hanyalah teks; di luar tanda kutip, `^` di Java bukan operator pangkat."
+
+- id: jumlah-digit
+  judul: Jumlah digit
+  soal: "Tambahkan method rekursif `static int jumlahDigit(int n)` yang menjumlahkan digit-digit bilangan bulat positif, misalnya 2 + 0 + 2 + 4 = 8 untuk 2024. Simpan hasil `jumlahDigit(2024)` di variabel `int totalDigit` di dalam `main`, lalu cetak `Jumlah digit 2024 = 8`. Jangan memakai for maupun while."
+  cek:
+    - jenis: harusMemakai
+      konstruksi: "method:jumlahDigit"
+    - jenis: dilarangMemakai
+      konstruksi: for
+    - jenis: dilarangMemakai
+      konstruksi: while
+    - jenis: variabel
+      nama: totalDigit
+      tipe: int
+      harapan: 8
+    - jenis: outputMemuat
+      harapan: "Jumlah digit 2024 = 8"
+  petunjuk:
+    - "Digit terakhir didapat dengan `n % 10`, sedangkan sisa bilangannya dengan `n / 10`. Contoh: `2024 % 10` bernilai 4 dan `2024 / 10` bernilai 202."
+    - "Base case: bilangan satu digit (`n < 10`) jumlah digitnya adalah bilangan itu sendiri."
+    - "Recursive case: `return n % 10 + jumlahDigit(n / 10);`. Lalu di `main`: `int totalDigit = jumlahDigit(2024);`."

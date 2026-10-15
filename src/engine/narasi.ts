@@ -234,11 +234,26 @@ export function narasikan(trace: Trace, i: number, sesudah: StateMesin, ktx: Kon
         const nama = namaArray(t.id, sesudah) ?? 'array'
         kalimat.push(ubah(`${nama}[${t.indeks}]`, t.tipe, t.lama, t.baru, t.op, t.operand))
       }
-      for (const a of cari('alokasi')) {
-        if (a.objek.k !== 'array' || deklarasi.length + tulis.length === 0) continue
-        const isi = tampil(a.id, a.objek.tipeElemen + '[]')
-        kalimat.push(`Array baru ${k(`${a.objek.tipeElemen}[${a.objek.nilai.length}]`)} dibuat di memori: ${k(isi)}.`)
-        break
+      {
+        // Array terluar dialokasikan paling akhir (baris-baris array 2D dibuat lebih dulu).
+        const larik = cari('alokasi').filter((a) => a.objek.k === 'array')
+        const a = larik[larik.length - 1]
+        if (a && a.objek.k === 'array' && deklarasi.length + tulis.length > 0) {
+          const tipeElemen = a.objek.tipeElemen
+          const n = a.objek.nilai.length
+          const baris = larik.slice(0, -1).map((x) => (x.objek.k === 'array' ? x.objek.nilai.length : 0))
+          if (tipeElemen.endsWith('[]') && baris.length === n && n > 0) {
+            const dasar = tipeElemen.slice(0, -2)
+            const seragam = baris.every((c) => c === baris[0])
+            kalimat.push(
+              seragam
+                ? `Array 2 dimensi ${k(`${dasar}[${n}][${baris[0]}]`)} dibuat di memori: ${n} baris × ${baris[0]} kolom. Setiap baris adalah array ${k(`${dasar}[]`)} tersendiri.`
+                : `Array 2 dimensi ${k(`${dasar}[${n}][]`)} dibuat di memori: ${n} baris dengan panjang berbeda-beda (${baris.join(', ')}).`,
+            )
+          } else {
+            kalimat.push(`Array baru ${k(`${tipeElemen}[${n}]`)} dibuat di memori: ${k(tampil(a.id, tipeElemen + '[]'))}.`)
+          }
+        }
       }
       for (const s of cari('scanner')) {
         if (s.metode === 'nextLine') {

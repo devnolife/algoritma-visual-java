@@ -1,0 +1,36 @@
+- id: cek-palindrom
+  judul: Cek palindrom
+  soal: "Ubah program agar membaca satu kata dengan `Scanner`, lalu mencetak **tepat satu baris**: `<kata> adalah palindrom` jika kata itu sama dengan kebalikannya, atau `<kata> bukan palindrom` jika tidak. Contoh: input `katak` menghasilkan `katak adalah palindrom`, sedangkan input `kasur` menghasilkan `kasur bukan palindrom`. Jangan mencetak teks lain, termasuk kalimat permintaan input."
+  cek:
+    - jenis: harusMemakai
+      konstruksi: scanner
+    - jenis: output
+      input: "katak\n"
+      harapan: "katak adalah palindrom"
+    - jenis: output
+      input: "kasur\n"
+      harapan: "kasur bukan palindrom"
+    - jenis: output
+      input: "malam\n"
+      harapan: "malam adalah palindrom"
+  petunjuk:
+    - "Tambahkan `import java.util.Scanner;` di baris paling atas. Di awal `main`, buat `Scanner masukan = new Scanner(System.in);` lalu isi `kata` dengan `masukan.next()`. Kata yang ingin dicoba bisa diketik di tab Input."
+    - "Pakai lagi perulangan pembalik untuk membuat `balik`, lalu bandingkan dengan `if (kata.equals(balik))`. Jangan memakai `==`, karena `balik` adalah objek baru yang dibentuk saat program berjalan."
+    - "Di cabang if, cetak `kata + \" adalah palindrom\"`; di cabang else, cetak `kata + \" bukan palindrom\"`. Hapus baris-baris cetak lain dari kode awal."
+
+- id: hitung-vokal
+  judul: Hitung huruf vokal
+  soal: "Tambahkan `String kalimat = \"algoritma itu seru\";` dan variabel `int jumlahVokal` (di dalam `main`, di luar perulangan) yang menghitung banyaknya huruf vokal a, i, u, e, dan o di dalam `kalimat`. Cetak hasilnya sebagai `Jumlah vokal: 8`."
+  cek:
+    - jenis: variabel
+      input: "katak\n"
+      nama: jumlahVokal
+      tipe: int
+      harapan: 8
+    - jenis: outputMemuat
+      input: "katak\n"
+      harapan: "Jumlah vokal: 8"
+  petunjuk:
+    - "Susuri setiap karakter dengan `for (int i = 0; i < kalimat.length(); i++)` dan ambil hurufnya dengan `char c = kalimat.charAt(i);`."
+    - "Huruf `c` adalah vokal jika `c == 'a' || c == 'i' || c == 'u' || c == 'e' || c == 'o'`. Untuk `char` yang bertipe primitif, `==` aman dipakai."
+    - "Buat `int jumlahVokal = 0;` sebelum perulangan dan tambahkan `jumlahVokal++;` di dalam if. Setelah perulangan, cetak `\"Jumlah vokal: \" + jumlahVokal`."

@@ -1,0 +1,29 @@
+- id: luas-lingkaran
+  judul: Method luas lingkaran
+  soal: "Tambahkan method `static double luasLingkaran(double r)` yang mengembalikan `Math.PI * r * r`. Panggil method itu dari `main` untuk r = 7 dan r = 10, lalu cetak hasilnya dengan dua angka di belakang koma sehingga output memuat baris `Luas lingkaran: 153.94` dan `Luas lingkaran: 314.16`."
+  cek:
+    - jenis: harusMemakai
+      konstruksi: "method:luasLingkaran"
+    - jenis: outputMemuat
+      harapan: "Luas lingkaran: 153.94"
+    - jenis: outputMemuat
+      harapan: "Luas lingkaran: 314.16"
+  petunjuk:
+    - "Contoh yang mirip sudah ada, yaitu `luasPersegiPanjang`. Bedanya, hanya ada satu parameter, dan tipe parameter maupun tipe kembaliannya `double`."
+    - "Tulis method baru di dalam class Main tetapi di luar method lain: `static double luasLingkaran(double r) { return Math.PI * r * r; }`."
+    - "Untuk dua angka di belakang koma, pakai printf: `System.out.printf(\"Luas lingkaran: %.2f%n\", luasLingkaran(7));`. Ulangi untuk r = 10."
+
+- id: kosongkan-array
+  judul: Kosongkan array lewat method
+  soal: "Tambahkan method `static void kosongkan(int[] data)` yang mengubah **semua** elemen array menjadi 0. Panggil `kosongkan(nilai);` di `main` setelah `gandakanPertama(nilai);`, sehingga isi akhir array `nilai` adalah `{0, 0, 0}`."
+  cek:
+    - jenis: harusMemakai
+      konstruksi: "method:kosongkan"
+    - jenis: variabel
+      nama: nilai
+      tipe: "int[]"
+      harapan: [0, 0, 0]
+  petunjuk:
+    - "Yang dikirim ke method adalah referensi array, jadi mengubah `data[i]` di dalam method juga mengubah array `nilai` milik `main`."
+    - "Di dalam method, susuri semua indeks: `for (int i = 0; i < data.length; i++) { data[i] = 0; }`."
+    - "Hati-hati: `data = new int[data.length];` tidak berhasil, karena hanya memindahkan panah `data` ke array baru, sedangkan `nilai` tetap menunjuk array lama."

@@ -1,6 +1,6 @@
 import { primitifKeString } from '../format'
 import { konversiPrimitif, LemparanJava, pecahanKeLong, type Nilai } from '../nilai'
-import { teksTipe, type NamaPrimitif, type Tipe } from '../tipe'
+import { adalahString, teksTipe, type NamaPrimitif, type Tipe } from '../tipe'
 import type { ObjekHeap } from '../trace'
 import { formatJava } from './formatter'
 import type { PemindaiInput } from './scanner'
@@ -264,6 +264,8 @@ const umum: Record<string, ImplPustaka> = {
     const awal = arg[0] as number
     const akhir = arg.length > 1 ? (arg[1] as number) : s.length
     cekRentang(awal, akhir, s.length)
+    // Seperti Java: substring seluruh isi mengembalikan objek yang sama.
+    if (awal === 0 && akhir === s.length) return o as number
     return ctx.buatString(s.slice(awal, akhir))
   },
   'String.indexOf': (ctx, o, arg, _t, p) => {
@@ -304,8 +306,17 @@ const umum: Record<string, ImplPustaka> = {
     if (arg[0] === null) throw NPE()
     return bandingString(ctx.teks(o).toUpperCase().toLowerCase(), ctx.teks(arg[0]).toUpperCase().toLowerCase())
   },
-  'String.toUpperCase': (ctx, o) => ctx.buatString(ctx.teks(o).toUpperCase()),
-  'String.toLowerCase': (ctx, o) => ctx.buatString(ctx.teks(o).toLowerCase()),
+  // Seperti Java: bila tidak ada huruf yang berubah, objek yang sama dikembalikan.
+  'String.toUpperCase': (ctx, o) => {
+    const s = ctx.teks(o)
+    const t = s.toUpperCase()
+    return t === s ? (o as number) : ctx.buatString(t)
+  },
+  'String.toLowerCase': (ctx, o) => {
+    const s = ctx.teks(o)
+    const t = s.toLowerCase()
+    return t === s ? (o as number) : ctx.buatString(t)
+  },
   'String.trim': (ctx, o) => {
     const s = ctx.teks(o)
     // eslint-disable-next-line no-control-regex -- semantik whitespace/trim Java memang mencakup karakter kontrol
@@ -333,18 +344,24 @@ const umum: Record<string, ImplPustaka> = {
   'String.replace': (ctx, o, arg, _t, p) => {
     const s = ctx.teks(o)
     if (p[0].k === 'primitif') {
-      return ctx.buatString(s.split(String.fromCharCode(arg[0] as number)).join(String.fromCharCode(arg[1] as number)))
+      const lama = String.fromCharCode(arg[0] as number)
+      const baru = String.fromCharCode(arg[1] as number)
+      if (lama === baru || !s.includes(lama)) return o as number
+      return ctx.buatString(s.split(lama).join(baru))
     }
     if (arg[0] === null || arg[1] === null) throw NPE()
     const target = ctx.teks(arg[0])
     const ganti = ctx.teks(arg[1])
     // Target kosong: Java menyisipkan pengganti di setiap posisi, termasuk awal dan akhir.
     if (target === '') return ctx.buatString(ganti + [...s].join(ganti) + (s.length > 0 ? ganti : ''))
+    // Tidak ada yang diganti (atau ganti 1 karakter dengan karakter yang sama): objek yang sama.
+    if (!s.includes(target) || (target.length === 1 && target === ganti)) return o as number
     return ctx.buatString(s.split(target).join(ganti))
   },
   'String.repeat': (ctx, o, arg) => {
     const n = arg[0] as number
     if (n < 0) throw new LemparanJava('java.lang.IllegalArgumentException', `count is negative: ${n}`)
+    if (n === 1) return o as number
     return ctx.buatString(ctx.teks(o).repeat(n))
   },
   'String.toCharArray': (ctx, o) => {
@@ -369,6 +386,8 @@ const umum: Record<string, ImplPustaka> = {
       const o = wajibArray(ctx, arg[0])
       return ctx.buatString(o.nilai.map((c) => String.fromCharCode(c as number)).join(''))
     }
+    // valueOf(Object) memanggil toString(): untuk String hasilnya objek yang sama.
+    if (adalahString(_t[0]) && arg[0] !== null) return arg[0] as number
     return ctx.buatString(ctx.keString(arg[0], _t[0]))
   },
   'String.format': (ctx, _o, arg, t) => ctx.buatString(format(ctx, arg, t, 0)),

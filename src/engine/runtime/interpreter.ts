@@ -28,7 +28,9 @@ export interface OpsiJalan {
 export const OPSI_BAWAAN: Required<OpsiJalan> = {
   stdin: '',
   batasLangkah: 20_000,
-  batasKedalaman: 1_000,
+  // Rekursi Java dijalankan dengan rekursi JavaScript; stack worker browser jauh lebih kecil dari JVM.
+  // 200 level cukup untuk contoh pengajaran dan sama di semua lingkungan (lihat juga `stackMasihCukup`).
+  batasKedalaman: 200,
   seed: 20260101,
   batasOutput: 10_000,
   batasElemen: 10_000,
@@ -39,6 +41,24 @@ const REF_OUT = -1
 const REF_ERR = -2
 const REF_IN = -3
 const JARAK_CHECKPOINT = 100
+/** Mulai kedalaman ini, sisa stack JavaScript diperiksa sebelum memanggil method. */
+const KEDALAMAN_MULAI_PROBE = 48
+/** Cadangan stack (dalam frame JavaScript kecil) yang wajib tersisa sebelum masuk satu method lagi. */
+const CADANGAN_STACK = 1_000
+
+function probe(n: number): number {
+  // Sengaja bukan tail call (JavaScriptCore/Safari mengoptimasi tail call sehingga stack tidak bertambah).
+  return n <= 0 ? 0 : probe(n - 1) + 1
+}
+
+/** true bila stack JavaScript masih punya ruang untuk `cadangan` frame lagi. */
+function stackMasihCukup(cadangan: number): boolean {
+  try {
+    return probe(cadangan) === cadangan
+  } catch {
+    return false
+  }
+}
 
 class BatasTercapai extends Error {
   constructor(
@@ -123,6 +143,8 @@ class Mesin {
   private readonly pemindai: PemindaiInput
   private readonly acak: () => number
   private selesai = false
+  /** true bila StackOverflowError dipicu oleh habisnya stack JavaScript, bukan oleh `batasKedalaman`. */
+  private stackBrowserHabis = false
   private readonly ctx: KonteksPustaka
 
   constructor(
@@ -317,8 +339,14 @@ class Mesin {
       const barisAkhir = r?.k === 'return' && frame.barisReturn ? frame.barisReturn : this.baris(d.spanTutup)
       frame.barisAktif = barisAkhir
       this.catat(r?.k === 'return' ? frame.spanReturn : d.spanTutup, 'selesai', barisAkhir)
-    } catch (e) {
+    } catch (galat) {
       this.selesai = true
+      // Bila stack JavaScript tetap habis (mis. di browser dengan stack sangat kecil), anggap StackOverflowError.
+      let e = galat
+      if (e instanceof RangeError && /call stack|too much recursion/i.test(e.message)) {
+        this.stackBrowserHabis = true
+        e = new LemparanJava('java.lang.StackOverflowError')
+      }
       if (e instanceof LemparanJava) {
         status = 'exception'
         const jejakPenuh = [...this.frames].reverse().map((f) => `\tat Main.${f.simbol.nama}(Main.java:${f.barisAktif})`)
@@ -331,7 +359,9 @@ class Mesin {
           if (!(lain instanceof BatasTercapai)) throw lain
         }
         if (e.kelas === 'java.lang.StackOverflowError') {
-          pesanSimulator = `[Simulator] Kedalaman pemanggilan method melebihi ${this.opsi.batasKedalaman.toLocaleString('id-ID')} (JVM asli mengizinkan lebih dalam). Biasanya rekursi tidak punya base case yang tercapai.`
+          pesanSimulator = this.stackBrowserHabis
+            ? `[Simulator] Stack browser habis pada kedalaman ${this.frames.length} pemanggilan method (JVM asli mengizinkan jauh lebih dalam). Biasanya rekursi tidak punya base case yang tercapai.`
+            : `[Simulator] Kedalaman pemanggilan method melebihi ${this.opsi.batasKedalaman.toLocaleString('id-ID')} (JVM asli mengizinkan jauh lebih dalam). Biasanya rekursi tidak punya base case yang tercapai.`
         }
         this.emit({ k: 'exception', kelas: e.kelas, pesan: e.pesanJava })
         this.catat(undefined, 'exception', baris)
@@ -450,6 +480,11 @@ class Mesin {
 
   private panggilUser(m: A.SimbolMethod, arg: Nilai[]): Nilai | undefined {
     if (this.frames.length >= this.opsi.batasKedalaman) throw new LemparanJava('java.lang.StackOverflowError')
+    // Jaring pengaman: hentikan dengan StackOverflowError yang rapi sebelum stack browser benar-benar habis.
+    if (this.frames.length >= KEDALAMAN_MULAI_PROBE && !stackMasihCukup(CADANGAN_STACK)) {
+      this.stackBrowserHabis = true
+      throw new LemparanJava('java.lang.StackOverflowError')
+    }
     const d = m.deklarasi
     const frame = this.frameBaru(m, arg)
     this.catat(d.spanNama, 'panggil')
@@ -505,11 +540,8 @@ class Mesin {
 
   private exec(p: A.Pernyataan): Selesai {
     switch (p.jenis) {
-      case 'Blok': {
-        const r = this.execBadan(p)
-        this.hapusSlot(p.slotLokal)
-        return r
-      }
+      case 'Blok':
+        return this.execBlok(p)
       case 'Kosong':
         return undefined
       case 'DeklarasiLokal':
@@ -522,33 +554,12 @@ class Mesin {
         this.eval(p.ekspresi)
         this.catat(p.span, 'pernyataan')
         return undefined
-      case 'If': {
-        this.mulaiBaris(p)
-        const v = this.evalKondisi(p.kondisi, 'if', { adaLain: p.lain !== undefined })
-        this.catat(p.kondisi.span, 'kondisi')
-        if (v) return this.exec(p.maka)
-        return p.lain ? this.exec(p.lain) : undefined
-      }
+      case 'If':
+        return this.execIf(p)
       case 'While':
-        for (let ke = 0; ; ke++) {
-          this.mulaiBaris(p.kondisi)
-          const v = this.evalKondisi(p.kondisi, 'while', { pertama: ke === 0 })
-          this.catat(p.kondisi.span, 'kondisi')
-          if (!v) return undefined
-          const r = this.exec(p.badan)
-          if (r?.k === 'break') return undefined
-          if (r?.k === 'return') return r
-        }
+        return this.execWhile(p)
       case 'DoWhile':
-        for (;;) {
-          const r = this.exec(p.badan)
-          if (r?.k === 'break') return undefined
-          if (r?.k === 'return') return r
-          this.mulaiBaris(p.spanKondisi)
-          const v = this.evalKondisi(p.kondisi, 'do-while')
-          this.catat(p.spanKondisi, 'kondisi')
-          if (!v) return undefined
-        }
+        return this.execDoWhile(p)
       case 'For':
         return this.execFor(p)
       case 'ForEach':
@@ -561,15 +572,56 @@ class Mesin {
         this.emit({ k: 'lompat', jenis: p.jenis === 'Break' ? 'break' : 'continue' })
         this.catat(p.span, 'pernyataan')
         return { k: p.jenis === 'Break' ? 'break' : 'continue' }
-      case 'Return': {
-        this.mulaiBaris(p)
-        const f = this.f
-        const nilai = p.ekspresi ? this.nilaiUntuk(p.ekspresi, f.simbol.kembali) : undefined
-        f.barisReturn = this.baris(p.span)
-        f.spanReturn = p.span
-        return { k: 'return', nilai }
-      }
+      case 'Return':
+        return this.execReturn(p)
     }
+  }
+
+  private execBlok(p: A.Blok): Selesai {
+    const r = this.execBadan(p)
+    this.hapusSlot(p.slotLokal)
+    return r
+  }
+
+  private execIf(p: A.If): Selesai {
+    this.mulaiBaris(p)
+    const v = this.evalKondisi(p.kondisi, 'if', { adaLain: p.lain !== undefined })
+    this.catat(p.kondisi.span, 'kondisi')
+    if (v) return this.exec(p.maka)
+    return p.lain ? this.exec(p.lain) : undefined
+  }
+
+  private execWhile(p: A.While): Selesai {
+    for (let ke = 0; ; ke++) {
+      this.mulaiBaris(p.kondisi)
+      const v = this.evalKondisi(p.kondisi, 'while', { pertama: ke === 0 })
+      this.catat(p.kondisi.span, 'kondisi')
+      if (!v) return undefined
+      const r = this.exec(p.badan)
+      if (r?.k === 'break') return undefined
+      if (r?.k === 'return') return r
+    }
+  }
+
+  private execDoWhile(p: A.DoWhile): Selesai {
+    for (;;) {
+      const r = this.exec(p.badan)
+      if (r?.k === 'break') return undefined
+      if (r?.k === 'return') return r
+      this.mulaiBaris(p.spanKondisi)
+      const v = this.evalKondisi(p.kondisi, 'do-while')
+      this.catat(p.spanKondisi, 'kondisi')
+      if (!v) return undefined
+    }
+  }
+
+  private execReturn(p: A.Return): Selesai {
+    this.mulaiBaris(p)
+    const f = this.f
+    const nilai = p.ekspresi ? this.nilaiUntuk(p.ekspresi, f.simbol.kembali) : undefined
+    f.barisReturn = this.baris(p.span)
+    f.spanReturn = p.span
+    return { k: 'return', nilai }
   }
 
   private execFor(p: A.For): Selesai {
@@ -721,135 +773,162 @@ class Mesin {
     return `"${this.src(e)}"`
   }
 
+  // Catatan: `eval` dan `exec` sengaja dibuat sebagai dispatcher ramping. Rekursi Java dijalankan lewat
+  // rekursi JavaScript, sehingga frame yang besar (switch raksasa dengan banyak variabel lokal) cepat
+  // menghabiskan stack worker browser. Isi tiap kasus dipindah ke method tersendiri.
   eval(e: A.Ekspresi): Nilai {
-    const t = e.tipe!
     if (e.konstan !== undefined) {
-      if (t.k === 'primitif') return e.konstan as Nilai
-      if (adalahString(t)) return this.internString(e.konstan as string)
+      if (e.tipe!.k === 'primitif') return e.konstan as Nilai
+      if (adalahString(e.tipe!)) return this.internString(e.konstan as string)
     }
     switch (e.jenis) {
       case 'Literal':
-        if (e.jenisLiteral === 'string') return this.internString(e.nilai as string)
-        return (e.nilai ?? null) as Nilai
-      case 'Nama': {
-        const ik = e.ikatan!
-        if (ik.k === 'lokal') {
-          const f = this.f
-          this.emit({ k: 'baca', frame: f.id, slot: ik.info.slot, nama: ik.info.nama })
-          return f.lokal[ik.info.slot] ?? nilaiDefault(ik.info.tipe)
-        }
-        if (ik.k === 'field') {
-          this.emit({ k: 'baca-statik', nama: e.nama })
-          return this.statik.get(e.nama)?.nilai ?? nilaiDefault(ik.field.tipe)
-        }
-        return null
-      }
-      case 'AksesField': {
-        const ik = e.ikatan!
-        if (ik.k === 'panjang-array') {
-          const ref = this.eval(e.objek)
-          if (ref === null) throw new LemparanJava('java.lang.NullPointerException', `Cannot read the array length because ${this.deskripsiNull(e.objek)} is null`)
-          return this.heapArray(ref as number).nilai.length
-        }
-        if (ik.k === 'field-pustaka') {
-          if (ik.id === 'System.out') return REF_OUT
-          if (ik.id === 'System.err') return REF_ERR
-          if (ik.id === 'System.in') return REF_IN
-          return null
-        }
-        if (ik.k === 'field') {
-          this.emit({ k: 'baca-statik', nama: e.nama })
-          return this.statik.get(e.nama)?.nilai ?? nilaiDefault(ik.field.tipe)
-        }
-        return null
-      }
-      case 'AksesArray': {
-        const ref = this.eval(e.array)
-        const i = this.indeks(e.indeks)
-        const elemen = (e.array.tipe as { elemen: Tipe }).elemen
-        if (ref === null) {
-          throw new LemparanJava('java.lang.NullPointerException', `Cannot load from ${namaArrayNpe(elemen)} array because ${this.deskripsiNull(e.array)} is null`)
-        }
-        const arr = this.heapArray(ref as number)
-        if (i < 0 || i >= arr.nilai.length) {
-          throw new LemparanJava('java.lang.ArrayIndexOutOfBoundsException', `Index ${i} out of bounds for length ${arr.nilai.length}`)
-        }
-        this.emit({ k: 'baca-elemen', id: ref as number, indeks: i })
-        return arr.nilai[i]
-      }
+        return e.jenisLiteral === 'string' ? this.internString(e.nilai as string) : ((e.nilai ?? null) as Nilai)
+      case 'Nama':
+        return this.evalNama(e)
+      case 'AksesField':
+        return this.evalAksesField(e)
+      case 'AksesArray':
+        return this.evalAksesArray(e)
       case 'PanggilMethod':
         return this.panggil(e)
-      case 'BaruArray': {
-        const tipe = e.tipe!
-        if (e.init) return this.buatDariInit(e.init, tipe)
-        const dim = e.dimensi.map((d) => this.indeks(d))
-        for (const d of dim) if (d < 0) throw new LemparanJava('java.lang.NegativeArraySizeException', String(d))
-        return this.arrayBertingkat(tipe, dim, 0)
-      }
-      case 'BaruObjek': {
-        const t = e.target!
-        if (t.k !== 'pustaka') return null
-        const { nilai, tipe } = this.argumenPustaka(e.argumen, t.parameter, false)
-        return implementasi(t.id)!(this.ctx, null, nilai, tipe, t.parameter)
-      }
+      case 'BaruArray':
+        return this.evalBaruArray(e)
+      case 'BaruObjek':
+        return this.evalBaruObjek(e)
       case 'InisialisasiArray':
         return this.buatDariInit(e, e.tipe!)
-      case 'Unary': {
-        const v = this.eval(e.operand)
-        if (e.op === '!') return !v
-        const ta = e.operand.tipe!
-        const p = promosiUnary(ta) as { k: 'primitif'; nama: NamaPrimitif }
-        const pv = konversi(v, ta, p)
-        if (e.op === '+') return pv
-        if (e.op === '-') {
-          const hasil = negasi(pv, p.nama)
-          if ((p.nama === 'int' || p.nama === 'long') && hasil === pv && pv !== 0 && pv !== 0n) {
-            this.emit({ k: 'aritmetika', jenis: 'overflow', teks: `-(${this.tampil(pv, p)})`, hasil: this.tampil(hasil, p), tepat: `${String(pv).startsWith('-') ? String(pv).slice(1) : '-' + String(pv)}`, tipe: p.nama })
-          }
-          return hasil
-        }
-        return bitNot(pv, p.nama)
-      }
-      case 'IncDec': {
-        const lv = this.lvalue(e.target)
-        lv.cek()
-        const lama = lv.baca()
-        const tn = (lv.tipe as { nama: NamaPrimitif }).nama
-        const baru = tambahSatu(lama, tn, e.op === '++' ? 1 : -1)
-        if ((tn === 'int' || tn === 'long') && (e.op === '++' ? (baru as number) < (lama as number) : (baru as number) > (lama as number))) {
-          const tepat = typeof lama === 'bigint' ? (lama + (e.op === '++' ? 1n : -1n)).toString() : String((lama as number) + (e.op === '++' ? 1 : -1))
-          this.emit({ k: 'aritmetika', jenis: 'overflow', teks: `${this.tampil(lama, lv.tipe)} ${e.op === '++' ? '+' : '-'} 1`, hasil: this.tampil(baru, lv.tipe), tepat, tipe: tn })
-        }
-        lv.tulis(baru, e.op)
-        return e.prefix ? baru : lama
-      }
-      case 'Biner': {
-        if (e.op === '&&') return this.eval(e.kiri) ? this.eval(e.kanan) : false
-        if (e.op === '||') return this.eval(e.kiri) ? true : this.eval(e.kanan)
-        const a = this.eval(e.kiri)
-        const b = this.eval(e.kanan)
-        return this.hitungBiner(e.op, a, e.kiri.tipe!, b, e.kanan.tipe!, e.tipeOperasi!)
-      }
+      case 'Unary':
+        return this.evalUnary(e)
+      case 'IncDec':
+        return this.evalIncDec(e)
+      case 'Biner':
+        return this.evalBiner(e)
       case 'Assign':
         return this.assign(e)
-      case 'Kondisional': {
-        const c = this.evalKondisi(e.kondisi, 'ternary')
-        const cabang = c ? e.ya : e.tidak
-        return this.nilaiUntuk(cabang, t)
-      }
-      case 'Cast': {
-        const v = this.eval(e.ekspresi)
-        const dari = e.ekspresi.tipe!
-        if (dari.k === 'primitif' && t.k === 'primitif') {
-          const hasil = konversiPrimitif(v, dari.nama, t.nama)
-          if (dari.nama !== t.nama) {
-            this.emit({ k: 'cast', dari: dari.nama, ke: t.nama, sebelum: this.tampil(v, dari), sesudah: this.tampil(hasil, t) })
-          }
-          return hasil
-        }
-        return v
-      }
+      case 'Kondisional':
+        return this.nilaiUntuk(this.evalKondisi(e.kondisi, 'ternary') ? e.ya : e.tidak, e.tipe!)
+      case 'Cast':
+        return this.evalCast(e)
     }
+  }
+
+  private evalNama(e: A.Nama): Nilai {
+    const ik = e.ikatan!
+    if (ik.k === 'lokal') {
+      const f = this.f
+      this.emit({ k: 'baca', frame: f.id, slot: ik.info.slot, nama: ik.info.nama })
+      return f.lokal[ik.info.slot] ?? nilaiDefault(ik.info.tipe)
+    }
+    if (ik.k === 'field') {
+      this.emit({ k: 'baca-statik', nama: e.nama })
+      return this.statik.get(e.nama)?.nilai ?? nilaiDefault(ik.field.tipe)
+    }
+    return null
+  }
+
+  private evalAksesField(e: A.AksesField): Nilai {
+    const ik = e.ikatan!
+    if (ik.k === 'panjang-array') {
+      const ref = this.eval(e.objek)
+      if (ref === null) throw new LemparanJava('java.lang.NullPointerException', `Cannot read the array length because ${this.deskripsiNull(e.objek)} is null`)
+      return this.heapArray(ref as number).nilai.length
+    }
+    if (ik.k === 'field-pustaka') {
+      if (ik.id === 'System.out') return REF_OUT
+      if (ik.id === 'System.err') return REF_ERR
+      if (ik.id === 'System.in') return REF_IN
+      return null
+    }
+    if (ik.k === 'field') {
+      this.emit({ k: 'baca-statik', nama: e.nama })
+      return this.statik.get(e.nama)?.nilai ?? nilaiDefault(ik.field.tipe)
+    }
+    return null
+  }
+
+  private evalAksesArray(e: A.AksesArray): Nilai {
+    const ref = this.eval(e.array)
+    const i = this.indeks(e.indeks)
+    const elemen = (e.array.tipe as { elemen: Tipe }).elemen
+    if (ref === null) {
+      throw new LemparanJava('java.lang.NullPointerException', `Cannot load from ${namaArrayNpe(elemen)} array because ${this.deskripsiNull(e.array)} is null`)
+    }
+    const arr = this.heapArray(ref as number)
+    if (i < 0 || i >= arr.nilai.length) {
+      throw new LemparanJava('java.lang.ArrayIndexOutOfBoundsException', `Index ${i} out of bounds for length ${arr.nilai.length}`)
+    }
+    this.emit({ k: 'baca-elemen', id: ref as number, indeks: i })
+    return arr.nilai[i]
+  }
+
+  private evalBaruArray(e: A.BaruArray): Nilai {
+    const tipe = e.tipe!
+    if (e.init) return this.buatDariInit(e.init, tipe)
+    const dim: number[] = []
+    for (const d of e.dimensi) dim.push(this.indeks(d))
+    for (const d of dim) if (d < 0) throw new LemparanJava('java.lang.NegativeArraySizeException', String(d))
+    return this.arrayBertingkat(tipe, dim, 0)
+  }
+
+  private evalBaruObjek(e: A.BaruObjek): Nilai {
+    const t = e.target!
+    if (t.k !== 'pustaka') return null
+    const { nilai, tipe } = this.argumenPustaka(e.argumen, t.parameter, false)
+    return implementasi(t.id)!(this.ctx, null, nilai, tipe, t.parameter)
+  }
+
+  private evalUnary(e: A.Unary): Nilai {
+    const v = this.eval(e.operand)
+    if (e.op === '!') return !v
+    const ta = e.operand.tipe!
+    const p = promosiUnary(ta) as { k: 'primitif'; nama: NamaPrimitif }
+    const pv = konversi(v, ta, p)
+    if (e.op === '+') return pv
+    if (e.op === '-') {
+      const hasil = negasi(pv, p.nama)
+      if ((p.nama === 'int' || p.nama === 'long') && hasil === pv && pv !== 0 && pv !== 0n) {
+        this.emit({ k: 'aritmetika', jenis: 'overflow', teks: `-(${this.tampil(pv, p)})`, hasil: this.tampil(hasil, p), tepat: `${String(pv).startsWith('-') ? String(pv).slice(1) : '-' + String(pv)}`, tipe: p.nama })
+      }
+      return hasil
+    }
+    return bitNot(pv, p.nama)
+  }
+
+  private evalIncDec(e: A.IncDec): Nilai {
+    const lv = this.lvalue(e.target)
+    lv.cek()
+    const lama = lv.baca()
+    const tn = (lv.tipe as { nama: NamaPrimitif }).nama
+    const baru = tambahSatu(lama, tn, e.op === '++' ? 1 : -1)
+    if ((tn === 'int' || tn === 'long') && (e.op === '++' ? (baru as number) < (lama as number) : (baru as number) > (lama as number))) {
+      const tepat = typeof lama === 'bigint' ? (lama + (e.op === '++' ? 1n : -1n)).toString() : String((lama as number) + (e.op === '++' ? 1 : -1))
+      this.emit({ k: 'aritmetika', jenis: 'overflow', teks: `${this.tampil(lama, lv.tipe)} ${e.op === '++' ? '+' : '-'} 1`, hasil: this.tampil(baru, lv.tipe), tepat, tipe: tn })
+    }
+    lv.tulis(baru, e.op)
+    return e.prefix ? baru : lama
+  }
+
+  private evalBiner(e: A.Biner): Nilai {
+    if (e.op === '&&') return this.eval(e.kiri) ? this.eval(e.kanan) : false
+    if (e.op === '||') return this.eval(e.kiri) ? true : this.eval(e.kanan)
+    const a = this.eval(e.kiri)
+    const b = this.eval(e.kanan)
+    return this.hitungBiner(e.op, a, e.kiri.tipe!, b, e.kanan.tipe!, e.tipeOperasi!)
+  }
+
+  private evalCast(e: A.Cast): Nilai {
+    const t = e.tipe!
+    const v = this.eval(e.ekspresi)
+    const dari = e.ekspresi.tipe!
+    if (dari.k === 'primitif' && t.k === 'primitif') {
+      const hasil = konversiPrimitif(v, dari.nama, t.nama)
+      if (dari.nama !== t.nama) {
+        this.emit({ k: 'cast', dari: dari.nama, ke: t.nama, sebelum: this.tampil(v, dari), sesudah: this.tampil(hasil, t) })
+      }
+      return hasil
+    }
+    return v
   }
 
   private arrayBertingkat(tipe: Tipe, dim: number[], level: number): number {
@@ -999,18 +1078,25 @@ class Mesin {
 
   // ---------- pemanggilan ----------
   private argumenUser(argumen: A.Ekspresi[], parameter: Tipe[], varargs: boolean): Nilai[] {
-    if (!varargs) return argumen.map((a, i) => this.nilaiUntuk(a, parameter[i]))
+    const hasil: Nilai[] = []
+    if (!varargs) {
+      for (let i = 0; i < argumen.length; i++) hasil.push(this.nilaiUntuk(argumen[i], parameter[i]))
+      return hasil
+    }
     const n = parameter.length
-    const tetap = argumen.slice(0, n - 1).map((a, i) => this.nilaiUntuk(a, parameter[i]))
+    for (let i = 0; i < n - 1; i++) hasil.push(this.nilaiUntuk(argumen[i], parameter[i]))
     const elemen = (parameter[n - 1] as { elemen: Tipe }).elemen
-    const sisa = argumen.slice(n - 1).map((a) => this.nilaiUntuk(a, elemen))
-    return [...tetap, this.buatArray(elemen, sisa)]
+    const sisa: Nilai[] = []
+    for (let i = n - 1; i < argumen.length; i++) sisa.push(this.nilaiUntuk(argumen[i], elemen))
+    hasil.push(this.buatArray(elemen, sisa))
+    return hasil
   }
 
   private argumenPustaka(argumen: A.Ekspresi[], parameter: Tipe[], varargs: boolean): { nilai: Nilai[]; tipe: Tipe[] } {
     const nilai: Nilai[] = []
     const tipe: Tipe[] = []
-    argumen.forEach((a, i) => {
+    for (let i = 0; i < argumen.length; i++) {
+      const a = argumen[i]
       const tujuan = varargs && i >= parameter.length - 1 ? undefined : parameter[i]
       if (tujuan && !(tujuan.k === 'kelas' && tujuan.nama === 'Object')) {
         nilai.push(this.nilaiUntuk(a, tujuan))
@@ -1019,7 +1105,7 @@ class Mesin {
         nilai.push(this.eval(a))
         tipe.push(a.tipe!)
       }
-    })
+    }
     return { nilai, tipe }
   }
 
