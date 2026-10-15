@@ -19,7 +19,7 @@ interface InfoAktif {
 }
 
 const setBarisAktif = StateEffect.define<InfoAktif | null>()
-const setBarisTerjalankan = StateEffect.define<Set<number> | null>()
+const setBarisPudar = StateEffect.define<Set<number> | null>()
 
 const tandaAktif = new (class extends GutterMarker {
   elementClass = 'cm-gutter-aktif'
@@ -52,24 +52,23 @@ const gutterAktif = gutterLineClass.compute([medanAktif], (state) => {
 })
 
 // ---------- Baris yang tidak pernah dijalankan ----------
-const medanTerjalankan = StateField.define<Set<number> | null>({
+const medanPudar = StateField.define<Set<number> | null>({
   create: () => null,
   update(nilai, tr) {
-    for (const e of tr.effects) if (e.is(setBarisTerjalankan)) return e.value
+    for (const e of tr.effects) if (e.is(setBarisPudar)) return e.value
+    // Saat kode diubah, nomor baris bergeser: hapus peredupan sampai hasil run berikutnya tiba.
     return tr.docChanged ? null : nilai
   },
 })
 
-const dekorasiTakJalan = EditorView.decorations.compute([medanTerjalankan], (state) => {
-  const jalan = state.field(medanTerjalankan)
-  if (!jalan) return Decoration.none
+const dekorasiTakJalan = EditorView.decorations.compute([medanPudar], (state) => {
+  const pudar = state.field(medanPudar)
+  if (!pudar || pudar.size === 0) return Decoration.none
   const b = new RangeSetBuilder<Decoration>()
-  const pudar = Decoration.line({ class: 'cm-baris-tak-jalan' })
-  for (let i = 1; i <= state.doc.lines; i++) {
-    const line = state.doc.line(i)
-    const isi = line.text.trim()
-    if (jalan.has(i) || isi === '' || isi === '}' || isi === '{' || isi.startsWith('//') || isi.startsWith('import ') || /^(public\s+)?class\s/.test(isi)) continue
-    b.add(line.from, line.from, pudar)
+  const dekorasi = Decoration.line({ class: 'cm-baris-tak-jalan' })
+  for (const i of [...pudar].sort((x, y) => x - y)) {
+    if (i < 1 || i > state.doc.lines) continue
+    b.add(state.doc.line(i).from, state.doc.line(i).from, dekorasi)
   }
   return b.finish()
 })
@@ -198,7 +197,8 @@ export interface PropsEditorJava {
   onUbah: (nilai: string) => void
   aktif?: InfoAktif | null
   diagnostik?: Diagnostik[]
-  barisTerjalankan?: Set<number> | null
+  /** Baris yang bisa dijalankan tetapi tidak pernah dijalankan (ditampilkan pudar). */
+  barisPudar?: Set<number> | null
   onKlikNomorBaris?: (baris: number) => void
   onPintasan?: (arah: -1 | 1) => void
   label?: string
@@ -217,7 +217,7 @@ function keDiagnosticCm(d: Diagnostik[], panjang: number): Diagnostic[] {
   })
 }
 
-export function EditorJava({ nilai, onUbah, aktif, diagnostik, barisTerjalankan, onKlikNomorBaris, onPintasan, label }: PropsEditorJava) {
+export function EditorJava({ nilai, onUbah, aktif, diagnostik, barisPudar, onKlikNomorBaris, onPintasan, label }: PropsEditorJava) {
   const wadah = useRef<HTMLDivElement>(null)
   const view = useRef<EditorView | null>(null)
   const callback = useRef({ onUbah, onKlikNomorBaris, onPintasan })
@@ -248,7 +248,7 @@ export function EditorJava({ nilai, onUbah, aktif, diagnostik, barisTerjalankan,
       medanAktif,
       dekorasiAktif,
       gutterAktif,
-      medanTerjalankan,
+      medanPudar,
       dekorasiTakJalan,
       EditorState.tabSize.of(4),
       keymap.of([
@@ -287,8 +287,8 @@ export function EditorJava({ nilai, onUbah, aktif, diagnostik, barisTerjalankan,
   }, [aktif?.baris, aktif?.jenis]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    view.current?.dispatch({ effects: setBarisTerjalankan.of(barisTerjalankan ?? null) })
-  }, [barisTerjalankan])
+    view.current?.dispatch({ effects: setBarisPudar.of(barisPudar ?? null) })
+  }, [barisPudar])
 
   useEffect(() => {
     const v = view.current

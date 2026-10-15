@@ -47,7 +47,7 @@ function cekIndeksString(i: number, panjang: number): void {
 
 function cekRentang(awal: number, akhir: number, panjang: number): void {
   if (awal < 0 || awal > akhir || akhir > panjang) {
-    throw new LemparanJava('java.lang.StringIndexOutOfBoundsException', `begin ${awal}, end ${akhir}, length ${panjang}`)
+    throw new LemparanJava('java.lang.StringIndexOutOfBoundsException', `Range [${awal}, ${akhir}) out of bounds for length ${panjang}`)
   }
 }
 
@@ -274,8 +274,10 @@ const umum: Record<string, ImplPustaka> = {
   },
   'String.lastIndexOf': (ctx, o, arg, _t, p) => {
     const s = ctx.teks(o)
-    const cari = p[0].k === 'primitif' ? String.fromCodePoint(arg[0] as number) : ctx.teks(arg[0])
-    return s.lastIndexOf(cari)
+    const cari = p[0].k === 'primitif' ? String.fromCodePoint(arg[0] as number) : arg[0] === null ? (() => { throw NPE() })() : ctx.teks(arg[0])
+    if (arg.length === 1) return s.lastIndexOf(cari)
+    const dari = arg[1] as number
+    return dari < 0 ? -1 : s.lastIndexOf(cari, dari)
   },
   'String.contains': (ctx, o, arg) => {
     if (arg[0] === null) throw NPE()
@@ -334,7 +336,11 @@ const umum: Record<string, ImplPustaka> = {
       return ctx.buatString(s.split(String.fromCharCode(arg[0] as number)).join(String.fromCharCode(arg[1] as number)))
     }
     if (arg[0] === null || arg[1] === null) throw NPE()
-    return ctx.buatString(s.split(ctx.teks(arg[0])).join(ctx.teks(arg[1])))
+    const target = ctx.teks(arg[0])
+    const ganti = ctx.teks(arg[1])
+    // Target kosong: Java menyisipkan pengganti di setiap posisi, termasuk awal dan akhir.
+    if (target === '') return ctx.buatString(ganti + [...s].join(ganti) + (s.length > 0 ? ganti : ''))
+    return ctx.buatString(s.split(target).join(ganti))
   },
   'String.repeat': (ctx, o, arg) => {
     const n = arg[0] as number
@@ -352,7 +358,9 @@ const umum: Record<string, ImplPustaka> = {
   },
   'String.concat': (ctx, o, arg) => {
     if (arg[0] === null) throw NPE()
-    return ctx.buatString(ctx.teks(o) + ctx.teks(arg[0]))
+    const tambahan = ctx.teks(arg[0])
+    // Seperti Java: concat dengan String kosong mengembalikan objek yang sama.
+    return tambahan === '' ? (o as number) : ctx.buatString(ctx.teks(o) + tambahan)
   },
   'String.hashCode': (ctx, o) => hashString(ctx.teks(o)),
   'String.toString': (_ctx, o) => o,
@@ -410,11 +418,12 @@ const umum: Record<string, ImplPustaka> = {
   'Math.signum': (_c, _o, a) => (Number.isNaN(a[0] as number) || a[0] === 0 ? (a[0] as number) : Math.sign(a[0] as number)),
   'Math.rint': (_c, _o, a) => {
     const x = a[0] as number
+    if (!Number.isFinite(x) || x === 0) return x
     const b = Math.floor(x)
     const d = x - b
-    if (d < 0.5) return b
-    if (d > 0.5) return b + 1
-    return b % 2 === 0 ? b : b + 1
+    const hasil = d < 0.5 ? b : d > 0.5 ? b + 1 : b % 2 === 0 ? b : b + 1
+    // Seperti Java: tanda dipertahankan, mis. rint(-0.4) = -0.0.
+    return hasil === 0 && x < 0 ? -0 : hasil
   },
   'Math.pow': (_c, _o, a) => Math.pow(a[0] as number, a[1] as number),
   'Math.hypot': (_c, _o, a) => Math.hypot(a[0] as number, a[1] as number),
@@ -554,9 +563,20 @@ const umum: Record<string, ImplPustaka> = {
   'Arrays.equals': (ctx, _o, a) => {
     if (a[0] === a[1]) return true
     if (a[0] === null || a[1] === null) return false
-    const x = wajibArray(ctx, a[0]).nilai
+    const ox = wajibArray(ctx, a[0])
+    const x = ox.nilai
     const y = wajibArray(ctx, a[1]).nilai
-    return x.length === y.length && x.every((v, i) => Object.is(v, y[i]) || v === y[i])
+    if (x.length !== y.length) return false
+    // Primitif dibandingkan bit demi bit (NaN == NaN, 0.0 != -0.0); Object[] memakai equals (isi untuk String).
+    const primitif = tipeDariTeks(ox.tipeElemen).k === 'primitif'
+    return x.every((v, i) => {
+      if (primitif) return Object.is(v, y[i])
+      if (v === y[i]) return true
+      if (v === null || y[i] === null) return false
+      const ov = ctx.heap[v as number]
+      const oy = ctx.heap[y[i] as number]
+      return ov?.k === 'string' && oy?.k === 'string' && ov.nilai === oy.nilai
+    })
   },
   'Arrays.copyOf': (ctx, _o, a) => {
     const o = wajibArray(ctx, a[0])
@@ -572,7 +592,11 @@ const umum: Record<string, ImplPustaka> = {
     const dari = a[1] as number
     const ke = a[2] as number
     if (dari > ke) throw new LemparanJava('java.lang.IllegalArgumentException', `${dari} > ${ke}`)
-    if (dari < 0 || dari > o.nilai.length) throw new LemparanJava('java.lang.ArrayIndexOutOfBoundsException', `Array index out of range: ${dari}`)
+    // Pesan mengikuti System.arraycopy di HotSpot.
+    const namaArray = tipeDariTeks(o.tipeElemen).k === 'primitif' ? `${o.tipeElemen}[${o.nilai.length}]` : `object array[${o.nilai.length}]`
+    const panjangSalin = Math.min(o.nilai.length - dari, ke - dari)
+    if (dari < 0) throw new LemparanJava('java.lang.ArrayIndexOutOfBoundsException', `arraycopy: source index ${dari} out of bounds for ${namaArray}`)
+    if (panjangSalin < 0) throw new LemparanJava('java.lang.ArrayIndexOutOfBoundsException', `arraycopy: length ${panjangSalin} is negative`)
     const tipe = tipeDariTeks(o.tipeElemen)
     const def = tipe.k === 'primitif' ? (tipe.nama === 'boolean' ? false : tipe.nama === 'long' ? 0n : 0) : null
     const isi = [...Array(ke - dari)].map((_, i) => (dari + i < o.nilai.length ? o.nilai[dari + i] : def))

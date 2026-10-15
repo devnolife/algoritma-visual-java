@@ -55,7 +55,10 @@ export function Pemutar({ kodeAwal, konfigVisual = VISUAL_BAWAAN, catatan, panta
   const output = pembaca?.outputDi(langkah) ?? ''
   const l = trace?.langkah[langkah]
   const diagnostik = hasil && !hasil.ok ? hasil.diagnostik : []
-  const barisTerjalankan = useMemo(() => (trace ? new Set(Object.keys(trace.hitunganBaris).map(Number)) : null), [trace])
+  const barisPudar = useMemo(() => {
+    if (!trace || !hasil?.ok) return null
+    return new Set(hasil.barisPernyataan.filter((b) => !trace.hitunganBaris[b]))
+  }, [trace, hasil])
 
   const klikBaris = (baris: number) => {
     if (!trace || basi) return
@@ -141,7 +144,7 @@ export function Pemutar({ kodeAwal, konfigVisual = VISUAL_BAWAAN, catatan, panta
             onUbah={(s) => usePemutar.getState().setSumber(s)}
             aktif={!basi && l ? { baris: l.baris, jenis: l.jenis } : null}
             diagnostik={diagnostik}
-            barisTerjalankan={basi ? null : barisTerjalankan}
+            barisPudar={basi ? null : barisPudar}
             onKlikNomorBaris={klikBaris}
             onPintasan={(arah) => {
               const s = usePemutar.getState()

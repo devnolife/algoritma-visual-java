@@ -26,6 +26,8 @@ class Parser {
   private id = 1
   /** Riwayat perubahan token (pemecahan `>>` pada generik) agar bisa dipulihkan saat parsing spekulatif. */
   private perubahan: { i: number; tk: Token }[] = []
+  /** true saat mengurai label `case` (tanda `->` setelah label bukan lambda). */
+  private dalamLabelCase = false
 
   constructor(
     private readonly tok: Token[],
@@ -640,9 +642,10 @@ class Parser {
 
   private pernyataanSwitch(): A.Switch {
     const awal = this.ambil().awal
-    this.harap('(')
+    const kurung = this.harap('(')
     const selektor = this.ekspresi()
-    this.harap(')')
+    const tutup = this.harap(')')
+    const spanSelektor = { awal: kurung.awal, akhir: tutup.akhir }
     this.harap('{')
     const grup: A.GrupCase[] = []
     let panah = false
@@ -659,7 +662,15 @@ class Parser {
             if (this.adalah('default')) {
               this.ambil()
               label.push('default')
-            } else label.push(this.ternary())
+            } else {
+              // `case NAMA -> …` bukan lambda: tanda panah di sini milik switch.
+              this.dalamLabelCase = true
+              try {
+                label.push(this.ternary())
+              } finally {
+                this.dalamLabelCase = false
+              }
+            }
             if (!this.adalah(',')) break
             this.ambil()
           }
@@ -677,6 +688,14 @@ class Parser {
           this.ambil()
           bentukPanah = true
           break
+        }
+        if (!this.adalah(':')) {
+          const posisi = this.sebelumnya.akhir
+          this.gagal('token-diharapkan', { awal: posisi, akhir: posisi }, {
+            pesan: ': or -> expected',
+            artinya: 'Setelah label case harus ada titik dua (:) atau tanda panah (->).',
+            saran: 'Tambahkan titik dua, mis. case 1:',
+          })
         }
         this.harap(':')
         if (!(this.adalah('case') || this.adalah('default'))) break
@@ -702,7 +721,7 @@ class Parser {
       grup.push({ id: this.nodeId(), span: this.spanDari(awalGrup), label, pernyataan })
     }
     this.ambil()
-    return { id: this.nodeId(), span: this.spanDari(awal), jenis: 'Switch', selektor, grup, panah }
+    return { id: this.nodeId(), span: this.spanDari(awal), jenis: 'Switch', selektor, spanSelektor, grup, panah }
   }
 
   // ---------- ekspresi ----------
@@ -919,7 +938,7 @@ class Parser {
         this.ambil()
         return this.literal(tk)
       case 'ident': {
-        if (this.adalah('->', this.lihat(1))) this.belumDidukung(spanT, 'Ekspresi lambda')
+        if (!this.dalamLabelCase && this.adalah('->', this.lihat(1))) this.belumDidukung(spanT, 'Ekspresi lambda')
         this.ambil()
         if (this.adalah('(')) {
           const argumen = this.argumen()
@@ -950,7 +969,7 @@ class Parser {
         break
       case 'op':
         if (tk.teks === '(') {
-          if (this.tampakLambda()) this.belumDidukung(spanT, 'Ekspresi lambda')
+          if (!this.dalamLabelCase && this.tampakLambda()) this.belumDidukung(spanT, 'Ekspresi lambda')
           this.ambil()
           const e = this.ekspresi()
           this.harap(')')

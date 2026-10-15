@@ -14,6 +14,8 @@ export interface HasilEngine {
   trace?: Trace
   /** Konstruksi Java yang dipakai (for, while, rekursi, method:nama, …). */
   konstruksi: string[]
+  /** Baris yang bisa mendapat langkah (untuk meredupkan baris yang tidak pernah dijalankan). */
+  barisPernyataan: number[]
   /** Galat internal simulator (bug), bukan error Java. */
   galat?: string
   /** true bila worker dihentikan paksa karena melebihi batas waktu. */

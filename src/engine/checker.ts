@@ -393,7 +393,7 @@ class Pemeriksa {
     const t = this.ekspresi(p.selektor)
     const bolehSelektor =
       adalahError(t) || adalahString(t) || (t.k === 'primitif' && ['int', 'char', 'short', 'byte'].includes(t.nama))
-    if (!bolehSelektor) this.lapor('selektor-switch', p.selektor.span, katalog.selektorSwitch(teksTipe(t)))
+    if (!bolehSelektor) this.lapor('selektor-switch', p.spanSelektor, katalog.selektorSwitch(teksTipe(t)))
     const terlihat = new Set<string>()
     let adaDefault = false
     this.masukLingkup()
@@ -407,6 +407,11 @@ class Pemeriksa {
         }
         const tl = this.ekspresi(l)
         if (adalahError(tl) || adalahError(t)) continue
+        // Seperti javac: kecocokan tipe dicek dulu (`case nilai > 70` → boolean vs int), baru syarat konstanta.
+        if (!adalahString(t) && !adalahString(tl) && cekAssign(tl, t, l.konstan) === 'tidak-cocok') {
+          this.lapor('tipe-tidak-cocok', l.span, katalog.tipeTidakCocok(teksTipe(tl), teksTipe(t)))
+          continue
+        }
         if (l.konstan === undefined) {
           this.lapor('butuh-konstanta', l.span, katalog.butuhKonstanta())
           continue
@@ -757,9 +762,11 @@ class Pemeriksa {
       return T.error
     }
     const mp = pilih.hasil.ref as MethodPustaka
-    e.target = { k: 'pustaka', id: mp.id, parameter: mp.parameter, kembali: mp.kembali, statik: mp.statik, varargs: mp.varargs }
+    // `Arrays.copyOf(T[], …)` generik: hasilnya bertipe sama dengan array argumen (mis. String[]).
+    const kembali = mp.id.startsWith('Arrays.copyOf') && mp.parameter[0].k === 'array' && adalahReferensi(mp.parameter[0].elemen) ? argTipe[0] : mp.kembali
+    e.target = { k: 'pustaka', id: mp.id, parameter: mp.parameter, kembali, statik: mp.statik, varargs: mp.varargs }
     e.pakaiVarargs = pilih.varargs
-    return mp.kembali
+    return kembali
   }
 
   private tipeKembaliSaatError(e: A.PanggilMethod, kelasQ: string | undefined, tipeObjek: Tipe | undefined): Tipe {

@@ -40,7 +40,7 @@ export class KlienEngine {
     this.worker = null
     for (const [id, t] of this.menunggu) {
       clearTimeout(t.timer)
-      t.resolve({ id, ok: false, diagnostik: [], penanda: {}, konstruksi: [], galat: alasan, timeout, durasiMs: BATAS_WAKTU_MS })
+      t.resolve({ id, ok: false, diagnostik: [], penanda: {}, konstruksi: [], barisPernyataan: [], galat: alasan, timeout, durasiMs: BATAS_WAKTU_MS })
     }
     this.menunggu.clear()
   }

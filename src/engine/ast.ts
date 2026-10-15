@@ -256,6 +256,8 @@ export interface GrupCase extends Dasar {
 export interface Switch extends Dasar {
   jenis: 'Switch'
   selektor: Ekspresi
+  /** Rentang `( … )` di sekitar selektor (posisi error tipe selektor, seperti javac). */
+  spanSelektor: Span
   grup: GrupCase[]
   panah: boolean
   slotLokal?: number[]

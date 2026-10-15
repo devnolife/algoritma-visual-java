@@ -1,0 +1,41 @@
+- id: jumlah-genap
+  judul: Jumlah bilangan genap
+  soal: "Ubah program agar membaca `n` dengan `Scanner`, lalu menghitung jumlah semua bilangan **genap** dari 1 sampai `n` di variabel `jumlah`. Cetak hasilnya dengan format `Total: 30` (untuk n = 10, karena 2 + 4 + 6 + 8 + 10 = 30). Isi tab Input dengan `10` untuk mencobanya."
+  cek:
+    - jenis: variabel
+      input: "10\n"
+      nama: jumlah
+      tipe: int
+      harapan: 30
+    - jenis: variabel
+      input: "7\n"
+      nama: jumlah
+      tipe: int
+      harapan: 12
+    - jenis: variabel
+      input: "1\n"
+      nama: jumlah
+      tipe: int
+      harapan: 0
+    - jenis: outputMemuat
+      input: "10\n"
+      harapan: "Total: 30"
+    - jenis: harusMemakai
+      konstruksi: for
+  petunjuk:
+    - "Ganti `int n = 5;` dengan `int n = sc.nextInt();`. Siapkan Scanner-nya lebih dulu, dan tulis `import java.util.Scanner;` di baris paling atas."
+    - "Bilangan genap habis dibagi 2, cirinya `i % 2 == 0`. Tambahkan `i` ke `jumlah` hanya jika syarat itu bernilai true."
+    - "Cara lain tanpa if: mulai dari 2 dan melompat 2 setiap putaran, yaitu `for (int i = 2; i <= n; i += 2)`."
+
+- id: hitung-mundur
+  judul: Hitung mundur
+  soal: "Ubah program agar mencetak hitung mundur dari 10 sampai 1, satu angka per baris, lalu satu baris terakhir `Meluncur!`. Gunakan `for` yang menghitung mundur. Program tidak mencetak apa pun selain itu."
+  cek:
+    - jenis: output
+      harapan: "10\n9\n8\n7\n6\n5\n4\n3\n2\n1\nMeluncur!"
+    - jenis: harusMemakai
+      konstruksi: for
+  petunjuk:
+    - "Ketiga bagian kepala `for` perlu diubah: mulai dari 10, terus berputar selama `i` masih 1 atau lebih, dan berkurang satu setiap putaran."
+    - "Kepalanya menjadi `for (int i = 10; i >= 1; i--)`, dan badannya cukup `System.out.println(i);`."
+    - "Cetak `Meluncur!` **setelah** kurung kurawal penutup perulangan, supaya hanya tercetak sekali."

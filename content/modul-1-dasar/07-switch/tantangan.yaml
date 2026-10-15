@@ -1,0 +1,69 @@
+- id: nama-hari
+  judul: Nama hari dari angka
+  soal: "Ubah program agar membaca sebuah angka dengan `Scanner`, lalu memakai `switch` untuk mencetak nama harinya: 1 `Senin`, 2 `Selasa`, 3 `Rabu`, 4 `Kamis`, 5 `Jumat`, 6 `Sabtu`, 7 `Minggu`. Untuk angka lain cetak `Hari tidak valid`. Program hanya mencetak satu baris itu. Kode lama boleh dihapus. Isi tab Input, misalnya dengan `3`, untuk mencobanya."
+  cek:
+    - jenis: output
+      input: "1\n"
+      harapan: "Senin"
+    - jenis: output
+      input: "2\n"
+      harapan: "Selasa"
+    - jenis: output
+      input: "3\n"
+      harapan: "Rabu"
+    - jenis: output
+      input: "4\n"
+      harapan: "Kamis"
+    - jenis: output
+      input: "5\n"
+      harapan: "Jumat"
+    - jenis: output
+      input: "6\n"
+      harapan: "Sabtu"
+    - jenis: output
+      input: "7\n"
+      harapan: "Minggu"
+    - jenis: output
+      input: "8\n"
+      harapan: "Hari tidak valid"
+    - jenis: harusMemakai
+      konstruksi: switch
+  petunjuk:
+    - "Baca angkanya dengan `Scanner sc = new Scanner(System.in);` dan `int nomor = sc.nextInt();`. Jangan lupa `import java.util.Scanner;` di baris paling atas."
+    - "Buat `switch (nomor)` dengan `case 1` sampai `case 7`, ditambah `default` untuk angka lainnya."
+    - "Jika memakai bentuk titik dua (`case 1:`), akhiri setiap case dengan `break;` agar tidak fall-through. Bentuk panah seperti `case 1 -> System.out.println(\"Senin\");` tidak membutuhkan break."
+
+- id: jumlah-hari
+  judul: Banyak hari dalam sebulan
+  soal: "Baca nomor bulan dengan `Scanner`, lalu cetak banyak harinya pada tahun biasa (bukan kabisat). Contoh: input `4` mencetak `30 hari`. Februari (2) punya 28 hari; April, Juni, September, dan November (4, 6, 9, 11) punya 30 hari; bulan lainnya 31 hari. Untuk angka di luar 1–12 cetak `Bulan tidak valid`. Gunakan satu `switch` dan gabungkan case yang isinya sama. Isi tab Input, misalnya dengan `4`, untuk mencobanya."
+  cek:
+    - jenis: output
+      input: "2\n"
+      harapan: "28 hari"
+    - jenis: output
+      input: "4\n"
+      harapan: "30 hari"
+    - jenis: output
+      input: "11\n"
+      harapan: "30 hari"
+    - jenis: output
+      input: "1\n"
+      harapan: "31 hari"
+    - jenis: output
+      input: "8\n"
+      harapan: "31 hari"
+    - jenis: output
+      input: "12\n"
+      harapan: "31 hari"
+    - jenis: output
+      input: "13\n"
+      harapan: "Bulan tidak valid"
+    - jenis: output
+      input: "0\n"
+      harapan: "Bulan tidak valid"
+    - jenis: harusMemakai
+      konstruksi: switch
+  petunjuk:
+    - "Case yang isinya sama boleh ditumpuk: tulis `case 4:`, `case 6:`, `case 9:`, dan `case 11:` berurutan, lalu satu kali `System.out.println(\"30 hari\");` dan `break;`."
+    - "Bentuk panah juga bisa menggabungkan nilai: `case 4, 6, 9, 11 -> System.out.println(\"30 hari\");`."
+    - "`default` sudah dipakai untuk `Bulan tidak valid`, jadi bulan 31 hari harus ditulis lengkap: `case 1, 3, 5, 7, 8, 10, 12`."

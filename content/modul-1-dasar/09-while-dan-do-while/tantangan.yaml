@@ -1,0 +1,42 @@
+- id: jumlah-digit
+  judul: Jumlah digit
+  soal: "Ubah program agar membaca **satu** bilangan bulat positif dengan `Scanner`, lalu menjumlahkan semua digitnya memakai `while`, `%`, dan `/`. Contoh: input `1234` mencetak `Jumlah digit: 10`, karena 1 + 2 + 3 + 4 = 10. Program hanya mencetak satu baris itu, jadi kode lama boleh dihapus. Ganti isi tab Input dengan `1234` untuk mencobanya."
+  cek:
+    - jenis: output
+      input: "1234\n"
+      harapan: "Jumlah digit: 10"
+    - jenis: output
+      input: "9\n"
+      harapan: "Jumlah digit: 9"
+    - jenis: output
+      input: "90817\n"
+      harapan: "Jumlah digit: 25"
+    - jenis: output
+      input: "1000\n"
+      harapan: "Jumlah digit: 1"
+    - jenis: harusMemakai
+      konstruksi: while
+  petunjuk:
+    - "`bilangan % 10` menghasilkan digit paling kanan (1234 % 10 = 4), sedangkan `bilangan / 10` membuang digit itu (1234 / 10 = 123)."
+    - "Ulangi selama `bilangan > 0`: tambahkan `bilangan % 10` ke penampung, lalu bagi `bilangan` dengan 10."
+    - "Kerangkanya sama dengan contoh menghitung banyak digit di materi. Bedanya, yang ditambahkan ke penampung adalah `bilangan % 10`, bukan 1."
+
+- id: validasi-nilai
+  judul: Ulangi sampai nilainya sah
+  soal: "Tulis program yang terus membaca nilai bulat dengan `Scanner` **sampai** mendapat nilai yang sah (0 sampai 100), memakai `do-while`. Setelah itu cetak dua baris: nilai sah yang terbaca dan banyaknya nilai yang dibaca. Misalnya untuk input `-5 120 85` outputnya `Nilai sah: 85` lalu `Banyak input: 3`. Jangan mencetak teks lain. Ganti isi tab Input dengan `-5 120 85` untuk mencobanya."
+  cek:
+    - jenis: output
+      input: "-5\n120\n85\n"
+      harapan: "Nilai sah: 85\nBanyak input: 3"
+    - jenis: output
+      input: "100\n"
+      harapan: "Nilai sah: 100\nBanyak input: 1"
+    - jenis: output
+      input: "101\n-1\n0\n"
+      harapan: "Nilai sah: 0\nBanyak input: 3"
+    - jenis: harusMemakai
+      konstruksi: do-while
+  petunjuk:
+    - "Mulailah dari contoh validasi input dengan do-while di materi. Deklarasikan `int nilai;` sebelum `do` supaya variabelnya masih bisa dipakai setelah perulangan."
+    - "Tambahkan penghitung `int banyak = 0;` sebelum `do`, lalu `banyak++;` di dalam badan, tepat setelah membaca nilai."
+    - "Setelah perulangan selesai, cetak `\"Nilai sah: \" + nilai` dan `\"Banyak input: \" + banyak` dengan dua `println`."

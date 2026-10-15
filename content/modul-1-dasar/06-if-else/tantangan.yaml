@@ -1,0 +1,66 @@
+- id: nilai-huruf
+  judul: Nilai angka menjadi huruf
+  soal: "Ubah program agar membaca sebuah nilai bulat (0–100) dengan `Scanner`, lalu mencetak huruf mutunya dalam format `Nilai huruf: B`. Aturannya: **A** untuk 85 ke atas, **B** untuk 70–84, **C** untuk 55–69, **D** untuk 40–54, dan **E** di bawah 40. Program hanya mencetak satu baris itu, tanpa teks lain seperti \"Masukkan nilai\". Kode lama boleh dihapus. Untuk mencobanya di animasi, isi tab Input dengan sebuah nilai, misalnya `78`."
+  cek:
+    - jenis: output
+      input: "85\n"
+      harapan: "Nilai huruf: A"
+    - jenis: output
+      input: "84\n"
+      harapan: "Nilai huruf: B"
+    - jenis: output
+      input: "70\n"
+      harapan: "Nilai huruf: B"
+    - jenis: output
+      input: "69\n"
+      harapan: "Nilai huruf: C"
+    - jenis: output
+      input: "55\n"
+      harapan: "Nilai huruf: C"
+    - jenis: output
+      input: "54\n"
+      harapan: "Nilai huruf: D"
+    - jenis: output
+      input: "40\n"
+      harapan: "Nilai huruf: D"
+    - jenis: output
+      input: "39\n"
+      harapan: "Nilai huruf: E"
+    - jenis: harusMemakai
+      konstruksi: if
+    - jenis: harusMemakai
+      konstruksi: scanner
+  petunjuk:
+    - "Baca nilainya dengan `Scanner`: tulis `import java.util.Scanner;` di baris paling atas, lalu `Scanner sc = new Scanner(System.in);` dan `int nilai = sc.nextInt();` di dalam `main`."
+    - "Susun rantai `if / else if / else` mulai dari batas tertinggi: `if (nilai >= 85)`, lalu `else if (nilai >= 70)`, dan seterusnya. Karena dicek dari atas, kamu tidak perlu menulis batas atas seperti `nilai <= 84`."
+    - "Siapkan `char huruf;`, isi di setiap cabang (mis. `huruf = 'B';`), lalu cetak sekali di akhir dengan `System.out.println(\"Nilai huruf: \" + huruf);`."
+
+- id: tahun-kabisat
+  judul: Tahun kabisat
+  soal: "Baca sebuah tahun dengan `Scanner`, lalu simpan hasil pemeriksaannya di variabel `boolean kabisat` yang dideklarasikan langsung di dalam `main`. Sebuah tahun adalah kabisat jika **habis dibagi 4 tetapi tidak habis dibagi 100**, **atau** jika habis dibagi 400. Setelah itu cetak `2024 tahun kabisat` atau `2023 bukan tahun kabisat` (angkanya mengikuti input). Isi tab Input, misalnya dengan `2024`, untuk mencobanya."
+  cek:
+    - jenis: variabel
+      input: "2024\n"
+      nama: kabisat
+      tipe: boolean
+      harapan: true
+    - jenis: variabel
+      input: "1900\n"
+      nama: kabisat
+      tipe: boolean
+      harapan: false
+    - jenis: variabel
+      input: "2000\n"
+      nama: kabisat
+      tipe: boolean
+      harapan: true
+    - jenis: output
+      input: "2024\n"
+      harapan: "2024 tahun kabisat"
+    - jenis: output
+      input: "2023\n"
+      harapan: "2023 bukan tahun kabisat"
+  petunjuk:
+    - "\"Habis dibagi 4\" ditulis `tahun % 4 == 0`, sedangkan \"tidak habis dibagi 100\" ditulis `tahun % 100 != 0`."
+    - "Gabungkan ketiga syarat dengan `&&` dan `||`. Beri tanda kurung agar maksudnya jelas: `(syarat1 && syarat2) || syarat3`."
+    - "Tulis `boolean kabisat = (tahun % 4 == 0 && tahun % 100 != 0) || tahun % 400 == 0;`, lalu pakai `if (kabisat)` untuk memilih kalimat yang dicetak."

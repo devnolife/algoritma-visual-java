@@ -122,7 +122,8 @@ export function formatJava(pola: string, arg: ArgFormat[], keString: (a: ArgForm
           break
         }
         const p = presisi ?? 6
-        let s = konv === 'f' ? formatF(Math.abs(x), p, t === 'float') : formatE(Math.abs(x), p)
+        // java.util.Formatter mengubah float menjadi double dulu, jadi (float) 0.1 → 0.10000000149011612.
+        let s = konv === 'f' ? formatF(Math.abs(x), p) : formatE(Math.abs(x), p)
         if (konv === 'E') s = s.toUpperCase()
         if (konv === 'f' && flag.includes(',')) {
           const [b, pecahan] = s.split('.')

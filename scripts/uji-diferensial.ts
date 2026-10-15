@@ -67,6 +67,13 @@ async function siapkanDir(kunci: string, sumber: string): Promise<string> {
 const JAVAC = ['-J-Duser.language=en', '-J-Duser.country=US', '-encoding', 'UTF-8', '-g', '-d', 'out', 'Main.java']
 const JAVA = ['-Duser.language=en', '-Duser.country=US', '-Dstdout.encoding=UTF-8', '-Dstderr.encoding=UTF-8', '-cp', 'out', 'Main']
 
+/** Frame internal JDK (`at java.base/...`) tidak disimulasikan; yang dibandingkan hanya pesan + frame kode mahasiswa. */
+const tanpaFrameJdk = (s: string) =>
+  s
+    .split('\n')
+    .filter((b) => !/^\tat java\.base\//.test(b))
+    .join('\n')
+
 async function jdkJalan(sumber: string, input: string): Promise<HasilProses & { galatKompilasi?: string }> {
   const kunci = hash(VERSI_CACHE, 'jalan', sumber, input)
   return denganCache(kunci, async () => {
@@ -184,7 +191,7 @@ async function ujiKorpus(): Promise<{ total: number; gagal: number }> {
     if (mesin.catatan) masalah.push(mesin.catatan)
     const o = bedaTeks('stdout', jdk.stdout, mesin.stdout)
     if (o) masalah.push(o)
-    const e = bedaTeks('stderr', jdk.stderr, mesin.stderr)
+    const e = bedaTeks('stderr', tanpaFrameJdk(jdk.stderr), mesin.stderr)
     if (e) masalah.push(e)
     if (!mesin.catatan && jdk.kode !== mesin.kode) masalah.push(`kode keluar berbeda: JDK ${jdk.kode}, mesin ${mesin.kode}`)
     return { f, masalah }

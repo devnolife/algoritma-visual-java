@@ -306,9 +306,9 @@ export const katalog = {
     artinya: 'Sudah ada method dengan nama dan tipe parameter yang sama.',
   }),
   selektorSwitch: (t: string): IsiPesan => ({
-    pesan: `[Simulator] switch pada tipe ${t} belum didukung`,
-    artinya: 'Simulator mendukung switch pada int, char, short, byte, dan String.',
-    simulator: true,
+    pesan: `selector type ${t} is not allowed`,
+    artinya: `Nilai yang diperiksa switch tidak boleh bertipe ${kode(t)}. Switch hanya menerima int, char, short, byte, dan String.`,
+    saran: t === 'boolean' ? 'Untuk nilai true/false, gunakan if/else.' : 'Gunakan rangkaian if/else if untuk membandingkan nilai bertipe ini.',
   }),
   labelCaseTidakCocok: (dari: string, ke: string): IsiPesan => ({
     pesan: `constant label of type ${dari} is not compatible with switch selector type ${ke}`,

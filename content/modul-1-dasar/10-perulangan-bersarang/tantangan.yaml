@@ -1,0 +1,25 @@
+- id: segitiga-terbalik
+  judul: Segitiga terbalik
+  soal: "Ubah program agar mencetak segitiga **terbalik** setinggi 4: baris pertama `****`, lalu `***`, `**`, dan terakhir `*`. Baris `Jumlah bintang: 10` tetap dicetak di akhir."
+  cek:
+    - jenis: output
+      harapan: "****\n***\n**\n*\nJumlah bintang: 10"
+    - jenis: harusMemakai
+      konstruksi: for
+  petunjuk:
+    - "Baris pertama berisi 4 bintang dan baris terakhir 1, jadi banyak bintang **berkurang** satu di setiap baris."
+    - "Cara pertama: buat perulangan luar menghitung mundur dengan `for (int baris = tinggi; baris >= 1; baris--)`, dan biarkan perulangan dalam apa adanya."
+    - "Cara kedua: biarkan perulangan luar, lalu ubah kondisi perulangan dalam menjadi `kolom <= tinggi - baris + 1`."
+
+- id: segitiga-angka
+  judul: Segitiga angka
+  soal: "Ubah program agar mencetak segitiga angka setinggi 4: baris pertama `1`, lalu `12`, `123`, dan `1234`. Setiap baris berisi angka 1 sampai nomor barisnya, tanpa spasi. Hapus baris yang mencetak jumlah bintang, sehingga output hanya berisi 4 baris itu."
+  cek:
+    - jenis: output
+      harapan: "1\n12\n123\n1234"
+    - jenis: harusMemakai
+      konstruksi: for
+  petunjuk:
+    - "Bentuk segitiganya sama dengan program awal; yang berubah hanya isi yang dicetak di perulangan dalam."
+    - "Angka yang dicetak adalah nomor kolom, jadi ganti `System.out.print(\"*\");` menjadi `System.out.print(kolom);`."
+    - "Hapus `bintang++;` dan baris `System.out.println(\"Jumlah bintang: \" + bintang);`, karena output hanya boleh berisi segitiga."

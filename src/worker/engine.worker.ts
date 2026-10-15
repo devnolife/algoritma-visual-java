@@ -1,4 +1,4 @@
-import { analisisKonstruksi } from '@/engine/analisis'
+import { analisisKonstruksi, barisBisaDijalankan } from '@/engine/analisis'
 import { jalankan, kompilasi } from '@/engine'
 import type { HasilEngine, PermintaanEngine } from './protokol'
 
@@ -15,7 +15,7 @@ ctx.onmessage = (ev) => {
   try {
     const k = kompilasi(sumber)
     if (!k.ok || !k.program) {
-      ctx.postMessage({ id, ok: false, diagnostik: k.diagnostik, penanda: k.penanda, konstruksi: [], durasiMs: performance.now() - mulai })
+      ctx.postMessage({ id, ok: false, diagnostik: k.diagnostik, penanda: k.penanda, konstruksi: [], barisPernyataan: [], durasiMs: performance.now() - mulai })
       return
     }
     const trace = jalankan(k, opsi)
@@ -26,6 +26,7 @@ ctx.onmessage = (ev) => {
       penanda: k.penanda,
       trace,
       konstruksi: analisisKonstruksi(k.program),
+      barisPernyataan: barisBisaDijalankan(k.program, k.sumber),
       durasiMs: performance.now() - mulai,
     })
   } catch (e) {
@@ -35,6 +36,7 @@ ctx.onmessage = (ev) => {
       diagnostik: [],
       penanda: {},
       konstruksi: [],
+      barisPernyataan: [],
       galat: e instanceof Error ? `${e.message}\n${e.stack ?? ''}` : String(e),
       durasiMs: performance.now() - mulai,
     })

@@ -282,14 +282,22 @@ class Mesin {
     let kodeKeluar: number | undefined
     const main = this.program.main
     try {
-      for (const f of this.program.kelas.field) {
-        if (!f.modifier.includes('static')) continue
-        for (const d of f.deklarator) {
-          const tipe = d.tipe!
-          const nilai = d.init ? this.nilaiUntuk(d.init, tipe) : nilaiDefault(tipe)
-          this.statik.set(d.nama, { nilai, tipe })
-          this.emit({ k: 'deklarasi-statik', nama: d.nama, tipe: teksTipe(tipe), nilai })
-        }
+      // Seperti JVM: semua field static bernilai default dulu; konstanta compile-time (static final) langsung terisi;
+      // lalu penginisialisasi lain dijalankan sesuai urutan teks. Field tanpa penginisialisasi tidak disentuh lagi.
+      const fieldStatik = this.program.kelas.field.filter((f) => f.modifier.includes('static')).flatMap((f) => f.deklarator)
+      const konstan = (d: A.Deklarator) => d.init !== undefined && this.program.field.get(d.nama)?.konstan !== undefined
+      for (const d of fieldStatik) {
+        const tipe = d.tipe!
+        const nilai = konstan(d) ? this.nilaiUntuk(d.init!, tipe) : nilaiDefault(tipe)
+        this.statik.set(d.nama, { nilai, tipe })
+        this.emit({ k: 'deklarasi-statik', nama: d.nama, tipe: teksTipe(tipe), nilai })
+      }
+      for (const d of fieldStatik) {
+        if (!d.init || konstan(d)) continue
+        const tipe = d.tipe!
+        const nilai = this.nilaiUntuk(d.init, tipe)
+        this.statik.set(d.nama, { nilai, tipe })
+        this.emit({ k: 'deklarasi-statik', nama: d.nama, tipe: teksTipe(tipe), nilai })
       }
       if (!main) {
         this.cetak(

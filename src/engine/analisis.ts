@@ -1,5 +1,6 @@
 import type * as A from './ast'
 import type { ProgramTerperiksa } from './checker'
+import type { Span, Sumber } from './sumber'
 
 /** Daftar anak langsung sebuah node pernyataan/ekspresi (untuk penelusuran AST). */
 export function anakNode(n: A.Pernyataan | A.Ekspresi): (A.Pernyataan | A.Ekspresi)[] {
@@ -112,4 +113,62 @@ export function analisisKonstruksi(program: ProgramTerperiksa): string[] {
     }
   }
   return [...hasil].sort()
+}
+
+/**
+ * Baris yang bisa mendapat langkah saat program berjalan (pernyataan, kondisi, header method).
+ * Baris seperti `} else {`, `case 1:`, `do {`, atau lanjutan pernyataan multi-baris tidak termasuk,
+ * jadi editor hanya meredupkan baris yang memang bisa dijalankan tetapi tidak pernah dijalankan.
+ */
+export function barisBisaDijalankan(program: ProgramTerperiksa, sumber: Sumber): number[] {
+  const hasil = new Set<number>()
+  const tambah = (span: Span) => hasil.add(sumber.baris(span.awal))
+  const kunjungi = (p: A.Pernyataan): void => {
+    switch (p.jenis) {
+      case 'Blok':
+        p.pernyataan.forEach(kunjungi)
+        return
+      case 'Kosong':
+        return
+      case 'DeklarasiLokal':
+      case 'PernyataanEkspresi':
+      case 'Break':
+      case 'Continue':
+      case 'Return':
+        tambah(p.span)
+        return
+      case 'If':
+        tambah(p.kondisi.span)
+        kunjungi(p.maka)
+        if (p.lain) kunjungi(p.lain)
+        return
+      case 'While':
+        tambah(p.kondisi.span)
+        kunjungi(p.badan)
+        return
+      case 'DoWhile':
+        tambah(p.spanKondisi)
+        kunjungi(p.badan)
+        return
+      case 'For':
+        if (p.init.length) tambah(p.init[0].span)
+        if (p.kondisi) tambah(p.kondisi.span)
+        if (p.update.length) tambah(p.update[0].span)
+        kunjungi(p.badan)
+        return
+      case 'ForEach':
+        tambah(p.span)
+        kunjungi(p.badan)
+        return
+      case 'Switch':
+        tambah(p.span)
+        for (const g of p.grup) g.pernyataan.forEach(kunjungi)
+        return
+    }
+  }
+  for (const m of program.kelas.method) {
+    tambah(m.spanNama)
+    kunjungi(m.badan)
+  }
+  return [...hasil].sort((a, b) => a - b)
 }
