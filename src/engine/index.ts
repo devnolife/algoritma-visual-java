@@ -1,3 +1,4 @@
+import { analisisAlur } from './alur'
 import { periksa, type ProgramTerperiksa } from './checker'
 import { PengumpulDiagnostik, type Diagnostik } from './diagnostik'
 import { lex } from './lexer'
@@ -26,15 +27,19 @@ export function kompilasi(teks: string): HasilKompilasi {
   const { token, penanda } = lex(sumber, diag)
   const objPenanda = Object.fromEntries(penanda)
   const unit = parse(token, diag)
-  const gagal = (): HasilKompilasi => ({
+  // Error sintaks & tipe diurutkan menurut posisi; error analisis alur mengikuti urutan javac
+  // (semua error keterjangkauan dulu, baru error penugasan).
+  const gagal = (urutkan: boolean): HasilKompilasi => ({
     ok: false,
-    diagnostik: [...diag.daftar].sort((a, b) => a.span.awal - b.span.awal),
+    diagnostik: urutkan ? [...diag.daftar].sort((a, b) => a.span.awal - b.span.awal) : [...diag.daftar],
     penanda: objPenanda,
     sumber,
   })
-  if (diag.adaError) return gagal()
+  if (diag.adaError) return gagal(true)
   const program = periksa(unit, diag)
-  if (diag.adaError || !program) return gagal()
+  if (diag.adaError || !program) return gagal(true)
+  analisisAlur(program.kelas, diag)
+  if (diag.adaError) return gagal(false)
   return { ok: true, diagnostik: [], penanda: objPenanda, program, sumber }
 }
 

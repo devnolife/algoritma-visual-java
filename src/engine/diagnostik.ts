@@ -195,6 +195,16 @@ export const katalog = {
     artinya: `${kode(x)} dideklarasikan final (konstanta), jadi nilainya tidak boleh diubah setelah diisi.`,
     saran: 'Hapus kata kunci final bila nilainya memang perlu berubah.',
   }),
+  finalMungkinSudahDiisi: (x: string): IsiPesan => ({
+    pesan: `variable ${x} might already have been assigned`,
+    artinya: `${kode(x)} adalah variabel final, jadi hanya boleh diisi tepat satu kali. Di titik ini ${kode(x)} mungkin sudah pernah diisi sebelumnya.`,
+    saran: 'Pastikan variabel final hanya diisi sekali di setiap jalur eksekusi, atau hapus kata kunci final.',
+  }),
+  finalDiisiDalamLoop: (x: string): IsiPesan => ({
+    pesan: `variable ${x} might be assigned in loop`,
+    artinya: `${kode(x)} adalah variabel final, tetapi diisi di dalam perulangan sehingga bisa terisi berkali-kali.`,
+    saran: 'Pindahkan pengisian ke luar perulangan, atau hapus kata kunci final.',
+  }),
   returnHilang: (): IsiPesan => ({
     pesan: 'missing return statement',
     artinya:
