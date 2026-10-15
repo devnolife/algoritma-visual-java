@@ -1,0 +1,72 @@
+import { z } from 'zod'
+
+export const skemaVisual = z.discriminatedUnion('jenis', [
+  z.object({
+    jenis: z.literal('array'),
+    variabel: z.string(),
+    gaya: z.enum(['sel', 'batang']).optional(),
+    penunjuk: z.array(z.string()).optional(),
+    judul: z.string().optional(),
+  }),
+  z.object({ jenis: z.literal('array2d'), variabel: z.string(), baris: z.string().optional(), kolom: z.string().optional() }),
+  z.object({ jenis: z.literal('string'), variabel: z.string() }),
+  z.object({ jenis: z.literal('memori'), stringSebagaiObjek: z.boolean().optional() }),
+  z.object({ jenis: z.literal('evaluasi') }),
+  z.object({ jenis: z.literal('konsol') }),
+  z.object({ jenis: z.literal('input') }),
+])
+
+export const skemaFrontmatter = z.object({
+  judul: z.string().min(1),
+  urutan: z.number().int(),
+  ringkasan: z.string().min(1),
+  tujuan: z.array(z.string()).min(1),
+  visual: z.array(skemaVisual).default([{ jenis: 'evaluasi' }, { jenis: 'memori' }]),
+  /** Variabel yang perubahannya ditandai hijau di slider. */
+  pantau: z.array(z.string()).default([]),
+  /** Isi bawaan tab Input (stdin untuk Scanner). */
+  input: z.string().default(''),
+  batasLangkah: z.number().int().positive().max(100_000).optional(),
+})
+
+export const skemaModul = z.object({
+  judul: z.string().min(1),
+  urutan: z.number().int(),
+  ringkasan: z.string().min(1),
+})
+
+const denganInput = { input: z.string().default('') }
+
+export const skemaCek = z.discriminatedUnion('jenis', [
+  z.object({ jenis: z.literal('output'), ...denganInput, harapan: z.string() }),
+  z.object({ jenis: z.literal('outputMemuat'), ...denganInput, harapan: z.string() }),
+  z.object({ jenis: z.literal('outputPola'), ...denganInput, pola: z.string() }),
+  z.object({
+    jenis: z.literal('variabel'),
+    ...denganInput,
+    nama: z.string(),
+    tipe: z.string().optional(),
+    harapan: z.union([z.number(), z.string(), z.boolean(), z.null(), z.array(z.unknown())]),
+  }),
+  z.object({ jenis: z.literal('arrayTerurut'), ...denganInput, nama: z.string(), arah: z.enum(['naik', 'turun']).default('naik') }),
+  z.object({ jenis: z.literal('harusMemakai'), konstruksi: z.string() }),
+  z.object({ jenis: z.literal('dilarangMemakai'), konstruksi: z.string() }),
+  z.object({ jenis: z.literal('tanpaError'), ...denganInput }),
+  z.object({ jenis: z.literal('maksLangkah'), ...denganInput, batas: z.number().int().positive() }),
+])
+
+export const skemaTantangan = z.array(
+  z.object({
+    id: z.string().regex(/^[a-z0-9-]+$/, 'id hanya boleh huruf kecil, angka, dan tanda hubung'),
+    judul: z.string().min(1),
+    soal: z.string().min(1),
+    cek: z.array(skemaCek).min(1),
+    petunjuk: z.array(z.string()).default([]),
+  }),
+)
+
+export type Frontmatter = z.infer<typeof skemaFrontmatter>
+export type MetaModul = z.infer<typeof skemaModul>
+export type Cek = z.infer<typeof skemaCek>
+export type Tantangan = z.infer<typeof skemaTantangan>[number]
+export type KonfigVisualPelajaran = z.infer<typeof skemaVisual>

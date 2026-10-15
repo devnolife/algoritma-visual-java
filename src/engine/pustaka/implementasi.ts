@@ -57,6 +57,7 @@ function cekRentangArray(dari: number, ke: number, panjang: number): void {
   if (ke > panjang) throw new LemparanJava('java.lang.ArrayIndexOutOfBoundsException', `Array index out of range: ${ke}`)
 }
 
+// eslint-disable-next-line no-control-regex -- semantik whitespace/trim Java memang mencakup karakter kontrol
 const spasiJava = (c: string) => /[\t\n\u000b\f\r\u001c-\u001f]/.test(c) || (/\s/.test(c) && c !== '\u00a0' && c !== '\u2007' && c !== '\u202f')
 
 function parseIntJava(s: string | null, radix: number, bit: 32 | 64 | 16 | 8): bigint {
@@ -83,6 +84,7 @@ function parseIntJava(s: string | null, radix: number, bit: 32 | 64 | 16 | 8): b
 
 function parseDoubleJava(s: string | null): number {
   if (s === null) throw NPE()
+  // eslint-disable-next-line no-control-regex -- semantik whitespace/trim Java memang mencakup karakter kontrol
   const t = s.replace(/^[\u0000-\u0020]+|[\u0000-\u0020]+$/g, '')
   if (t.length === 0) throw new LemparanJava('java.lang.NumberFormatException', 'empty String')
   if (!/^[+-]?(NaN|Infinity|(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?[fFdD]?)$/.test(t)) {
@@ -304,6 +306,7 @@ const umum: Record<string, ImplPustaka> = {
   'String.toLowerCase': (ctx, o) => ctx.buatString(ctx.teks(o).toLowerCase()),
   'String.trim': (ctx, o) => {
     const s = ctx.teks(o)
+    // eslint-disable-next-line no-control-regex -- semantik whitespace/trim Java memang mencakup karakter kontrol
     const t = s.replace(/^[\u0000-\u0020]+|[\u0000-\u0020]+$/g, '')
     return t === s ? (o as number) : ctx.buatString(t)
   },

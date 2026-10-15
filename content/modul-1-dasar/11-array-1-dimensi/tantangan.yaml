@@ -1,0 +1,30 @@
+- id: nilai-terkecil
+  judul: Cari nilai terkecil
+  soal: "Ubah program agar mencari nilai **terkecil** dari array dan menyimpannya di variabel `min`, lalu mencetak `Nilai terkecil: 2`."
+  cek:
+    - jenis: output
+      harapan: "Nilai terkecil: 2"
+    - jenis: variabel
+      nama: min
+      tipe: int
+      harapan: 2
+    - jenis: harusMemakai
+      konstruksi: for
+  petunjuk:
+    - "Ganti nama variabel `maks` menjadi `min` di semua tempat."
+    - "Balik operator pembanding pada baris `if` dari `>` menjadi `<`."
+
+- id: hitung-lulus
+  judul: Hitung yang lulus
+  soal: "Tambahkan variabel `int jumlahLulus` yang menghitung berapa elemen array bernilai **5 atau lebih**, lalu cetak `Jumlah lulus: 3`."
+  cek:
+    - jenis: outputMemuat
+      harapan: "Jumlah lulus: 3"
+    - jenis: variabel
+      nama: jumlahLulus
+      tipe: int
+      harapan: 3
+  petunjuk:
+    - "Buat `int jumlahLulus = 0;` sebelum perulangan."
+    - "Di dalam perulangan, tambahkan `if (nilai[i] >= 5) { jumlahLulus++; }`."
+    - "Perulangan dimulai dari `i = 1`. Apakah `nilai[0]` juga perlu diperiksa?"

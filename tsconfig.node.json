@@ -27,6 +27,7 @@
     "tests",
     "src/engine",
     "src/lessons/skema.ts",
+    "src/lessons/urai.ts",
     "src/lessons/tantangan"
   ]
 }

@@ -44,8 +44,8 @@ export function pecahanKeInt(d: number): number {
 /** double/float → long sesuai JLS 5.1.3. */
 export function pecahanKeLong(d: number): bigint {
   if (Number.isNaN(d)) return 0n
-  if (d >= 9223372036854775807) return LONG_MAX
-  if (d <= -9223372036854775808) return LONG_MIN
+  if (d >= 2 ** 63) return LONG_MAX
+  if (d <= -(2 ** 63)) return LONG_MIN
   return BigInt(Math.trunc(d))
 }
 

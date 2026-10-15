@@ -6,6 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Belajar algoritma dan pemrograman dasar dengan Java lewat visualisasi langkah demi langkah." />
     <title>Algoritma &amp; Pemrograman · Java</title>
+    <script>
+      // Terapkan tema sebelum halaman digambar agar tidak berkedip terang → gelap.
+      try {
+        var t = JSON.parse(localStorage.getItem('algojava:v1:tema') || 'null')
+        var gelap = t ? t === 'gelap' : matchMedia('(prefers-color-scheme: dark)').matches
+        if (gelap) document.documentElement.classList.add('dark')
+        document.documentElement.style.colorScheme = gelap ? 'dark' : 'light'
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

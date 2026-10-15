@@ -792,7 +792,7 @@ class Parser {
   }
 
   private tampakCast(): boolean {
-    let k = 1
+    let k: number
     const tk = this.lihat(1)
     if (tk.jenis === 'kunci' && PRIMITIF.has(tk.teks)) {
       k = 2

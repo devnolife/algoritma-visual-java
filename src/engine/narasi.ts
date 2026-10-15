@@ -199,10 +199,10 @@ export function narasikan(trace: Trace, i: number, sesudah: StateMesin, ktx: Kon
       const tulisElemen = cari('tulis-elemen')
       const forEach = /^for\s*\(/.test(baris) && cari('baca-elemen').length > 0 && (deklarasi.length > 0 || tulis.length > 0) && baris.includes(':')
       if (forEach) {
-        const v = deklarasi[0] ?? tulis[0]
+        const v = deklarasi.length > 0 ? deklarasi[0] : tulis[0]
         const be = cari('baca-elemen')[0]
         const nama = be ? namaArray(be.id, sesudah) : undefined
-        const nilai = 'baru' in v ? v.baru : v.nilai
+        const nilai = v.k === 'tulis' ? v.baru : v.nilai
         kalimat.push(`Elemen berikutnya diambil: ${k(v.nama)} = ${nama ? k(`${nama}[${be!.indeks}]`) + ' = ' : ''}${k(tampil(nilai, v.tipe))}.`)
         break
       }
@@ -275,7 +275,8 @@ export function narasikan(trace: Trace, i: number, sesudah: StateMesin, ktx: Kon
   for (const c of cari('cast')) kalimat.push(narasiCast(c))
 
   const nama = ktx.penanda?.[l.baris]
-  if (nama && ktx.catatan?.[nama]) hasil.catatan = { nama, isi: ktx.catatan[nama] }
+  // Saat exception, fokus pada errornya; catatan dosen untuk baris itu tidak ditampilkan.
+  if (nama && ktx.catatan?.[nama] && l.jenis !== 'exception') hasil.catatan = { nama, isi: ktx.catatan[nama] }
   return hasil
 }
 

@@ -130,29 +130,28 @@ class Mesin {
   ) {
     this.pemindai = new PemindaiInput(opsi.stdin)
     this.acak = mulberry32(opsi.seed)
-    const self = this
     this.ctx = {
       heap: this.state.heap,
-      teks: (ref) => self.teks(ref),
-      buatString: (s) => self.buatString(s),
-      buatArray: (t, isi) => self.buatArray(t, isi),
-      buatScanner: () => self.alokasi({ k: 'scanner', posisi: 0 }),
+      teks: (ref) => this.teks(ref),
+      buatString: (s) => this.buatString(s),
+      buatArray: (t, isi) => this.buatArray(t, isi),
+      buatScanner: () => this.alokasi({ k: 'scanner', posisi: 0 }),
       tulisElemen: (id, indeks, nilai, tipeElemen) => {
-        const o = self.state.heap[id] as { nilai: Nilai[] }
-        self.emit({ k: 'tulis-elemen', id, indeks, tipe: tipeElemen, lama: o.nilai[indeks], baru: nilai })
+        const o = this.state.heap[id] as { nilai: Nilai[] }
+        this.emit({ k: 'tulis-elemen', id, indeks, tipe: tipeElemen, lama: o.nilai[indeks], baru: nilai })
       },
-      cetak: (teks, err) => self.cetak(teks, err),
+      cetak: (teks, err) => this.cetak(teks, err),
       pemindai: this.pemindai,
       geserScanner: (id, posisi, token, metode) => {
-        const lama = (self.state.heap[id] as { posisi: number }).posisi
-        self.emit({ k: 'scanner', id, posisiLama: lama, posisi, token, metode })
+        const lama = (this.state.heap[id] as { posisi: number }).posisi
+        this.emit({ k: 'scanner', id, posisiLama: lama, posisi, token, metode })
       },
-      acak: () => self.acak(),
-      keString: (v, t) => self.keString(v, t),
+      acak: () => this.acak(),
+      keString: (v, t) => this.keString(v, t),
       keluar: (kode) => {
         throw new KeluarProgram(kode)
       },
-      waktuNano: () => 1_700_000_000_000_000_000n + BigInt(self.langkah.length) * 1_000_000n,
+      waktuNano: () => 1_700_000_000_000_000_000n + BigInt(this.langkah.length) * 1_000_000n,
     }
   }
 

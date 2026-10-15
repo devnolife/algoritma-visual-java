@@ -151,11 +151,15 @@ export const katalog = {
     artinya: `Nilai bertipe ${kode(dari)} tidak bisa dipakai di tempat yang membutuhkan ${kode(ke)}. Java adalah bahasa strongly typed: setiap variabel hanya menerima nilai yang sesuai tipenya.`,
     saran: saranKonversi(dari, ke),
   }),
-  konversiLossy: (dari: string, ke: string): IsiPesan => ({
-    pesan: `incompatible types: possible lossy conversion from ${dari} to ${ke}`,
-    artinya: `Nilai ${kode(dari)} bisa kehilangan data bila disimpan ke ${kode(ke)} (bagian desimal terbuang atau angkanya terlalu besar). Java menolak konversi seperti ini kecuali kamu menuliskannya secara eksplisit.`,
-    saran: `Gunakan casting ${kode(`(${ke}) nilai`)} bila memang ingin memotongnya, atau ubah tipe variabel menjadi ${kode(dari)}.`,
-  }),
+  konversiLossy: (dari: string, ke: string, ekspresi?: string): IsiPesan => {
+    const e = ekspresi?.trim().replace(/\s+/g, ' ')
+    const contoh = !e || e.length > 24 ? `(${ke}) (…)` : /^[\w.]+$/.test(e) ? `(${ke}) ${e}` : `(${ke}) (${e})`
+    return {
+      pesan: `incompatible types: possible lossy conversion from ${dari} to ${ke}`,
+      artinya: `Nilai ${kode(dari)} bisa kehilangan data bila disimpan ke ${kode(ke)} (bagian desimal terbuang atau angkanya terlalu besar). Java menolak konversi seperti ini kecuali kamu menuliskannya secara eksplisit.`,
+      saran: `Tulis casting ${kode(contoh)} bila memang ingin memotongnya, atau ubah tipe tujuannya menjadi ${kode(dari)}.`,
+    }
+  },
   operandBinerSalah: (op: string, a: string, b: string): IsiPesan => ({
     pesan: `bad operand types for binary operator '${op}'`,
     detail: [`first type:  ${a}`, `second type: ${b}`],
@@ -323,6 +327,11 @@ export type KunciKatalog = keyof typeof katalog
 export class PengumpulDiagnostik {
   readonly daftar: Diagnostik[] = []
   constructor(private readonly sumber: Sumber) {}
+
+  /** Potongan kode sumber pada rentang tertentu (untuk contoh perbaikan di saran). */
+  teks(span: Span): string {
+    return this.sumber.potong(span)
+  }
 
   tambah(kodeDiag: string, span: Span, isi: IsiPesan): Diagnostik {
     const d: Diagnostik = {

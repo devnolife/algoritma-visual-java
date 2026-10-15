@@ -413,7 +413,7 @@ class Pemeriksa {
         }
         if (adalahString(t) !== adalahString(tl) || (!adalahString(t) && cekAssign(tl, t, l.konstan) !== 'ok')) {
           this.lapor('label-case', l.span, cekAssign(tl, t, l.konstan) === 'lossy' && !adalahString(t)
-            ? katalog.konversiLossy(teksTipe(tl), teksTipe(t))
+            ? katalog.konversiLossy(teksTipe(tl), teksTipe(t), this.diag.teks(l.span))
             : katalog.labelCaseTidakCocok(teksTipe(tl), teksTipe(t)))
           continue
         }
@@ -476,7 +476,7 @@ class Pemeriksa {
     }
     const narrowing = typeof konstan === 'number' ? konstan : undefined
     const hasil = cekAssign(dari, ke, narrowing)
-    if (hasil === 'lossy') this.lapor('konversi-lossy', span, katalog.konversiLossy(teksTipe(dari), teksTipe(ke)))
+    if (hasil === 'lossy') this.lapor('konversi-lossy', span, katalog.konversiLossy(teksTipe(dari), teksTipe(ke), this.diag.teks(span)))
     else if (hasil === 'tidak-cocok') this.lapor('tipe-tidak-cocok', span, katalog.tipeTidakCocok(teksTipe(dari), teksTipe(ke)))
   }
 
@@ -648,7 +648,7 @@ class Pemeriksa {
     if (!adalahError(ti)) {
       const p = promosiUnary(ti)
       if (!adalahNumerik(ti)) this.lapor('tipe-tidak-cocok', e.indeks.span, katalog.tipeTidakCocok(teksTipe(ti), 'int'))
-      else if (!samaTipe(p, T.int)) this.lapor('konversi-lossy', e.indeks.span, katalog.konversiLossy(teksTipe(ti), 'int'))
+      else if (!samaTipe(p, T.int)) this.lapor('konversi-lossy', e.indeks.span, katalog.konversiLossy(teksTipe(ti), 'int', this.diag.teks(e.indeks.span)))
     }
     if (adalahError(ta)) return T.error
     if (ta.k !== 'array') {
@@ -843,7 +843,7 @@ class Pemeriksa {
       const t = this.ekspresi(d)
       if (adalahError(t)) continue
       if (!adalahNumerik(t)) this.lapor('tipe-tidak-cocok', d.span, katalog.tipeTidakCocok(teksTipe(t), 'int'))
-      else if (!samaTipe(promosiUnary(t), T.int)) this.lapor('konversi-lossy', d.span, katalog.konversiLossy(teksTipe(t), 'int'))
+      else if (!samaTipe(promosiUnary(t), T.int)) this.lapor('konversi-lossy', d.span, katalog.konversiLossy(teksTipe(t), 'int', this.diag.teks(d.span)))
     }
     if (adalahError(dasar)) return T.error
     const tipe = tipeArray(dasar, e.dimensi.length + e.dimensiKosong)

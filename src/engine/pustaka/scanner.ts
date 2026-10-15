@@ -1,5 +1,6 @@
 import { LemparanJava } from '../nilai'
 
+// eslint-disable-next-line no-control-regex -- pemisah token Scanner (Character.isWhitespace) mencakup U+001C–U+001F
 const SPASI = /[\s\u001c-\u001f]/
 
 /** Simulasi java.util.Scanner(System.in) di atas teks input yang sudah diketahui. */
