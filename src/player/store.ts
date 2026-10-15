@@ -82,8 +82,10 @@ export const usePemutar = create<StatePemutar>((set, get) => ({
   terimaHasil: (versi, h) => {
     if (versi !== get().versi) return
     if (h.ok && h.trace) {
-      const pertama = get().trace === null
+      const lama = get().trace
       const n = h.trace.langkah.length
+      // Bila sebelumnya sedang melihat langkah terakhir, tetap di akhir program yang baru.
+      const diAkhir = lama !== null && get().langkah >= lama.langkah.length - 1
       set({
         sedangJalan: false,
         hasil: h,
@@ -91,7 +93,7 @@ export const usePemutar = create<StatePemutar>((set, get) => ({
         pembaca: new PembacaTrace(h.trace),
         penanda: h.penanda,
         konstruksi: h.konstruksi,
-        langkah: pertama ? 0 : batasi(get().langkah, n),
+        langkah: lama === null ? 0 : diAkhir ? n - 1 : batasi(get().langkah, n),
         jumlahRun: get().jumlahRun + 1,
       })
     } else {

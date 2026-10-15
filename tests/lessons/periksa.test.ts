@@ -121,4 +121,9 @@ describe('periksaTantangan', () => {
     expect(h.lulus).toBe(false)
     expect(h.butir[0].rincian).toContain('batas langkah')
   })
+
+  it('batasLangkah undefined memakai batas bawaan (tidak berjalan selamanya)', async () => {
+    const h = await periksaTantangan(tantangan([{ jenis: 'tanpaError', input: '' }]), program('int i = 0;\nwhile (i < 10) {\n    i = i;\n}'), penjalanLangsung(undefined))
+    expect(h.butir[0].rincian).toContain('batas langkah')
+  })
 })

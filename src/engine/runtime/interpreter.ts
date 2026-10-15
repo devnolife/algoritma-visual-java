@@ -101,7 +101,9 @@ function namaArrayNpe(tipeElemen: Tipe): string {
 }
 
 export function jalankanProgram(program: ProgramTerperiksa, sumber: Sumber, opsi: OpsiJalan = {}): Trace {
-  return new Mesin(program, sumber, { ...OPSI_BAWAAN, ...opsi }).jalankan()
+  // Abaikan kunci bernilai undefined agar tidak menimpa nilai bawaan (mis. `{ batasLangkah: undefined }`).
+  const terisi = Object.fromEntries(Object.entries(opsi).filter(([, v]) => v !== undefined)) as OpsiJalan
+  return new Mesin(program, sumber, { ...OPSI_BAWAAN, ...terisi }).jalankan()
 }
 
 class Mesin {
