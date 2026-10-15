@@ -515,15 +515,15 @@ class Mesin {
         return undefined
       case 'If': {
         this.mulaiBaris(p)
-        const v = this.evalKondisi(p.kondisi, 'if')
+        const v = this.evalKondisi(p.kondisi, 'if', { adaLain: p.lain !== undefined })
         this.catat(p.kondisi.span, 'kondisi')
         if (v) return this.exec(p.maka)
         return p.lain ? this.exec(p.lain) : undefined
       }
       case 'While':
-        for (;;) {
+        for (let ke = 0; ; ke++) {
           this.mulaiBaris(p.kondisi)
-          const v = this.evalKondisi(p.kondisi, 'while')
+          const v = this.evalKondisi(p.kondisi, 'while', { pertama: ke === 0 })
           this.catat(p.kondisi.span, 'kondisi')
           if (!v) return undefined
           const r = this.exec(p.badan)
@@ -573,10 +573,10 @@ class Mesin {
       this.catat({ awal: p.init[0].span.awal, akhir: p.init[p.init.length - 1].span.akhir }, 'pernyataan')
     }
     let hasil: Selesai
-    for (;;) {
+    for (let ke = 0; ; ke++) {
       if (p.kondisi) {
         this.mulaiBaris(p.kondisi)
-        const v = this.evalKondisi(p.kondisi, 'for')
+        const v = this.evalKondisi(p.kondisi, 'for', { pertama: ke === 0 })
         this.catat(p.kondisi.span, 'kondisi')
         if (!v) break
       }
@@ -1035,9 +1035,13 @@ class Mesin {
   }
 
   // ---------- kondisi dengan pohon evaluasi ----------
-  private evalKondisi(e: A.Ekspresi, konteks: 'if' | 'while' | 'for' | 'do-while' | 'ternary'): boolean {
+  private evalKondisi(
+    e: A.Ekspresi,
+    konteks: 'if' | 'while' | 'for' | 'do-while' | 'ternary',
+    tambahan: { adaLain?: boolean; pertama?: boolean } = {},
+  ): boolean {
     const { nilai, pohon } = this.evalPohon(e)
-    this.emit({ k: 'evaluasi', konteks, teks: this.src(e), pohon, hasil: nilai ? 'true' : 'false' })
+    this.emit({ k: 'evaluasi', konteks, teks: this.src(e), pohon, hasil: nilai ? 'true' : 'false', ...tambahan })
     return nilai as boolean
   }
 

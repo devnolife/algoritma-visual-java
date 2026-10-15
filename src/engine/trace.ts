@@ -55,7 +55,7 @@ export type Peristiwa =
   | { k: 'baca'; frame: number; slot: number; nama: string }
   | { k: 'baca-statik'; nama: string }
   | { k: 'baca-elemen'; id: number; indeks: number }
-  | { k: 'evaluasi'; konteks: 'if' | 'while' | 'for' | 'do-while' | 'switch' | 'ternary'; teks: string; pohon: PohonEval; hasil: string }
+  | { k: 'evaluasi'; konteks: 'if' | 'while' | 'for' | 'do-while' | 'switch' | 'ternary'; teks: string; pohon: PohonEval; hasil: string; adaLain?: boolean; pertama?: boolean }
   | { k: 'cetak'; teks: string; err?: boolean }
   | { k: 'aritmetika'; jenis: 'bagi-bulat' | 'sisa' | 'overflow' | 'bagi-nol-pecahan'; teks: string; hasil: string; tepat?: string; tipe: string }
   | { k: 'cast'; dari: string; ke: string; sebelum: string; sesudah: string }
