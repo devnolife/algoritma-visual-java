@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup pemutar pelajaran (disetujui)</title>
+<style>
+  body { margin: 0; padding: 24px 32px 48px; background: #ecebe6; color: #1d1f23; font: 15px/1.5 system-ui, "Segoe UI", sans-serif; }
+  h2 { font-size: 22px; margin: 0 0 6px; }
+  h3 { font-size: 17px; margin: 0 0 4px; }
+  .subtitle { color: #5f636a; margin: 0 0 8px; }
+</style>
+</head>
+<body><h2>Bagian 3: Tampilan pemutar pelajaran</h2>
+<p class="subtitle">Layout C versi lengkap, contoh Modul 1 · Array: mencari nilai maksimum. Mockup diperkecil agar muat. Buka <b>http://localhost:52741</b> di browser biasa (layar penuh) untuk ukuran aslinya (1280 px).</p>
+
+<style>
+  .fit { width: 100%; overflow: hidden; margin: 12px 0 8px; border-radius: 12px; }
+  .fit > .jk { transform-origin: top left; }
+  .jk { --paper:#f6f5f1; --panel:#fff; --line:#e3e1da; --ink:#1d1f23; --muted:#6b6f76; --acc:#2f5bd3;
+        --cmp:#c77d00; --cmpbg:#fff3d6; --write:#1f9d55; --err:#cf3f3f; --t-int:#2f6fd6; --t-str:#12867a; --t-arr:#5b616b;
+        font: 13px/1.5 system-ui, "Segoe UI", sans-serif; color: var(--ink); background: var(--paper);
+        border: 1px solid var(--line); border-radius: 12px; overflow: hidden; position: relative; }
+  .jk * { box-sizing: border-box; margin: 0; padding: 0; }
+  .jk code, .jk .mono { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 12px; }
+  .jk p code, .jk li code { background: #efede7; padding: 0 4px; border-radius: 4px; }
+  .jk ul { padding-left: 18px; }
+
+  .app { width: 1280px; height: 760px; display: grid; grid-template-columns: 300px 1fr; grid-template-rows: 48px 1fr; }
+  .hdr { grid-column: 1 / -1; display: flex; align-items: center; gap: 22px; padding: 0 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  .brand { font-weight: 650; display: flex; align-items: center; gap: 8px; }
+  .logo { font: 600 12px ui-monospace, Consolas, monospace; background: var(--ink); color: #fff; border-radius: 6px; padding: 3px 6px; }
+  .crumb { color: var(--muted); }
+  .crumb i { font-style: normal; margin: 0 6px; color: #b5b3ad; }
+  .crumb b { color: var(--ink); font-weight: 600; }
+  .hdr-r { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .pill { background: #efede7; border-radius: 999px; padding: 3px 10px; font-size: 12px; color: var(--muted); }
+  .btn-ghost { border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; font-size: 12px; background: var(--panel); }
+  .btn { background: var(--ink); color: #fff; border-radius: 8px; padding: 5px 12px; font-size: 12px; }
+
+  .side { background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+  .tabs { display: flex; gap: 4px; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  .tab { padding: 4px 10px; border-radius: 7px; font-size: 12.5px; color: var(--muted); }
+  .tab.on { background: #efede7; color: var(--ink); font-weight: 600; }
+  .tab em { font-style: normal; font-size: 11px; background: #e6e3db; border-radius: 999px; padding: 0 6px; margin-left: 4px; }
+  .tab em.bad { background: #fbe1e1; color: var(--err); }
+  .collapse { margin-left: auto; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 0 7px; }
+  .side-c { padding: 16px; display: flex; flex-direction: column; gap: 12px; flex: 1; }
+  .side-c h4 { font-size: 17px; font-weight: 650; }
+  .side-c .cap { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+  .key { background: #eef3ff; border-radius: 10px; padding: 10px 12px; }
+  .try { background: #fff6e0; border-radius: 10px; padding: 10px 12px; }
+  .side-f { display: flex; justify-content: space-between; padding: 12px 16px; border-top: 1px solid var(--line); }
+
+  .right { display: grid; grid-template-columns: 1fr 470px; grid-template-rows: 1fr 64px; min-height: 0; }
+  .stage { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+  .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .viz { position: relative; height: 386px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+  .arr-lbl { position: absolute; left: 92px; top: 12px; font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+  .arr { position: absolute; left: 92px; top: 38px; display: flex; gap: 8px; }
+  .cell { width: 58px; height: 52px; border: 1.5px solid #cfccc4; border-radius: 8px; display: flex; align-items: center; justify-content: center; font: 600 18px ui-monospace, Consolas, monospace; background: #fff; }
+  .cell.done { color: #8d8b85; background: #f3f2ee; }
+  .cell.cmp { border-color: var(--cmp); background: var(--cmpbg); }
+  .idx { position: absolute; left: 92px; top: 94px; display: flex; gap: 8px; }
+  .idx span { width: 58px; text-align: center; font: 11px ui-monospace, Consolas, monospace; color: var(--muted); }
+  .ptr { position: absolute; left: 290px; top: 112px; width: 58px; text-align: center; color: var(--cmp); font: 600 12px ui-monospace, Consolas, monospace; line-height: 1.2; }
+  .cmpbox { position: absolute; left: 92px; top: 156px; width: 322px; display: flex; align-items: center; justify-content: center; gap: 10px; border: 1.5px dashed var(--cmp); border-radius: 10px; background: #fffaf0; padding: 7px 10px; font: 13px ui-monospace, Consolas, monospace; }
+  .cmpbox b { font-size: 16px; }
+  .res { background: #efede7; border-radius: 6px; padding: 1px 8px; font-weight: 600; }
+  .frame { position: absolute; left: 16px; right: 16px; top: 222px; height: 146px; border: 1px solid var(--line); border-radius: 12px; background: #fbfaf7; }
+  .frame-l { position: absolute; top: -10px; right: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 0 8px; font: 11px ui-monospace, Consolas, monospace; color: var(--muted); }
+  .vars { display: flex; gap: 14px; padding: 22px 16px 0; }
+  .var { width: 124px; }
+  .var-h { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font: 600 13px ui-monospace, Consolas, monospace; }
+  .badge { font: 600 10.5px ui-monospace, Consolas, monospace; border-radius: 5px; padding: 1px 6px; }
+  .badge.int { background: rgba(47,111,214,.12); color: var(--t-int); }
+  .badge.ref { background: #eceae4; color: var(--t-arr); }
+  .badge.dbl { background: rgba(124,77,204,.12); color: #7c4dcc; }
+  .val { height: 46px; border: 1.5px solid #cfccc4; border-radius: 8px; display: flex; align-items: center; justify-content: center; font: 600 20px ui-monospace, Consolas, monospace; background: #fff; }
+  .var.cmp .val { border-color: var(--cmp); background: var(--cmpbg); }
+  .dot { width: 11px; height: 11px; border-radius: 50%; background: var(--ink); }
+  .viz svg { position: absolute; inset: 0; pointer-events: none; }
+  .types-note { position: absolute; right: 14px; bottom: -1px; transform: translateY(100%); }
+
+  .narr { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .narr-h { display: flex; gap: 6px; }
+  .chip { font-size: 11.5px; background: #efede7; border-radius: 999px; padding: 2px 9px; font-weight: 600; }
+  .chip.ghost { background: transparent; border: 1px solid var(--line); font-weight: 500; color: var(--muted); }
+  .narr p { font-size: 14px; }
+  .c-cmp { color: var(--cmp); }
+  .note { background: #f3f2ee; border-radius: 8px; padding: 8px 10px; font-size: 13px !important; color: #3d4047; }
+  .anc { font: 11px ui-monospace, Consolas, monospace; background: #e6e3db; color: #55595f; border-radius: 4px; padding: 0 5px; margin-right: 4px; }
+
+  .code { background: var(--panel); border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+  .code-h { display: flex; gap: 8px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+  .file { font: 600 12px ui-monospace, Consolas, monospace; }
+  .code-h .btn-ghost { margin-left: auto; }
+  .src { flex: 1; padding: 10px 0; font: 12.5px/1.8 ui-monospace, "Cascadia Code", Consolas, monospace; }
+  .ln { display: flex; }
+  .ln .g { width: 40px; flex: none; text-align: right; padding-right: 14px; color: #a3a19a; }
+  .ln .t { white-space: pre; }
+  .ln.cur { background: #fff1cf; }
+  .ln.cur .g { color: var(--cmp); font-weight: 700; }
+  .ln.del { background: #fde8e8; }
+  .ln.del .t { text-decoration: line-through; color: #b04a4a; }
+  .ln.errl { background: #fdf0f0; }
+  .ln.errl .g { color: var(--err); font-weight: 700; }
+  .kw { color: #8b3fbf; }
+  .ty-i { color: var(--t-int); font-weight: 600; }
+  .ty-s { color: var(--t-str); font-weight: 600; }
+  .nu { color: #b35c00; }
+  .st { color: var(--t-str); }
+  .cm { color: #9a9890; }
+  .squig { text-decoration: underline wavy var(--err); text-underline-offset: 4px; }
+  .io { height: 196px; border-top: 1px solid var(--line); display: flex; flex-direction: column; }
+  .io-c { padding: 12px 14px; color: var(--muted); }
+
+  .bar { grid-column: 1 / -1; display: flex; align-items: center; gap: 16px; padding: 0 18px; background: var(--panel); border-top: 1px solid var(--line); }
+  .ctrl { display: flex; gap: 6px; }
+  .ctrl span { width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+  .ctrl .play { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .slider { flex: 1; height: 8px; background: #e6e3db; border-radius: 4px; position: relative; }
+  .fill { position: absolute; inset: 0; background: var(--acc); border-radius: 4px; transform: scaleX(.316); transform-origin: left center; }
+  .tick { position: absolute; top: -6px; width: 3px; height: 20px; border-radius: 2px; }
+  .tick.w { background: var(--write); }
+  .tick.o { background: var(--t-int); }
+  .thumb { position: absolute; left: 31.6%; top: 50%; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%; background: #fff; border: 2px solid var(--acc); box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+  .pos { font: 12.5px ui-monospace, Consolas, monospace; white-space: nowrap; }
+  .legend { display: flex; gap: 10px; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+  .legend i { display: inline-block; width: 3px; height: 11px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+
+  .states { width: 1280px; height: 352px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr; gap: 12px; }
+  .card h5 { grid-column: 1 / -1; font-size: 14px; font-weight: 650; }
+  .card .src { border: 1px solid var(--line); border-radius: 10px; padding: 8px 0; font-size: 12px; }
+  .mini { display: flex; flex-direction: column; gap: 8px; }
+  .mini .arr, .mini .idx { position: static; }
+  .mini .cell { width: 40px; height: 36px; font-size: 14px; }
+  .mini .var { width: auto; }
+  .mini .val { height: 38px; font-size: 17px; }
+  .out { background: #1d1f23; color: #e8e6e1; border-radius: 8px; padding: 6px 10px; font: 12px ui-monospace, Consolas, monospace; }
+  .fail { background: #fbe1e1; color: #9f2f2f; border-radius: 8px; padding: 6px 10px; font-size: 12.5px; font-weight: 600; }
+  .prob { border: 1px solid #f1c9c9; border-radius: 10px; background: #fffafa; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
+  .prob .mono { color: var(--err); font-size: 11.5px; }
+  .paused { position: relative; border-radius: 10px; overflow: hidden; }
+  .paused .arr { opacity: .35; }
+  .paused-l { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #3d4047; background: rgba(246,245,241,.55); }
+</style>
+
+<div class="fit" data-w="1280" data-h="760">
+  <div class="jk app">
+    <header class="hdr">
+      <div class="brand"><span class="logo">{ }</span>Algoritma &amp; Pemrograman · Java</div>
+      <nav class="crumb">Modul 1<i>›</i>Array 1 Dimensi<i>›</i><b>Mencari nilai maksimum</b></nav>
+      <div class="hdr-r"><span class="pill">Pelajaran 11 / 15</span><span class="btn-ghost">Ruang Coba</span><span class="btn-ghost">☾ Tema</span></div>
+    </header>
+
+    <aside class="side">
+      <div class="tabs"><span class="tab on">Materi</span><span class="tab">Tantangan <em>0/2</em></span><span class="collapse">⟨</span></div>
+      <div class="side-c">
+        <h4>Mencari nilai maksimum</h4>
+        <p class="cap">Tujuan</p>
+        <ul><li>Menelusuri array dengan <code>for</code></li><li>Memakai variabel penampung <code>maks</code></li></ul>
+        <p>Bayangkan kamu memeriksa nilai ujian satu per satu sambil mengingat nilai terbesar yang sudah ditemukan. Variabel <code>maks</code> berperan sebagai “ingatan” itu.</p>
+        <div class="key"><b>Konsep kunci</b><br>Bandingkan setiap elemen dengan <code>maks</code>. Ganti <code>maks</code> hanya jika elemen itu lebih besar.</div>
+        <div class="try"><b>Coba sendiri:</b> hapus baris <code>maks = nilai[i];</code>, lalu geser slider. Apa yang berubah?</div>
+      </div>
+      <div class="side-f"><span class="btn-ghost">← Sebelumnya</span><span class="btn">Berikutnya →</span></div>
+    </aside>
+
+    <div class="right">
+      <main class="stage">
+        <div class="lbl">Visualisasi</div>
+        <div class="viz">
+          <div class="arr-lbl"><span class="badge ref">int[]</span>nilai · panjang 5</div>
+          <div class="arr"><div class="cell done">4</div><div class="cell done">9</div><div class="cell done">2</div><div class="cell cmp">7</div><div class="cell">5</div></div>
+          <div class="idx"><span>[0]</span><span>[1]</span><span>[2]</span><span>[3]</span><span>[4]</span></div>
+          <div class="ptr">▲<br>i = 3</div>
+          <div class="cmpbox"><span>nilai[3]</span><b>7</b><span>&gt;</span><b>9</b><span>maks</span><span>→</span><span class="res">false</span></div>
+          <div class="frame">
+            <span class="frame-l">main()</span>
+            <div class="vars">
+              <div class="var"><div class="var-h"><span class="badge ref">int[]</span>nilai</div><div class="val"><span class="dot"></span></div></div>
+              <div class="var cmp"><div class="var-h"><span class="badge int">int</span>maks</div><div class="val">9</div></div>
+              <div class="var"><div class="var-h"><span class="badge int">int</span>i</div><div class="val">3</div></div>
+            </div>
+          </div>
+          <svg width="100%" height="100%" aria-hidden="true">
+            <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1d1f23"/></marker></defs>
+            <path d="M94,293 C30,268 28,92 86,64" fill="none" stroke="#1d1f23" stroke-width="1.6" marker-end="url(#ah)"/>
+          </svg>
+        </div>
+        <div class="narr">
+          <div class="narr-h"><span class="chip">Langkah 12 dari 38</span><span class="chip ghost">baris 6</span></div>
+          <p>Cek kondisi <code>nilai[i] &gt; maks</code> → <b class="c-cmp">7 &gt; 9</b> bernilai <b>false</b>, jadi isi <code>if</code> dilewati dan <code>maks</code> tetap 9.</p>
+          <p class="note"><span class="anc">#banding</span>Kita hanya mengganti <code>maks</code> bila menemukan nilai yang lebih besar, karena itu pembandingnya <code>&gt;</code>.</p>
+        </div>
+      </main>
+
+      <section class="code">
+        <div class="code-h"><span class="file">Main.java</span><span class="chip ghost">✎ bisa diedit</span><span class="btn-ghost">↺ Reset kode</span></div>
+        <div class="src">
+          <div class="ln"><span class="g">1</span><span class="t"><span class="kw">public class</span> Main {</span></div>
+          <div class="ln"><span class="g">2</span><span class="t">    <span class="kw">public static void</span> main(<span class="ty-s">String</span>[] args) {</span></div>
+          <div class="ln"><span class="g">3</span><span class="t">        <span class="ty-i">int</span>[] nilai = {<span class="nu">4</span>, <span class="nu">9</span>, <span class="nu">2</span>, <span class="nu">7</span>, <span class="nu">5</span>};</span></div>
+          <div class="ln"><span class="g">4</span><span class="t">        <span class="ty-i">int</span> maks = nilai[<span class="nu">0</span>];          <span class="cm">// <span class="anc">#awal</span></span></span></div>
+          <div class="ln"><span class="g">5</span><span class="t">        <span class="kw">for</span> (<span class="ty-i">int</span> i = <span class="nu">1</span>; i &lt; nilai.length; i++) {</span></div>
+          <div class="ln cur"><span class="g">▶ 6</span><span class="t">            <span class="kw">if</span> (nilai[i] &gt; maks) {    <span class="cm">// <span class="anc">#banding</span></span></span></div>
+          <div class="ln"><span class="g">7</span><span class="t">                maks = nilai[i];</span></div>
+          <div class="ln"><span class="g">8</span><span class="t">            }</span></div>
+          <div class="ln"><span class="g">9</span><span class="t">        }</span></div>
+          <div class="ln"><span class="g">10</span><span class="t">        System.out.println(<span class="st">"Nilai terbesar: "</span> + maks);</span></div>
+          <div class="ln"><span class="g">11</span><span class="t">    }</span></div>
+          <div class="ln"><span class="g">12</span><span class="t">}</span></div>
+        </div>
+        <div class="io">
+          <div class="tabs"><span class="tab on">Output</span><span class="tab">Input</span><span class="tab">Masalah <em>0</em></span></div>
+          <div class="io-c">Belum ada output. <code>System.out.println</code> di baris 10 belum dijalankan.</div>
+        </div>
+      </section>
+
+      <footer class="bar">
+        <div class="ctrl"><span>⏮</span><span>◀</span><span class="play">▶</span><span>▶▏</span><span>⏭</span></div>
+        <div class="slider"><div class="fill"></div><span class="tick w" style="left:13%"></span><span class="tick o" style="left:97%"></span><div class="thumb"></div></div>
+        <div class="legend"><span><i style="background:var(--write)"></i>maks berubah</span><span><i style="background:var(--t-int)"></i>output</span></div>
+        <div class="pos">Langkah <b>12</b> / 38</div>
+        <span class="btn-ghost">1×</span>
+      </footer>
+    </div>
+  </div>
+</div>
+
+<h3 style="margin-top:26px">Reaksi saat mahasiswa mengubah kode</h3>
+<p class="subtitle">Kode dijalankan ulang otomatis sekitar 0,4 detik setelah mahasiswa berhenti mengetik.</p>
+
+<div class="fit" data-w="1280" data-h="352">
+  <div class="jk states">
+    <div class="card">
+      <h5>① Baris 7 <code>maks = nilai[i];</code> dihapus → animasi dan hasil ikut berubah</h5>
+      <div class="src">
+        <div class="ln"><span class="g">5</span><span class="t">  <span class="kw">for</span> (<span class="ty-i">int</span> i = <span class="nu">1</span>; i &lt; nilai.length; i++) {</span></div>
+        <div class="ln"><span class="g">6</span><span class="t">    <span class="kw">if</span> (nilai[i] &gt; maks) {</span></div>
+        <div class="ln del"><span class="g">7</span><span class="t">      maks = nilai[i];</span></div>
+        <div class="ln"><span class="g">8</span><span class="t">    }</span></div>
+        <div class="ln"><span class="g">9</span><span class="t">  }</span></div>
+      </div>
+      <div class="mini">
+        <div class="arr"><div class="cell done">4</div><div class="cell cmp">9</div><div class="cell">2</div><div class="cell">7</div><div class="cell">5</div></div>
+        <p style="font-size:12.5px">Langkah 9: <code>9 &gt; 4</code> bernilai true, tapi tidak ada lagi baris yang mengubah <code>maks</code>, jadi <code>maks</code> tetap 4.</p>
+        <div class="out">Nilai terbesar: 4</div>
+        <div class="fail">✘ Tantangan 1 belum lulus: seharusnya 9</div>
+      </div>
+    </div>
+    <div class="card">
+      <h5>② Tipe diubah: <code>int maks = 3.5;</code> → error ala javac + penjelasan</h5>
+      <div class="src">
+        <div class="ln"><span class="g">3</span><span class="t">  <span class="ty-i">int</span>[] nilai = {<span class="nu">4</span>, <span class="nu">9</span>, <span class="nu">2</span>};</span></div>
+        <div class="ln errl"><span class="g">● 4</span><span class="t">  <span class="ty-i">int</span> maks = <span class="squig"><span class="nu">3.5</span></span>;</span></div>
+        <div class="ln"><span class="g">5</span><span class="t">  <span class="kw">for</span> (...) {</span></div>
+      </div>
+      <div class="mini">
+        <div class="prob">
+          <span class="mono">Main.java:4: error: incompatible types: possible lossy conversion from double to int</span>
+          <span><b>Artinya:</b> 3.5 bertipe <span class="badge dbl">double</span>, sedangkan <code>maks</code> bertipe <span class="badge int">int</span>. Java tidak mengizinkan bagian desimal hilang diam-diam.</span>
+          <span><b>Saran:</b> <code>(int) 3.5</code> (hasilnya 3), atau ubah menjadi <code>double maks</code>.</span>
+        </div>
+        <div class="paused">
+          <div class="arr"><div class="cell">4</div><div class="cell">9</div><div class="cell">2</div></div>
+          <div class="paused-l">Animasi dijeda sampai error diperbaiki</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    function fitAll() {
+      document.querySelectorAll('.fit').forEach(function (f) {
+        var a = f.firstElementChild, w = +f.dataset.w, h = +f.dataset.h;
+        var s = Math.min(1, f.clientWidth / w);
+        a.style.transform = 'scale(' + s + ')';
+        f.style.height = (h * s) + 'px';
+      });
+    }
+    window.addEventListener('resize', fitAll);
+    fitAll();
+  })();
+</script>
+
+</body>
+</html>
+

@@ -1,0 +1,6 @@
+dist
+node_modules
+pnpm-lock.yaml
+tests/korpus
+tests/korpus-error
+content/**/*.java
