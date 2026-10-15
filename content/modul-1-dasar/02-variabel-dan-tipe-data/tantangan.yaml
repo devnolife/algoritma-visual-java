@@ -1,0 +1,31 @@
+- id: ipk-mahasiswa
+  judul: Simpan IPK
+  soal: "Tambahkan variabel `ipk` bertipe `double` yang berisi `3.75`, lalu cetak baris `IPK: 3.75` dengan menyambungkan teks dan variabel itu."
+  cek:
+    - jenis: variabel
+      nama: ipk
+      tipe: double
+      harapan: 3.75
+    - jenis: outputPola
+      pola: '^IPK: 3\.75$'
+  petunjuk:
+    - "IPK berupa bilangan pecahan, jadi tipenya `double`. Deklarasikan langsung di dalam `main`, mis. setelah baris 9."
+    - "Tulis `double ipk = 3.75;`, lalu cetak dengan `System.out.println(...)` seperti baris 13."
+    - 'Teks dan variabel disambung dengan `+`: `System.out.println("IPK: " + ipk);`'
+
+- id: tukar-isi
+  judul: Tukar isi dua gelas
+  soal: "Tambahkan `int gelasA = 5;` dan `int gelasB = 8;` di dalam `main`, lalu **tukar** isinya dengan bantuan variabel ketiga `sementara`. Di akhir program `gelasA` harus bernilai 8 dan `gelasB` bernilai 5. Setelah dua deklarasi itu, jangan menulis angka 5 atau 8 lagi."
+  cek:
+    - jenis: variabel
+      nama: gelasA
+      tipe: int
+      harapan: 8
+    - jenis: variabel
+      nama: gelasB
+      tipe: int
+      harapan: 5
+  petunjuk:
+    - "Coba dulu `gelasA = gelasB;` lalu lihat panel Memori: isi lama `gelasA` (5) hilang tertimpa dan tidak bisa dikembalikan."
+    - "Simpan dulu isi `gelasA` ke variabel baru: `int sementara = gelasA;`."
+    - "Setelah itu `gelasA = gelasB;`, lalu `gelasB = sementara;`. Geser slider dan ikuti perpindahan angkanya."

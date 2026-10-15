@@ -1,0 +1,33 @@
+- id: karung-penuh
+  judul: Hanya karung yang penuh
+  soal: "Setiap karung memuat 5 kg beras, dan toko hanya menghitung karung yang **penuh**. Ubah tipe `jumlahKarung` di baris 18 menjadi `int`, lalu perbaiki error yang muncul dengan casting, sehingga program mencetak `Karung penuh: 9`."
+  cek:
+    - jenis: variabel
+      nama: jumlahKarung
+      tipe: int
+      harapan: 9
+    - jenis: outputPola
+      pola: '^Karung penuh: 9$'
+    - jenis: harusMemakai
+      konstruksi: casting
+  petunjuk:
+    - "Setelah `double` diganti `int`, Java menolak dengan `possible lossy conversion from double to int`, karena `beratBeras / 5` bernilai `9.5`."
+    - "Tambahkan casting `(int)` di depan pembagian itu. Bagian desimalnya akan dipotong."
+    - "Tulis `int jumlahKarung = (int) (beratBeras / 5);`. Tanda kurung memastikan pembagian dikerjakan sebelum casting."
+
+- id: huruf-besar
+  judul: Dari huruf kecil ke huruf besar
+  soal: "Tambahkan `char kecil = 'g';`, lalu buat variabel `char besar` yang berisi versi huruf besarnya. Hitung dari kode Unicode `kecil`, jangan menulis `'G'` langsung. Cetak `Huruf besar: G`."
+  cek:
+    - jenis: variabel
+      nama: besar
+      tipe: char
+      harapan: G
+    - jenis: outputPola
+      pola: '^Huruf besar: G$'
+    - jenis: harusMemakai
+      konstruksi: casting
+  petunjuk:
+    - "Kode `'a'` adalah 97 dan kode `'A'` adalah 65, jadi setiap huruf kecil berjarak 32 dari huruf besarnya."
+    - "`kecil - 32` bertipe `int` (nilainya 71), sehingga perlu diubah kembali menjadi `char` dengan casting."
+    - 'Tulis `char besar = (char) (kecil - 32);`, lalu cetak dengan `System.out.println("Huruf besar: " + besar);`.'

@@ -1,0 +1,37 @@
+- id: rata-rata-tiga-nilai
+  judul: Rata-rata tiga nilai
+  soal: "Tambahkan tiga variabel `int nilai1 = 7;`, `int nilai2 = 8;`, dan `int nilai3 = 8;`. Hitung rata-ratanya ke variabel `double rataRata` sehingga hasilnya `7.666666666666667`, bukan `7.0`. Cetak `Rata-rata: 7.666666666666667`."
+  cek:
+    - jenis: variabel
+      nama: rataRata
+      tipe: double
+      harapan: 7.666666666666667
+    - jenis: outputPola
+      pola: '^Rata-rata: 7\.666666666666667$'
+  petunjuk:
+    - "Jumlahkan dulu ketiganya dengan tanda kurung: `(nilai1 + nilai2 + nilai3)`, lalu bagi 3."
+    - "Jika hasilnya `7.0`, berarti pembagiannya masih pembagian int: `23 / 3` = `7`, baru kemudian diubah menjadi `7.0`."
+    - "Buat salah satu operand menjadi pecahan, mis. `(nilai1 + nilai2 + nilai3) / 3.0`."
+
+- id: konversi-detik
+  judul: Jam, menit, dan detik
+  soal: "Tambahkan `int totalDetik = 3725;`. Dengan `/` dan `%`, hitung variabel `int jam`, `int menit`, dan `int detik` dari `totalDetik` (1 jam = 3600 detik, 1 menit = 60 detik), lalu cetak `1 jam 2 menit 5 detik`."
+  cek:
+    - jenis: variabel
+      nama: jam
+      tipe: int
+      harapan: 1
+    - jenis: variabel
+      nama: menit
+      tipe: int
+      harapan: 2
+    - jenis: variabel
+      nama: detik
+      tipe: int
+      harapan: 5
+    - jenis: outputPola
+      pola: '^1 jam 2 menit 5 detik$'
+  petunjuk:
+    - "`totalDetik / 3600` memberi banyaknya jam penuh, dan `totalDetik % 3600` memberi detik yang tersisa setelah jam diambil."
+    - "Sisa detik itu dibagi 60 untuk mendapatkan menit. Detik terakhir adalah sisa pembagian `totalDetik` dengan 60."
+    - "`int menit = totalDetik % 3600 / 60;` dan `int detik = totalDetik % 60;`. Ingat, `%` dan `/` setingkat, jadi dikerjakan dari kiri ke kanan."

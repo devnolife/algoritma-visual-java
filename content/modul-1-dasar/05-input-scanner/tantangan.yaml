@@ -1,0 +1,34 @@
+- id: luas-persegi-panjang
+  judul: Luas persegi panjang
+  soal: "Ubah program agar membaca dua bilangan bulat, `panjang` lalu `lebar`, kemudian mencetak **tepat satu baris** `Luas: X` dengan X = panjang × lebar. Contohnya, input `5` dan `3` menghasilkan `Luas: 15`. Jangan mencetak prompt atau baris lain. Untuk mencoba, ganti isi tab Input menjadi `5 3`."
+  cek:
+    - jenis: output
+      input: "5\n3\n"
+      harapan: "Luas: 15"
+    - jenis: output
+      input: "12\n7\n"
+      harapan: "Luas: 84"
+    - jenis: output
+      input: "9 4\n"
+      harapan: "Luas: 36"
+    - jenis: harusMemakai
+      konstruksi: scanner
+  petunjuk:
+    - "Kamu hanya butuh dua kali `masukan.nextInt()`. Pembacaan `nama`, `tinggi`, `umur`, dan `kota` boleh dihapus."
+    - "Simpan hasil bacaan di `int panjang` dan `int lebar`, lalu hitung `int luas = panjang * lebar;`."
+    - 'Cetak dengan `System.out.println("Luas: " + luas);` dan hapus semua pernyataan cetak lainnya.'
+
+- id: umur-lalu-nama
+  judul: Umur dulu, baru nama
+  soal: "Kali ini baris pertama input berisi umur dan baris kedua berisi nama lengkap, mis. `19` lalu `Rina Amelia`. Baca keduanya dalam urutan itu, lalu cetak tepat satu baris `Rina Amelia (19 tahun)`. Untuk mencoba, isi tab Input dengan dua baris tersebut. Awas jebakan `nextLine()` setelah `nextInt()`!"
+  cek:
+    - jenis: output
+      input: "19\nRina Amelia\n"
+      harapan: "Rina Amelia (19 tahun)"
+    - jenis: output
+      input: "20\nBudi Santoso Putra\n"
+      harapan: "Budi Santoso Putra (20 tahun)"
+  petunjuk:
+    - "Baca umur dengan `nextInt()`, lalu nama dengan `nextLine()`. Jalankan dan lihat isi kotak `nama` di panel Memori."
+    - "Jika `nama` berisi `\"\"`, itu karena Enter setelah umur masih tertinggal di input dan langsung dibaca `nextLine()`."
+    - 'Sisipkan `masukan.nextLine();` tepat setelah `nextInt()`, lalu cetak dengan `System.out.println(nama + " (" + umur + " tahun)");`.'

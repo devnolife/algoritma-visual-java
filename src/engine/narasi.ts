@@ -223,7 +223,10 @@ export function narasikan(trace: Trace, i: number, sesudah: StateMesin, ktx: Kon
         }
         if (op && op !== '=' && operand !== undefined) {
           const opBiner = op.slice(0, -1)
-          return `${k(`${nama} ${op} ${operand}`)} berarti ${k(nama)} = ${tl} ${opBiner} ${operand} = ${k(tb)}.`
+          // Tampilkan teks kode aslinya (mis. `jumlah += data[i]`) bila langkah ini memang compound assignment tersebut.
+          const asli = teksLangkah(l, ktx.sumber).replace(/;$/, '')
+          const kode = asli.startsWith(nama) && asli.slice(nama.length).trimStart().startsWith(op) ? asli : `${nama} ${op} ${operand}`
+          return `${k(kode)} berarti ${k(nama)} = ${tl} ${opBiner} ${operand} = ${k(tb)}.`
         }
         if (lama === undefined) return `${k(nama)} diisi dengan ${k(tb)}.`
         return tl === tb ? `${k(nama)} diisi ${k(tb)} (nilainya sama seperti sebelumnya).` : `${k(nama)} berubah dari ${k(tl)} menjadi ${k(tb)}.`

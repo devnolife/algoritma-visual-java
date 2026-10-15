@@ -1,0 +1,23 @@
+- id: biodata-tiga-baris
+  judul: Biodata tiga baris
+  soal: "Ubah program agar mencetak biodatamu dalam tiga baris berurutan: `Nama: ...`, lalu `NIM: ...`, lalu `Prodi: ...`. Ganti titik-titiknya dengan datamu sendiri, mis. `Nama: Rina Amelia`. Perhatikan huruf besar-kecil, tanda titik dua, dan spasi setelahnya."
+  cek:
+    - jenis: outputPola
+      pola: '^Nama: .+\nNIM: \S+\nProdi: .+$'
+  petunjuk:
+    - "Setiap baris biodata membutuhkan satu pernyataan `System.out.println`."
+    - 'Baris pertama bisa ditulis `System.out.println("Nama: Rina Amelia");`. Buat dua baris berikutnya dengan pola yang sama.'
+    - "Hapus pernyataan cetak lama yang tidak dibutuhkan agar output rapi, dan pastikan setiap pernyataan diakhiri `;`."
+
+- id: satu-pernyataan
+  judul: Tiga baris, satu pernyataan
+  soal: "Cetak biodata tiga baris yang sama (`Nama: ...`, `NIM: ...`, `Prodi: ...`), tetapi kali ini dengan **satu** pernyataan saja di dalam `main`. Gunakan karakter escape `\\n` untuk pindah baris di dalam teks."
+  cek:
+    - jenis: outputPola
+      pola: '^Nama: .+\nNIM: \S+\nProdi: .+$'
+    - jenis: maksLangkah
+      batas: 3
+  petunjuk:
+    - "Hapus semua pernyataan di dalam `main`, lalu tulis satu `System.out.println(...)` saja."
+    - "`\\n` di dalam tanda kutip membuat output pindah baris, seperti di baris 9 program awal."
+    - 'Bentuknya kira-kira `System.out.println("Nama: Rina\nNIM: 123\nProdi: Informatika");` dengan datamu sendiri.'
