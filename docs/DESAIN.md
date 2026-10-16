@@ -323,11 +323,32 @@ Kita hanya mengganti maks bila menemukan nilai yang lebih besar.
 
 Ditambah halaman **Ruang Coba**: editor bebas dengan visual otomatis (memori, array, evaluasi, konsol) dan panel input.
 
+### Modul 3: Strategi Algoritma (dirilis lebih dulu dari Modul 2)
+| # | Pelajaran | Visual utama | Grafik pertumbuhan |
+|---|---|---|---|
+| 1 | Analisis algoritma & Big-O | array (penunjuk i, j), evaluasi, memori | O(n²), penghitung `operasi` |
+| 2 | Brute force | array, evaluasi, memori | O(n²) |
+| 3 | Pencarian linear & biner | array (`rentang` kiri..kanan) | dua seri: O(log n) vs O(n) |
+| 4 | Bubble sort | array batang | acak & terurut sama-sama O(n²); tantangan "berhenti dini" membuat data terurut O(n) |
+| 5 | Selection sort | array batang | selalu O(n²), juga untuk data terurut |
+| 6 | Insertion sort | array batang | acak O(n²) vs terurut O(n) |
+| 7 | Divide and conquer | pohonPanggilan | pangkat cepat O(log n) vs biasa O(n) |
+| 8 | Merge sort | array batang + `rentang`, pohonPanggilan | O(n log n) |
+| 9 | Quick sort | array batang + `rentang`, pohonPanggilan | acak O(n log n) vs terurut O(n²) |
+| 10 | Greedy: uang kembalian | array, evaluasi | — |
+| 11 | DP: Fibonacci | pohonPanggilan, array memo | naif O(2ⁿ) vs memo O(n) |
+| 12 | DP: Knapsack 0/1 | array2d `tabel` berlabel | — |
+| 13 | DP: Longest Common Subsequence | array2d `tabel` (label huruf) | — |
+| 14 | Backtracking: N-Queens | array2d `papan`, pohonPanggilan | — |
+| 15 | Graf: BFS & DFS | graf (dikunjungi, u/v), array antrean | — |
+| 16 | Dijkstra: jarak terpendek | graf berbobot (label jarak) | — |
+
+Setiap pelajaran punya 2 tantangan beserta solusinya (32 tantangan). Cek `kompleksitas` dipakai untuk tantangan efisiensi.
+
 ### Roadmap
-- **Modul 3: Strategi Algoritma** (dikerjakan lebih dulu karena cukup memakai subset Fase 1).
-  - Mesin: grafik pertumbuhan, yaitu program dijalankan untuk beberapa ukuran n lalu jumlah operasinya dibandingkan dengan kurva acuan.
-  - Renderer: rentang aktif pada array, pohon panggilan, tabel DP berlabel, papan backtracking, graf dari matriks.
-  - Materi (16 pelajaran): analisis & Big-O, brute force, pencarian linear & biner, bubble/selection/insertion/merge/quick sort, divide & conquer, greedy, DP (Fibonacci, knapsack 0/1, LCS), N-Queens, BFS & DFS, Dijkstra.
+- ~~**Modul 3: Strategi Algoritma**~~ **selesai** (tabel di atas). Modul ini dikerjakan lebih dulu karena cukup memakai subset Fase 1. Isinya:
+  - grafik pertumbuhan, yaitu program dijalankan untuk beberapa ukuran n lalu jumlah operasinya dibandingkan dengan kurva acuan;
+  - renderer rentang aktif pada array, pohon panggilan, tabel DP berlabel, papan backtracking, dan graf dari matriks.
 - **Fase 2 + Modul 2: Struktur Data.**
   - Mesin: lihat [§11](#11-fase-2-perluasan-mesin-untuk-struktur-data).
   - Renderer: memori objek dan alur exception, rantai node, pohon, tumpukan, antrean, tabel hash, koleksi `java.util` (abstrak + "Lihat isi dalam"), graf dari daftar ketetanggaan.

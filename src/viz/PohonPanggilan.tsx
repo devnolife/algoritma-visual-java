@@ -10,6 +10,11 @@ export interface KonfigPohonPanggilan {
   method?: string
   /** Batas simpul yang digambar (bawaan 63). */
   maks?: number
+  /**
+   * Tandai panggilan yang argumennya sama dengan panggilan sebelumnya sebagai "dihitung ulang" (bawaan true).
+   * Matikan untuk backtracking: argumen sama tetapi keadaan global (papan) berbeda.
+   */
+  tandaiBerulang?: boolean
 }
 
 const TINGGI_BARIS = 62
@@ -30,6 +35,7 @@ export function PohonPanggilan({ trace, indeks, konfig, instan }: { trace: Trace
   const kurangiGerak = useReducedMotion()
   const refGulir = useRef<HTMLDivElement>(null)
   const maks = konfig.maks ?? 63
+  const tandaiBerulang = konfig.tandaiBerulang ?? true
 
   const { tata, garis, lebar, tinggi, tersembunyi, idAktif } = useMemo(() => {
     const terlihat = semua.filter((s) => s.mulai <= indeks)
@@ -86,7 +92,7 @@ export function PohonPanggilan({ trace, indeks, konfig, instan }: { trace: Trace
       const p = posisi.get(s.id)
       if (!p) continue
       const kunci = label(s)
-      const berulang = sudahAda.has(kunci)
+      const berulang = tandaiBerulang && sudahAda.has(kunci)
       sudahAda.add(kunci)
       const w = lebarSimpul(s)
       tata.push({
@@ -121,7 +127,7 @@ export function PohonPanggilan({ trace, indeks, konfig, instan }: { trace: Trace
       tersembunyi: terlihat.length - tata.length,
       idAktif: aktif?.id,
     }
-  }, [semua, indeks, maks])
+  }, [semua, indeks, maks, tandaiBerulang])
 
   useEffect(() => {
     // Gulir horizontal di dalam wadah pohon saja; panggung tidak ikut digeser agar visual lain tetap terlihat.
@@ -146,9 +152,11 @@ export function PohonPanggilan({ trace, indeks, konfig, instan }: { trace: Trace
         <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
           <span aria-hidden="true" className="inline-block h-3 w-4 rounded-[4px] border-[1.5px] border-banding bg-banding-lembut" /> aktif
         </span>
-        <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
-          <span aria-hidden="true" className="inline-block h-3 w-4 rounded-[4px] border-[1.5px] border-dashed border-muted-foreground" /> dihitung ulang
-        </span>
+        {tandaiBerulang && (
+          <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+            <span aria-hidden="true" className="inline-block h-3 w-4 rounded-[4px] border-[1.5px] border-dashed border-muted-foreground" /> argumen sama dengan panggilan sebelumnya
+          </span>
+        )}
       </div>
       {tata.length === 0 ? (
         <p className="rounded-lg border border-dashed px-3 py-2 text-[13px] text-muted-foreground">

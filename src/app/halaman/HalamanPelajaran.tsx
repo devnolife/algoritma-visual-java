@@ -7,6 +7,7 @@ import { cariPelajaran } from '@/lessons/muat'
 import { PanelTantangan } from '@/lessons/PanelTantangan'
 import { Pemutar } from '@/player/Pemutar'
 import { usePemutar } from '@/player/store'
+import { TeksSebaris } from '@/player/TeksSebaris'
 import type { KonfigVisual } from '@/viz/Panggung'
 import { Kepala, Pemisah, Remah } from '../komponen/Kepala'
 import { Markdown } from '../komponen/Markdown'
@@ -81,7 +82,9 @@ export function HalamanPelajaran() {
                   <p className="mb-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Tujuan</p>
                   <ul className="flex list-disc flex-col gap-1 pl-5 text-[14.5px]">
                     {p.meta.tujuan.map((t) => (
-                      <li key={t}>{t}</li>
+                      <li key={t}>
+                        <TeksSebaris teks={t} />
+                      </li>
                     ))}
                   </ul>
                 </div>

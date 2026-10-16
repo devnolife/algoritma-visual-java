@@ -222,6 +222,7 @@ function keDiagnosticCm(d: Diagnostik[], panjang: number): Diagnostic[] {
 export function EditorJava({ nilai, onUbah, aktif, diagnostik, barisPudar, onKlikNomorBaris, onPintasan, label }: PropsEditorJava) {
   const wadah = useRef<HTMLDivElement>(null)
   const view = useRef<EditorView | null>(null)
+  const docTerakhir = useRef<unknown>(null)
   const callback = useRef({ onUbah, onKlikNomorBaris, onPintasan })
   useLayoutEffect(() => {
     callback.current = { onUbah, onKlikNomorBaris, onPintasan }
@@ -285,7 +286,18 @@ export function EditorJava({ nilai, onUbah, aktif, diagnostik, barisPudar, onKli
   }, [nilai])
 
   useEffect(() => {
-    view.current?.dispatch({ effects: setBarisAktif.of(aktif ?? null) })
+    const v = view.current
+    if (!v) return
+    // Gulir ke baris aktif hanya saat melangkah (dokumen tidak berubah), bukan saat mahasiswa sedang mengetik.
+    const melangkah = docTerakhir.current === v.state.doc
+    docTerakhir.current = v.state.doc
+    const baris = aktif && aktif.baris >= 1 && aktif.baris <= v.state.doc.lines ? v.state.doc.line(aktif.baris) : null
+    v.dispatch({
+      effects: [
+        setBarisAktif.of(aktif ?? null),
+        ...(baris && (melangkah || !v.hasFocus) ? [EditorView.scrollIntoView(baris.from, { y: 'nearest', yMargin: 48 })] : []),
+      ],
+    })
   }, [aktif?.baris, aktif?.jenis]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {

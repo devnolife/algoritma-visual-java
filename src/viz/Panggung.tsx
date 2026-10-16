@@ -53,10 +53,12 @@ export function Panggung({ trace, state, indeks, output, stdin, konfig, instan }
 
   const panah: Panah[] = []
   if (adaMemori) {
+    const idTeratas = state.frames[state.frames.length - 1]?.id
     for (const f of state.frames) {
       for (const v of f.vars) {
         if (typeof v.nilai !== 'number') continue
-        if (sudahTampil.has(v.nilai) || tampilDiHeap.has(v.nilai)) panah.push({ dari: `var:${f.id}:${v.slot}`, ke: `heap:${v.nilai}` })
+        // Frame yang tidak aktif (mis. rekursi yang sedang menunggu) memakai panah redup agar tidak menumpuk.
+        if (sudahTampil.has(v.nilai) || tampilDiHeap.has(v.nilai)) panah.push({ dari: `var:${f.id}:${v.slot}`, ke: `heap:${v.nilai}`, redup: f.id !== idTeratas && f.method !== 'main' })
       }
     }
     for (const v of state.statik) {
@@ -66,13 +68,14 @@ export function Panggung({ trace, state, indeks, output, stdin, konfig, instan }
 
   const kembali = langkah?.peristiwa.find((p) => p.k === 'kembali')
   const nilaiKembali = kembali && kembali.k === 'kembali' && kembali.nilai !== undefined ? { frame: kembali.frame, nilai: kembali.nilai } : undefined
+  const adaException = langkah?.peristiwa.some((p) => p.k === 'exception') ?? false
 
   return (
     <WadahPanah panah={panah} pemicu={indeks} className={cn('flex flex-col gap-4', instan && 'instan')}>
       {konfig.map((k, i) => {
         switch (k.jenis) {
           case 'array':
-            return <ArrayView key={i} state={state} sorotan={sorotan} instan={instan} konfig={k} adaDiKode={namaDiKode.has(k.variabel)} adaMemori={adaMemori} />
+            return <ArrayView key={i} state={state} sorotan={sorotan} instan={instan} konfig={k} adaDiKode={namaDiKode.has(k.variabel)} adaMemori={adaMemori} galat={adaException} />
           case 'array2d':
             return <Array2DView key={i} state={state} sorotan={sorotan} instan={instan} konfig={k} adaDiKode={namaDiKode.has(k.variabel)} adaMemori={adaMemori} />
           case 'string':

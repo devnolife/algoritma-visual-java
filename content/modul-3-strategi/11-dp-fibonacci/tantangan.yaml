@@ -1,0 +1,31 @@
+- id: tabulasi
+  judul: Versi tabulasi bottom-up
+  soal: "Tambahkan method `static long fibTabel(int n)` yang menghitung Fibonacci **tanpa rekursi**: buat array `long[] tabel = new long[n + 1]`, isi `tabel[1] = 1`, lalu isi `tabel[2]` sampai `tabel[n]` dengan perulangan `for` dari indeks kecil ke besar. Di akhir `main`, tambahkan satu baris output `fib(90) = 2880067194370816120` yang dihitung dengan `fibTabel(90)`. Seluruh program harus selesai dalam paling banyak 800 langkah."
+  cek:
+    - jenis: outputMemuat
+      harapan: "fib(90) = 2880067194370816120"
+    - jenis: harusMemakai
+      konstruksi: "method:fibTabel"
+    - jenis: harusMemakai
+      konstruksi: for
+    - jenis: maksLangkah
+      batas: 800
+  petunjuk:
+    - "Tabulasi mengisi tabel dari kasus dasar ke atas: `tabel[0] = 0` (nilai bawaan array), `tabel[1] = 1`, lalu setiap `tabel[i]` dihitung dari dua sel sebelumnya yang sudah terisi."
+    - "Isi perulangannya hanya satu baris, yaitu `tabel[i] = tabel[i - 1] + tabel[i - 2];`, dengan `i` dari 2 sampai `n`. Setelah perulangan selesai, kembalikan `tabel[n]`."
+    - 'Di akhir `main`, tulis `System.out.println("fib(90) = " + fibTabel(90));`. Nilai fib(90) masih muat di `long`, tetapi tidak muat di `int`.'
+
+- id: naik-tangga
+  judul: Naik tangga dengan memoisasi
+  soal: "Kamu menaiki tangga dengan 1, 2, atau 3 anak tangga sekali melangkah. Banyaknya cara mencapai anak tangga ke-`n` adalah `cara(n) = cara(n - 1) + cara(n - 2) + cara(n - 3)`, dengan `cara(0) = 1` dan `cara(n) = 0` untuk `n` negatif. Tambahkan method rekursif `static long cara(int n)` yang memakai memoisasi dengan array `static long[] memoCara`, lalu cetak `Cara naik 30 anak tangga: 53798080` di akhir `main`. Versi tanpa memo terlalu lambat: seluruh program harus selesai dalam paling banyak 3.000 langkah."
+  cek:
+    - jenis: outputMemuat
+      harapan: "Cara naik 30 anak tangga: 53798080"
+    - jenis: harusMemakai
+      konstruksi: "method:cara"
+    - jenis: maksLangkah
+      batas: 3000
+  petunjuk:
+    - "Tiru pola `fibMemo`. Tambahkan field `static long[] memoCara;`, lalu buat array-nya di `main` sebelum memanggil `cara`, misalnya `memoCara = new long[31];`."
+    - "Urutan pemeriksaan di awal `cara`: bila `n < 0` kembalikan 0, bila `n == 0` kembalikan 1, dan bila `memoCara[n] != 0` kembalikan nilai yang sudah tersimpan."
+    - 'Selebihnya, hitung `memoCara[n] = cara(n - 1) + cara(n - 2) + cara(n - 3);` lalu `return memoCara[n];`. Di `main`, cetak dengan `System.out.println("Cara naik 30 anak tangga: " + cara(30));`.'

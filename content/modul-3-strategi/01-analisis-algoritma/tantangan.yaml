@@ -1,0 +1,31 @@
+- id: jumlah-tanpa-perulangan
+  judul: Jumlah 1..n tanpa perulangan
+  soal: "Tambahkan method `static int jumlahSampai(int n)` yang mengembalikan 1 + 2 + … + n **tanpa perulangan dan tanpa rekursi**, sehingga kompleksitasnya O(1). Panggil method itu sekali di akhir `main` untuk mencetak satu baris tambahan `Jumlah 1..6 = 21`. Pakai variabel `n`, jangan menulis angka 6 langsung."
+  cek:
+    - jenis: harusMemakai
+      konstruksi: "method:jumlahSampai"
+    - jenis: outputMemuat
+      harapan: "Jumlah 1..6 = 21"
+    - jenis: kompleksitas
+      maks: "1"
+      pertumbuhan:
+        variabel: n
+        nilai: [6, 12, 24, 48, 96]
+        ukur: "method:jumlahSampai"
+  petunjuk:
+    - "Pasangkan suku pertama dengan suku terakhir: 1 + 6 = 7, 2 + 5 = 7, 3 + 4 = 7. Secara umum ada n/2 pasangan yang masing-masing berjumlah n + 1."
+    - "Jadi 1 + 2 + … + n = `n * (n + 1) / 2`. Kalikan dulu baru bagi 2: `n * (n + 1)` selalu genap, sehingga pembagiannya tidak menyisakan pecahan yang terbuang."
+    - 'Isi method cukup `return n * (n + 1) / 2;`. Di akhir main tambahkan `System.out.println("Jumlah 1.." + n + " = " + jumlahSampai(n));`.'
+
+- id: kembar-satu-perulangan
+  judul: Cek kembar dengan satu perulangan
+  soal: "Nilai ujian selalu di antara 0 dan 100. Manfaatkan fakta itu: ganti perulangan bersarang di bagian 2 dengan **satu** perulangan yang memakai array penanda `boolean[] pernah = new boolean[101];` untuk mengingat nilai yang sudah pernah muncul. Naikkan `operasi` sekali untuk setiap nilai yang diperiksa, dan berhenti begitu kembar ditemukan. Output tetap tiga baris: `Total nilai: 281`, `Ada kembar: true`, dan `Operasi: 12`. Label tab Pertumbuhan harus berubah menjadi O(n)."
+  cek:
+    - jenis: output
+      harapan: "Total nilai: 281\nAda kembar: true\nOperasi: 12"
+    - jenis: kompleksitas
+      maks: n
+  petunjuk:
+    - "Kamu tidak perlu membandingkan setiap pasangan. Cukup ingat nilai mana saja yang **sudah pernah** muncul: `pernah[58]` bernilai `true` artinya nilai 58 sudah ditemui sebelumnya."
+    - "Hapus perulangan `j`. Untuk setiap `i`: naikkan `operasi`, lalu periksa `pernah[nilai[i]]`. Bila `true`, isi `adaKembar = true;` lalu `break;`. Bila belum, tandai dengan `pernah[nilai[i]] = true;`."
+    - "Bagian 1 menyumbang 6 operasi. Bagian 2 juga 6, karena kembarnya baru ketahuan di nilai terakhir. Totalnya 12, dan untuk n berapa pun totalnya 2n."

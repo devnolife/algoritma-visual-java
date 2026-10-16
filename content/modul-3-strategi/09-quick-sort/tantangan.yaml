@@ -1,0 +1,37 @@
+- id: pivot-tengah
+  judul: Pivot elemen tengah
+  soal: "Pada data terurut, program ini menjadi O(n²) karena pivotnya selalu elemen terbesar. Ubah `partisi` agar memakai elemen **tengah** rentang, yaitu `data[(kiri + kanan) / 2]`, sebagai pivot. Program tetap mencetak `[10, 12, 23, 34, 36, 47, 49]` lalu jumlah perbandingan. Di tab Pertumbuhan, **kedua** seri harus tumbuh paling buruk O(n log n). Jangan menghapus `perbandingan++` (grafik mengukur variabel itu) dan jangan memakai `Arrays.sort`."
+  cek:
+    - jenis: arrayTerurut
+      nama: data
+      arah: naik
+    - jenis: outputMemuat
+      harapan: "[10, 12, 23, 34, 36, 47, 49]"
+    - jenis: kompleksitas
+      maks: "n log n"
+    - jenis: dilarangMemakai
+      konstruksi: "pustaka:Arrays.sort"
+  petunjuk:
+    - "Pada data terurut, elemen paling kanan selalu yang terbesar. Elemen di tengah rentang justru bernilai tengah, sehingga partisi membelah rentang menjadi dua bagian yang seimbang."
+    - "Cara termudah: pindahkan elemen tengah ke posisi `kanan` lebih dulu. Sisa kode `partisi` tidak perlu diubah sama sekali."
+    - "Tambahkan dua baris di awal `partisi`, sebelum `int pivot = data[kanan];`, yaitu `int tengah = (kiri + kanan) / 2;` lalu `tukar(data, tengah, kanan);`."
+
+- id: median-quick-select
+  judul: Median tanpa mengurutkan semuanya
+  soal: "Median di sini adalah elemen yang akan menempati indeks `n / 2` bila array diurutkan. Setelah `partisi`, pivot sudah berada di posisi akhirnya, jadi kita cukup melanjutkan ke **satu** sisi saja. Tambahkan method rekursif `static int pilihKe(int[] data, int kiri, int kanan, int k)` yang mengembalikan elemen yang akan berada di indeks `k`. Di `main`, ganti pemanggilan `quickSort` dengan `int median = pilihKe(data, 0, n - 1, n / 2);`, lalu cetak `Median: 34`. Biarkan `perbandingan++` di `partisi`, karena pertumbuhan seri data acak harus O(n), lebih baik daripada quick sort."
+  cek:
+    - jenis: variabel
+      nama: median
+      tipe: int
+      harapan: 34
+    - jenis: outputMemuat
+      harapan: "Median: 34"
+    - jenis: harusMemakai
+      konstruksi: "method:pilihKe"
+    - jenis: kompleksitas
+      maks: n
+      seri: data acak
+  petunjuk:
+    - "Bentuk `pilihKe` mirip `quickSort`: ada base case, lalu `int p = partisi(data, kiri, kanan);`. Bedanya, setelah partisi hanya **satu** panggilan rekursif yang dijalankan."
+    - "Bila `k == p`, pivot itulah jawabannya. Bila `k < p`, jawabannya ada di bagian kiri (`kiri` sampai `p - 1`); selain itu di bagian kanan (`p + 1` sampai `kanan`)."
+    - "Base case: `if (kiri == kanan) return data[kiri];`. Setelah partisi: `if (k == p) return data[p];`, lalu `if (k < p) return pilihKe(data, kiri, p - 1, k);`, dan terakhir `return pilihKe(data, p + 1, kanan, k);`."

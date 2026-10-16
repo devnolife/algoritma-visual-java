@@ -1,0 +1,26 @@
+- id: rute-terpendek
+  judul: Cetak rute terpendek
+  soal: "Array `jarak` hanya memberi **panjang** jalur terpendek, bukan jalurnya. Tambahkan array `int[] asal` (buat langsung di dalam main, isi awalnya -1) yang mencatat simpul tepat sebelum `v` pada jalur terpendek: setiap relaksasi yang berhasil dari `u` ke `v` juga menulis `asal[v] = u`. Setelah perulangan selesai, susun rute dari 0 ke 4 dengan menelusuri `asal` mundur. Output yang diharapkan tepat dua baris: `Jarak dari 0: [0, 5, 2, 6, 8]` lalu `Rute ke 4: 0 -> 2 -> 1 -> 3 -> 4`."
+  cek:
+    - jenis: variabel
+      nama: asal
+      harapan: [-1, 2, 0, 1, 3]
+    - jenis: output
+      harapan: "Jarak dari 0: [0, 5, 2, 6, 8]\nRute ke 4: 0 -> 2 -> 1 -> 3 -> 4"
+  petunjuk:
+    - "Buat `int[] asal = new int[n];` lalu `Arrays.fill(asal, -1);`. Di dalam blok `if` relaksasi, tambahkan `asal[v] = u;` tepat setelah `jarak[v]` diperbarui."
+    - "`asal[4]` adalah simpul tepat sebelum 4, `asal[asal[4]]` simpul sebelum itu, dan seterusnya sampai bertemu -1 di simpul awal. Jadi rute ditemukan dari belakang ke depan."
+    - "Mulai dengan `String rute = \"4\";` dan `int t = asal[4];`. Selama `t != -1`, tambahkan di depan: `rute = t + \" -> \" + rute;` lalu `t = asal[t];`."
+
+- id: berhenti-di-tujuan
+  judul: Berhenti begitu tujuan terpilih
+  soal: "Misalkan kita hanya butuh jarak ke simpul 1. Begitu simpul 1 **terpilih** sebagai `u`, jaraknya sudah final, sehingga putaran-putaran sisanya bisa dilewati. Tambahkan variabel `int tujuan = 1;`, hentikan perulangan luar tepat setelah simpul tujuan terpilih, lalu ganti output menjadi tepat satu baris `Jarak terpendek ke 1: 5`. Program harus selesai dalam paling banyak 180 langkah, sedangkan kode awal memakai 214 langkah."
+  cek:
+    - jenis: output
+      harapan: "Jarak terpendek ke 1: 5"
+    - jenis: maksLangkah
+      batas: 180
+  petunjuk:
+    - "Simpul yang terpilih sudah final: semua simpul lain yang belum selesai jaraknya sama atau lebih besar, dan bobot sisi tidak pernah negatif, jadi jalan memutar tidak mungkin lebih pendek."
+    - "Tepat setelah `selesai[u] = true;`, tambahkan `if (u == tujuan) break;`."
+    - "Cetak `jarak[tujuan]`, bukan seluruh array. Setelah berhenti lebih awal, jarak simpul-simpul lain belum tentu final."

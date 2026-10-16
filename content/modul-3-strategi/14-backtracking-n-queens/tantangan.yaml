@@ -1,0 +1,35 @@
+- id: semua-solusi-5
+  judul: Semua solusi untuk n = 5
+  soal: "Program ini berhenti di solusi **pertama**. Ubah agar program **menghitung semua solusi** untuk papan 5 × 5. Simpan hasilnya di variabel `int jumlahSolusi` (buat langsung di dalam main), lalu cetak tepat satu baris `Jumlah solusi: 10`."
+  cek:
+    - jenis: output
+      harapan: "Jumlah solusi: 10"
+    - jenis: variabel
+      nama: jumlahSolusi
+      tipe: int
+      harapan: 10
+    - jenis: harusMemakai
+      konstruksi: rekursi
+  petunjuk:
+    - "Ubah `n = 4` menjadi `n = 5`. Papan dibuat dengan `new int[n][n]`, jadi ukurannya ikut berubah."
+    - "Pencarian tidak boleh berhenti di solusi pertama. Ubah `letakkan` agar mengembalikan `int`, yaitu banyaknya solusi dari baris itu ke bawah. Base case-nya `if (baris == n) return 1;`."
+    - "Di dalam perulangan, ganti `if (letakkan(baris + 1)) return true;` dengan `jumlah += letakkan(baris + 1);`, lalu **selalu** cabut ratunya agar kolom berikutnya bisa dicoba. Di akhir method `return jumlah;`, dan di main `int jumlahSolusi = letakkan(0);`."
+
+- id: benteng
+  judul: Ganti ratu dengan benteng
+  soal: "Benteng hanya menyerang sepanjang baris dan kolom, tidak diagonal. Ubah method `aman` untuk benteng, lalu hitung **semua** cara menaruh 4 benteng di papan 4 × 4 tanpa saling menyerang. Simpan hasilnya di variabel `int jumlahSusunan` (buat langsung di dalam main), lalu cetak tepat satu baris `Jumlah susunan benteng: 24`."
+  cek:
+    - jenis: output
+      harapan: "Jumlah susunan benteng: 24"
+    - jenis: variabel
+      nama: jumlahSusunan
+      tipe: int
+      harapan: 24
+    - jenis: harusMemakai
+      konstruksi: "method:aman"
+    - jenis: harusMemakai
+      konstruksi: rekursi
+  petunjuk:
+    - "Di `aman`, hapus dua pemeriksaan diagonal. Yang tersisa hanya pemeriksaan kolom `papan[i][kol] == 1`."
+    - "Seperti menghitung semua solusi ratu: `letakkan` mengembalikan `int`, base case mengembalikan 1, dan setiap bidak yang dicoba selalu dicabut lagi setelah rekursinya selesai."
+    - "Mengapa 24? Baris 0 punya 4 pilihan kolom, baris 1 tinggal 3, baris 2 tinggal 2, dan baris 3 tinggal 1, sehingga 4 × 3 × 2 × 1 = 24."

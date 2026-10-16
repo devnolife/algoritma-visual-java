@@ -1,0 +1,27 @@
+- id: cetak-barang
+  judul: Cetak barang yang dipilih
+  soal: "Nilai maksimum saja belum cukup; kita juga perlu tahu barang mana yang dibawa. Telusuri tabel **mundur** mulai dari `dp[n][kapasitas]`: untuk `i` dari `n` turun ke 1, bila `dp[i][w]` berbeda dari `dp[i - 1][w]`, barang ke-`i` diambil, sehingga kapasitas `w` berkurang sebesar beratnya. Simpan hasilnya di `boolean[] dipilih` (buat langsung di dalam `main`, indeksnya sama dengan indeks `nama`), lalu cetak setiap barang yang dipilih sesuai urutan array `nama`. Output harus tepat tiga baris: `Nilai maksimum: 11`, `Dipilih: Tenda`, dan `Dipilih: Kompor`."
+  cek:
+    - jenis: output
+      harapan: "Nilai maksimum: 11\nDipilih: Tenda\nDipilih: Kompor"
+    - jenis: variabel
+      nama: dipilih
+      harapan: [false, true, true, false]
+  petunjuk:
+    - "Mulailah dari sel kanan bawah. Bila `dp[i][w] == dp[i - 1][w]`, nilai terbaik itu bisa dicapai tanpa barang ke-`i`, jadi barang itu tidak diambil. Bila berbeda, barang ke-`i` pasti diambil."
+    - "Setelah tabel selesai diisi, siapkan `boolean[] dipilih = new boolean[n];` dan `int w = kapasitas;`, lalu buat perulangan `for (int i = n; i >= 1; i--)`. Ingat, barang ke-`i` ada di indeks `i - 1` pada array `nama`, `berat`, dan `dipilih`."
+    - "Di dalam perulangan: `if (dp[i][w] != dp[i - 1][w]) { dipilih[i - 1] = true; w -= berat[i - 1]; }`. Setelah itu, perulangan kedua dari indeks 0 mencetak `\"Dipilih: \" + nama[k]` untuk setiap `dipilih[k]` yang bernilai `true`."
+
+- id: tak-terbatas
+  judul: Barang boleh dibawa berulang
+  soal: "Ubah program untuk versi **tak terbatas**: setiap barang boleh dibawa lebih dari satu kali, misalnya dua kompor. Cukup ubah satu sel yang dibaca pada pilihan **ambil** di dalam `Math.max`; ukuran tabel dan rumus untuk barang yang tidak muat tetap sama. Program mencetak `Nilai maksimum: 12`, dan isi akhir tabel `dp` harus sesuai rumus versi tak terbatas."
+  cek:
+    - jenis: outputMemuat
+      harapan: "Nilai maksimum: 12"
+    - jenis: variabel
+      nama: dp
+      harapan: [[0, 0, 0, 0, 0, 0, 0], [0, 1, 2, 3, 4, 5, 6], [0, 1, 2, 5, 6, 7, 10], [0, 1, 2, 6, 7, 8, 12], [0, 1, 2, 6, 9, 10, 12]]
+  petunjuk:
+    - "Pada versi 0/1, sel `dp[i - 1][w - b]` dibaca dari baris **sebelumnya**, yang belum memakai barang ke-`i`. Itulah yang menjamin setiap barang paling banyak diambil sekali."
+    - "Bila barang ke-`i` boleh diambil lagi, sisa kapasitas `w - b` boleh diisi dengan pilihan yang **sudah** mempertimbangkan barang ke-`i`, yaitu baris `i` sendiri. Sel itu sudah terisi karena `w` bergerak dari kecil ke besar."
+    - "Ganti `dp[i - 1][w - b]` menjadi `dp[i][w - b]` pada baris berkomentar `// ambil`. Perhatikan panahnya: kini salah satu panah datang dari baris yang sama."

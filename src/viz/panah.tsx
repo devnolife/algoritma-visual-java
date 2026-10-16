@@ -15,11 +15,14 @@ export function useJangkar(kunci: string): (el: HTMLElement | null) => void {
 export interface Panah {
   dari: string
   ke: string
+  /** Panah dari frame yang tidak aktif digambar redup. */
+  redup?: boolean
 }
 
 interface Garis {
   kunci: string
   d: string
+  redup?: boolean
 }
 
 type Titik = [number, number]
@@ -66,6 +69,7 @@ function hitungGaris(wadah: HTMLElement, peta: Map<string, HTMLElement>, panah: 
     const sasaran = (b.querySelector('[data-sasaran-panah]') ?? b).getBoundingClientRect()
     rute.push({
       kunci: `${p.dari}->${p.ke}`,
+      redup: p.redup,
       x1: ra.left + ra.width / 2 - w.left,
       y1: ra.top + ra.height / 2 - w.top,
       bawahKotak: kotak.bottom - w.top,
@@ -85,6 +89,7 @@ function hitungGaris(wadah: HTMLElement, peta: Map<string, HTMLElement>, panah: 
       const xLajur = sisi ? r.kananBingkai + 12 + lajur * 5 : Math.min(r.kiriBingkai, r.x2) - 14 - lajur * 5
       hasil.push({
         kunci: r.kunci,
+        redup: r.redup,
         d: jalur([
           [r.x1, r.y1],
           [r.x1, yCelah],
@@ -112,7 +117,7 @@ export function WadahPanah({ children, panah, pemicu, className }: { children: R
     else peta.current.delete(kunci)
   }, [])
 
-  const kunciPanah = panah.map((p) => `${p.dari}>${p.ke}`).join('|')
+  const kunciPanah = panah.map((p) => `${p.dari}>${p.ke}${p.redup ? '~' : ''}`).join('|')
 
   useLayoutEffect(() => {
     const el = wadah.current
@@ -141,7 +146,7 @@ export function WadahPanah({ children, panah, pemicu, className }: { children: R
             </marker>
           </defs>
           {garis.map((g) => (
-            <path key={g.kunci} d={g.d} fill="none" stroke="var(--tipe-ref)" strokeWidth={1.6} strokeOpacity={0.75} markerEnd="url(#ujung-panah)" />
+            <path key={g.kunci} d={g.d} fill="none" stroke="var(--tipe-ref)" strokeWidth={1.6} strokeOpacity={g.redup ? 0.28 : 0.75} markerEnd="url(#ujung-panah)" />
           ))}
         </svg>
       </div>

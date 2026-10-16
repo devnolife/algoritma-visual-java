@@ -1,0 +1,30 @@
+- id: jejak-putaran
+  judul: Jejak setiap putaran
+  soal: "Tambahkan penghitung `int tukar` yang kembali ke 0 di **awal setiap putaran** dan naik setiap kali terjadi pertukaran. Setelah perulangan `j` selesai, cetak satu baris dengan format `Putaran 1: [12, 36, 23, 10, 47, 34, 49] (5 tukar)`, yaitu nomor putaran mulai dari 1, isi array saat itu, dan banyaknya pertukaran pada putaran itu. Dua baris terakhir output tetap array akhir dan `Perbandingan: 21`. Perhatikan putaran mana saja yang tidak menukar apa pun."
+  cek:
+    - jenis: output
+      harapan: "Putaran 1: [12, 36, 23, 10, 47, 34, 49] (5 tukar)\nPutaran 2: [12, 23, 10, 36, 34, 47, 49] (3 tukar)\nPutaran 3: [12, 10, 23, 34, 36, 47, 49] (2 tukar)\nPutaran 4: [10, 12, 23, 34, 36, 47, 49] (1 tukar)\nPutaran 5: [10, 12, 23, 34, 36, 47, 49] (0 tukar)\nPutaran 6: [10, 12, 23, 34, 36, 47, 49] (0 tukar)\n[10, 12, 23, 34, 36, 47, 49]\nPerbandingan: 21"
+    - jenis: dilarangMemakai
+      konstruksi: "pustaka:Arrays.sort"
+  petunjuk:
+    - "Letak deklarasi menentukan kapan penghitung kembali ke 0. Buat `int tukar = 0;` di dalam perulangan `putaran`, tepat sebelum perulangan `j`."
+    - "Naikkan `tukar++` di dalam blok `if`, bersama tiga baris pertukaran."
+    - 'Setelah kurung kurawal penutup perulangan `j`, tetapi masih di dalam perulangan `putaran`, tambahkan `System.out.println("Putaran " + (putaran + 1) + ": " + Arrays.toString(data) + " (" + tukar + " tukar)");`. Tanda kurung pada `(putaran + 1)` wajib, agar angkanya dijumlahkan dulu sebelum disambung ke teks.'
+
+- id: berhenti-dini
+  judul: Berhenti dini
+  soal: "Buat bubble sort **berhenti dini**: pakai variabel penanda `boolean ditukar` yang bernilai `false` di awal setiap putaran dan menjadi `true` bila terjadi pertukaran. Bila satu putaran selesai tanpa pertukaran, array sudah terurut, jadi hentikan perulangan `putaran`. Di tab Pertumbuhan, seri **data terurut** harus berubah menjadi O(n). Untuk data acak di editor, output menjadi dua baris: `[10, 12, 23, 34, 36, 47, 49]` dan `Perbandingan: 20`."
+  cek:
+    - jenis: output
+      harapan: "[10, 12, 23, 34, 36, 47, 49]\nPerbandingan: 20"
+    - jenis: arrayTerurut
+      nama: data
+    - jenis: kompleksitas
+      maks: n
+      seri: data terurut
+    - jenis: dilarangMemakai
+      konstruksi: "pustaka:Arrays.sort"
+  petunjuk:
+    - "Bila satu putaran penuh tidak menukar apa pun, setiap pasangan bersebelahan sudah berurutan. Artinya seluruh array sudah terurut."
+    - "Buat `boolean ditukar = false;` di awal badan perulangan `putaran`, lalu isi `ditukar = true;` di dalam blok `if` yang menukar."
+    - "Setelah perulangan `j` selesai, tambahkan `if (!ditukar) { break; }`. Pada data acak ini hanya putaran ke-6 yang terlewati (21 − 1 = 20 perbandingan), tetapi pada data terurut cukup satu putaran saja."

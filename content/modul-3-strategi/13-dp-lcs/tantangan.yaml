@@ -1,0 +1,33 @@
+- id: cetak-lcs
+  judul: Cetak string LCS-nya
+  soal: "Tabel `dp` baru memberi **panjang** LCS. Setelah tabel terisi, susun string LCS-nya di variabel `String lcs` (buat langsung di dalam main) dengan menelusuri tabel **mundur** dari `dp[m][n]` memakai perulangan `while`. Output yang diharapkan tepat dua baris: `Panjang LCS: 3` lalu `LCS: KAN`."
+  cek:
+    - jenis: output
+      harapan: "Panjang LCS: 3\nLCS: KAN"
+    - jenis: variabel
+      nama: lcs
+      tipe: String
+      harapan: KAN
+    - jenis: harusMemakai
+      konstruksi: while
+  petunjuk:
+    - "Mulai dari pojok kanan bawah dengan `int i = m;` dan `int j = n;`, lalu ulangi selama `i > 0 && j > 0`. Setiap putaran mundur satu sel ke arah sel yang dulu dipakai untuk mengisinya."
+    - "Bila `a.charAt(i - 1) == b.charAt(j - 1)`, huruf itu bagian dari LCS: simpan hurufnya, lalu mundur diagonal (`i--` dan `j--`). Bila beda, pindah ke tetangga yang nilainya lebih besar: ke atas (`i--`) bila `dp[i - 1][j] >= dp[i][j - 1]`, selain itu ke kiri (`j--`)."
+    - "Karena berjalan mundur, huruf yang ditemukan lebih dulu adalah huruf **terakhir** LCS. Tambahkan di depan: `lcs = a.charAt(i - 1) + lcs;` dengan `String lcs = \"\";` sebagai nilai awal."
+
+- id: substring-terpanjang
+  judul: Substring bersama terpanjang
+  soal: "Berbeda dengan subsequence, **substring** harus bersambung tanpa celah. `KA` adalah substring kedua kata, sedangkan `KAN` bukan substring `KAIN`. Tanpa memotong-motong string dengan `substring`, ubah rumus pengisian tabel agar `dp[i][j]` berisi panjang substring bersama yang **berakhir tepat** di huruf `a.charAt(i - 1)` dan `b.charAt(j - 1)`. Simpan nilai terbesar di tabel dalam variabel `int terpanjang` (buat langsung di dalam main), lalu cetak tepat satu baris `Substring bersama terpanjang: 2`."
+  cek:
+    - jenis: output
+      harapan: "Substring bersama terpanjang: 2"
+    - jenis: variabel
+      nama: terpanjang
+      tipe: int
+      harapan: 2
+    - jenis: dilarangMemakai
+      konstruksi: "pustaka:String.substring"
+  petunjuk:
+    - "Bila hurufnya sama, substring yang berakhir di sel diagonal bisa diperpanjang satu huruf. Jadi rumus `dp[i - 1][j - 1] + 1` tetap dipakai."
+    - "Bila hurufnya beda, tidak ada substring bersama yang berakhir di sini, sehingga isi selnya 0. `Math.max` tidak dipakai lagi."
+    - "Jawabannya bukan lagi `dp[m][n]`, melainkan nilai terbesar di seluruh tabel. Buat `int terpanjang = 0;` sebelum perulangan, lalu setiap kali hurufnya sama: `terpanjang = Math.max(terpanjang, dp[i][j]);`."

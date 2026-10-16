@@ -4,8 +4,12 @@ Web app pembelajaran visual untuk mahasiswa. Program Java dijalankan **langkah d
 
 Bahasanya Java karena tipenya tegas (*strong typing*). Mahasiswa melihat setiap variabel sebagai kotak bertipe (`int`, `double`, `char`, `String`, array) dan mendapat error kompilasi yang sama dengan `javac`.
 
-> **Fase 1 (sekarang):** Modul 1 *Algoritma & Pemrograman Dasar* dengan 15 pelajaran, 30 tantangan, dan Ruang Coba.
-> Modul 2 *Struktur Data* dan Modul 3 *Strategi Algoritma* ada di [roadmap](#roadmap).
+> **Tersedia sekarang:**
+> - Modul 1 *Algoritma & Pemrograman Dasar*: 15 pelajaran, 30 tantangan.
+> - Modul 3 *Strategi Algoritma*: 16 pelajaran, 32 tantangan, dengan grafik pertumbuhan untuk analisis kompleksitas.
+> - Ruang Coba.
+>
+> Modul 2 *Struktur Data* menunggu perluasan mesin Fase 2 (class/objek, koleksi, exception); lihat [roadmap](#roadmap).
 
 ## Fitur utama
 
@@ -23,10 +27,16 @@ Bahasanya Java karena tipenya tegas (*strong typing*). Mahasiswa melihat setiap 
 - **Error seperti javac, lengkap dengan penjelasan.** Teks pesan, nomor baris, dan posisi caret identik dengan `javac` 21. Setiap error dilengkapi *Artinya* dan *Saran* dalam Bahasa Indonesia.
 - **Visualisasi**
   - Call stack dan memori: kotak variabel bertipe dan panah referensi ke heap.
-  - Array (sel atau batang, dengan penunjuk indeks) dan array 2D.
+  - Array (sel atau batang, dengan penunjuk indeks dan rentang aktif) dan array 2D (termasuk tabel dynamic programming berlabel dan papan catur).
+  - Pohon panggilan untuk rekursi, divide and conquer, memoisasi, dan backtracking.
+  - Graf dari matriks ketetanggaan: bobot, simpul yang sudah dikunjungi, dan label jarak.
   - Evaluasi ekspresi, misalnya `nilai[i] > maks` → `7 > 9` → `false`.
   - Konsol, buffer input Scanner, dan String sebagai deretan karakter.
-- **Tantangan yang dinilai otomatis.** Pemeriksaan mencakup output, nilai akhir variabel, konstruksi yang wajib atau dilarang dipakai, dan jumlah langkah. Petunjuk dibuka bertahap.
+- **Grafik pertumbuhan (analisis kompleksitas)**
+  - Program dijalankan ulang untuk beberapa ukuran n.
+  - Hasilnya dibandingkan dengan kurva O(1) sampai O(2ⁿ) dan disimpulkan, misalnya "naik 4× saat n 2× → O(n²)".
+  - Grafik diperbarui setiap kali kode diedit.
+- **Tantangan yang dinilai otomatis.** Pemeriksaan mencakup output, nilai akhir variabel, konstruksi yang wajib atau dilarang dipakai, jumlah langkah, dan kelas kompleksitas. Petunjuk dibuka bertahap.
 - **Ruang Coba.** Editor bebas dengan visual otomatis dan panel input.
 - **Tanpa server**
   - Seluruh mesin berjalan di browser.
@@ -164,7 +174,7 @@ tests/
   - Error kompilasi, perulangan tak berujung, dan indeks di luar batas.
   - Progres tersimpan setelah halaman dimuat ulang.
   - Ruang Coba dan tema gelap.
-  - Ke-15 pelajaran termuat tanpa error.
+  - Semua pelajaran di semua modul termuat tanpa error, termasuk grafik pertumbuhannya.
 - **Validator materi** (`pnpm cek-konten`)
   - Kode awal bisa dikompilasi.
   - Setiap solusi lulus tantangannya, dan kode awal belum lulus sebelum diubah.
@@ -178,15 +188,20 @@ Semua pemeriksaan di atas, kecuali kinerja, dijalankan otomatis oleh GitHub Acti
 
 ## Roadmap
 
-- **Modul 2: Struktur Data**
-  - Mesin: class & objek, `null`, koleksi generik bawaan, autoboxing, `try/catch`.
-  - Visual: node + panah (linked list), stack/queue, tabel hash, pohon/BST, heap, graf.
-- **Modul 3: Strategi Algoritma**
-  - Penghitung operasi untuk menunjukkan kompleksitas.
-  - Visual batang untuk sorting, tabel dynamic programming, papan backtracking, graf berbobot.
-  - Topik: searching, sorting, divide & conquer, greedy, DP, backtracking, BFS/DFS.
+- **Fase 2 + Modul 2: Struktur Data** (sedang dikerjakan)
+  - Mesin:
+    - class & objek, `null`, `this`, konstruktor;
+    - `try/catch/finally` dan exception buatan sendiri;
+    - wrapper/autoboxing;
+    - koleksi `java.util` yang meniru JDK 21 sampai ke struktur internalnya;
+    - `Comparable` dan lambda `Comparator`.
+  - Visual:
+    - memori objek dan alur exception;
+    - rantai node (linked list), pohon/BST, stack/queue, tabel hash;
+    - koleksi dengan tombol "Lihat isi dalam";
+    - graf dari daftar ketetanggaan.
 
-Rincian: [DESAIN.md §9](docs/DESAIN.md#9-kurikulum).
+Rincian: [DESAIN.md §9](docs/DESAIN.md#9-kurikulum) dan [§11](docs/DESAIN.md#11-fase-2-perluasan-mesin-untuk-struktur-data).
 
 ## Teknologi
 

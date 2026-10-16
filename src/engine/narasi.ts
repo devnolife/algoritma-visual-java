@@ -107,10 +107,13 @@ export function narasikan(trace: Trace, i: number, sesudah: StateMesin, ktx: Kon
   const teks = teksLangkah(l, ktx.sumber)
 
   switch (l.jenis) {
-    case 'mulai':
+    case 'mulai': {
       kalimat.push(`Program dimulai. Java selalu mulai menjalankan perintah dari method ${k('main')}.`)
-      for (const s of cari('deklarasi-statik')) kalimat.push(`Variabel class ${k(s.nama)} (${s.tipe}) disiapkan dengan nilai ${k(tampil(s.nilai, s.tipe))}.`)
+      // Field static bisa muncul dua kali (nilai default, lalu penginisialisasinya); cukup sebut nilai terakhirnya.
+      const statik = new Map(cari('deklarasi-statik').map((s) => [s.nama, s]))
+      for (const s of statik.values()) kalimat.push(`Variabel class ${k(s.nama)} (${s.tipe}) disiapkan dengan nilai ${k(tampil(s.nilai, s.tipe))}.`)
       break
+    }
     case 'panggil': {
       const pg = cari('panggil')[0]
       if (pg) {

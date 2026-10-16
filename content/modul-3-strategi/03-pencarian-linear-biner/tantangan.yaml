@@ -1,0 +1,43 @@
+- id: kemunculan-pertama
+  judul: Kemunculan pertama
+  soal: "Data sering berisi nilai kembar. Ubah baris 9 menjadi `data[i] = i / 2 * 3 + 2;` sehingga setiap nilai muncul dua kali (2, 2, 5, 5, 8, 8, …), lalu ubah baris 11 menjadi `int cari = data[n / 2];`. Untuk n = 7, nilai yang dicari adalah 5, yang ada di indeks 2 dan 3, tetapi `cariBiner` saat ini mengembalikan 3. Perbaiki `cariBiner` agar mengembalikan indeks kemunculan **pertama** dan tetap O(log n). Baris pertama output harus `Indeks 5: 2`."
+  cek:
+    - jenis: outputPola
+      pola: '^Indeks 5: 2$'
+    - jenis: kompleksitas
+      maks: "log n"
+      pertumbuhan:
+        variabel: n
+        nilai: [8, 16, 32, 64, 128, 256]
+        ukur: "method:cariBiner"
+        seri:
+          - nama: biner
+            ganti: { biner: true }
+  petunjuk:
+    - "Saat `data[tengah] == cari`, jangan langsung `return`. Indeks itu memang cocok, tetapi mungkin masih ada nilai yang sama di sebelah kirinya."
+    - "Simpan jawabannya di variabel `int hasil = -1;` yang dibuat sebelum `while`. Saat cocok, isi `hasil = tengah;` lalu lanjutkan pencarian di separuh kiri dengan `kanan = tengah - 1;`."
+    - "Ubah dua `if` menjadi `if` / `else if` / `else` agar ketiga kasus (sama, lebih kecil, lebih besar) terpisah. Setelah perulangan selesai, `return hasil;`."
+
+- id: biner-rekursif
+  judul: Pencarian biner rekursif
+  soal: "Tulis ulang pencarian biner secara **rekursif**, tanpa `while`. Buat method `static int cariBinerRekursif(int[] data, int cari, int kiri, int kanan)` yang memeriksa elemen `tengah`, lalu memanggil dirinya sendiri pada separuh kiri atau separuh kanan. Isi `cariBiner` cukup satu baris yang memanggil `cariBinerRekursif(data, cari, 0, data.length - 1)`. Tetap naikkan `perbandingan` sekali untuk setiap elemen `tengah` yang diperiksa, sehingga output tetap dua baris: `Indeks 20: 6` dan `Perbandingan: 3`."
+  cek:
+    - jenis: output
+      harapan: "Indeks 20: 6\nPerbandingan: 3"
+    - jenis: harusMemakai
+      konstruksi: rekursi
+    - jenis: dilarangMemakai
+      konstruksi: while
+    - jenis: kompleksitas
+      maks: "log n"
+      pertumbuhan:
+        variabel: n
+        nilai: [8, 16, 32, 64, 128, 256]
+        ukur: "method:cariBinerRekursif"
+        seri:
+          - nama: biner
+            ganti: { biner: true }
+  petunjuk:
+    - "Rentang `kiri..kanan` kini menjadi parameter. **Base case**: bila `kiri > kanan`, rentang sudah kosong, jadi `return -1;`."
+    - "Hitung `tengah`, naikkan `perbandingan`, lalu bila `data[tengah] == cari` kembalikan `tengah`."
+    - "Bila `data[tengah] < cari`, kembalikan `cariBinerRekursif(data, cari, tengah + 1, kanan)`; selain itu kembalikan `cariBinerRekursif(data, cari, kiri, tengah - 1)`. Geser slider: rentang yang memudar ikut berganti setiap kali frame baru masuk."

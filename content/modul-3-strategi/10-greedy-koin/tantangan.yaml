@@ -1,0 +1,41 @@
+- id: jumlah-keping
+  judul: Jumlah keping minimum
+  soal: "Ubah program agar nilai kembalian dibaca dari input dengan `Scanner`, menggantikan angka 4900 yang ditulis langsung. Hitung banyaknya keping yang diberikan di variabel `int totalKeping` (buat langsung di dalam `main`), lalu cetak `Total keping: X` sebagai baris terakhir, setelah baris `Sisa`. Untuk input `4900`, baris terakhirnya `Total keping: 5`."
+  cek:
+    - jenis: outputMemuat
+      input: "4900\n"
+      harapan: "Total keping: 5"
+    - jenis: outputMemuat
+      input: "3700\n"
+      harapan: "Total keping: 4"
+    - jenis: variabel
+      input: "2600\n"
+      nama: totalKeping
+      tipe: int
+      harapan: 3
+    - jenis: harusMemakai
+      konstruksi: scanner
+  petunjuk:
+    - "Tulis `import java.util.Scanner;` di baris paling atas. Di awal `main`, buat `Scanner masukan = new Scanner(System.in);`, lalu ganti baris `sisa` menjadi `int sisa = masukan.nextInt();`. Angka yang ingin dicoba bisa diketik di tab Input."
+    - "Buat `int totalKeping = 0;` sebelum perulangan `for`. Setiap kali satu keping diambil di dalam `while`, naikkan juga `totalKeping`."
+    - "Setelah baris yang mencetak `Sisa`, tambahkan `System.out.println(\"Total keping: \" + totalKeping);`."
+
+- id: bagi-langsung
+  judul: Ambil sekaligus dengan pembagian
+  soal: "Perulangan `while` mengambil keping satu per satu. Padahal banyaknya keping `pecahan[i]` yang diambil greedy bisa langsung dihitung dengan pembagian bulat. Ubah program agar **tanpa** `while`, tetapi tetap menghasilkan isi `jumlah` dan output yang sama untuk kembalian 4900, yaitu `2000 x 2`, `500 x 1`, `200 x 2`, lalu `Sisa: 0`."
+  cek:
+    - jenis: dilarangMemakai
+      konstruksi: while
+    - jenis: dilarangMemakai
+      konstruksi: do-while
+    - jenis: variabel
+      input: "4900\n"
+      nama: jumlah
+      harapan: [2, 0, 1, 2, 0]
+    - jenis: outputMemuat
+      input: "4900\n"
+      harapan: "2000 x 2\n500 x 1\n200 x 2\nSisa: 0"
+  petunjuk:
+    - "Banyaknya keping yang bisa diambil dari satu pecahan adalah hasil bagi bulat `sisa / pecahan[i]`. Contoh: `4900 / 2000` bernilai 2."
+    - "Setelah keping-keping itu diambil, uang yang tersisa adalah `sisa % pecahan[i]`. Contoh: `4900 % 2000` bernilai 900."
+    - "Ganti seluruh blok `while` dengan dua baris: `jumlah[i] = sisa / pecahan[i];` lalu `sisa = sisa % pecahan[i];`."

@@ -75,11 +75,11 @@ export function hitungSorotan(l: Langkah | undefined): Sorotan {
   return s
 }
 
-/** Kelas sorotan untuk sebuah kotak nilai. */
-export function kelasSorotan(sorotan: Sorotan, kunci: string): string {
+/** Kelas sorotan untuk sebuah kotak nilai. `batang` = isi batang grafik (warna diam lebih pekat agar tetap kontras). */
+export function kelasSorotan(sorotan: Sorotan, kunci: string, batang = false): string {
   if (sorotan.tulis.has(kunci) || sorotan.baru.has(kunci)) return 'border-tulis bg-tulis-lembut'
   if (sorotan.baca.has(kunci)) return sorotan.banding ? 'border-banding bg-banding-lembut' : 'border-baca ring-2 ring-baca/25'
-  return 'border-input bg-card'
+  return batang ? 'border-muted-foreground/60 bg-muted-foreground/15' : 'border-input bg-card'
 }
 
 /** Teks nilai yang berganti dengan transisi singkat (lama keluar ke atas, baru masuk dari bawah). */

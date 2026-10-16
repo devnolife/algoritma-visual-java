@@ -1,0 +1,37 @@
+- id: tiga-barang
+  judul: Tiga barang berjumlah target
+  soal: "Saldo kini Rp93 ribu dan harus habis tepat untuk **tiga** barang berbeda. Ubah `target` menjadi 93, lalu tambahkan perulangan ketiga `k` agar program memeriksa setiap kombinasi tiga barang dengan indeks `i < j < k`. Naikkan `perbandingan` sekali untuk setiap kombinasi yang diperiksa dan `ditemukan` untuk setiap kombinasi yang cocok. Dua baris terakhir output harus `Kombinasi: 4` dan `Perbandingan: 35`. Baris untuk setiap kombinasi boleh kamu tulis dengan format bebas."
+  cek:
+    - jenis: variabel
+      nama: ditemukan
+      tipe: int
+      harapan: 4
+    - jenis: variabel
+      nama: perbandingan
+      tipe: int
+      harapan: 35
+    - jenis: outputPola
+      pola: '^Kombinasi: 4\nPerbandingan: 35$'
+    - jenis: harusMemakai
+      konstruksi: for
+  petunjuk:
+    - "Tiga barang butuh tiga indeks. Polanya sama seperti `j` yang dimulai dari `i + 1`: indeks ketiga `k` dimulai dari `j + 1`."
+    - "Pindahkan `perbandingan++` dan pemeriksaan `if` ke dalam perulangan `k`, dengan kondisi `harga[i] + harga[j] + harga[k] == target`."
+    - "Ada 7 × 6 × 5 / 6 = 35 kombinasi tiga barang dari 7 barang. Jangan lupa mengganti teks `Pasangan: ` menjadi `Kombinasi: ` di baris ringkasan."
+
+- id: cocok-string
+  judul: Hitung kemunculan pola
+  soal: 'Tambahkan method `static int hitungKemunculan(String teks, String pola)` yang menghitung berapa kali `pola` muncul di `teks` dengan **pencocokan string naif**: coba setiap posisi awal, lalu bandingkan karakter demi karakter memakai `charAt` (tanpa `indexOf`). Kemunculan yang tumpang tindih tetap dihitung. Di akhir `main`, cetak dua baris tambahan: `abra: 2` dari `hitungKemunculan("abrakadabra", "abra")` dan `aa: 3` dari `hitungKemunculan("aaaa", "aa")`.'
+  cek:
+    - jenis: harusMemakai
+      konstruksi: "method:hitungKemunculan"
+    - jenis: harusMemakai
+      konstruksi: "pustaka:String.charAt"
+    - jenis: dilarangMemakai
+      konstruksi: "pustaka:String.indexOf"
+    - jenis: outputPola
+      pola: '^abra: 2\naa: 3$'
+  petunjuk:
+    - "Mulailah dari method `cariPola` di materi. Bedanya, jangan langsung `return` saat pola ketemu: tambahkan hitungan, lalu lanjutkan ke posisi awal berikutnya."
+    - "Posisi awal `i` berjalan dari 0 sampai `teks.length() - pola.length()`. Di setiap posisi, majukan `k` selama `k < pola.length()` dan `teks.charAt(i + k) == pola.charAt(k)`. Bila akhirnya `k == pola.length()`, semua karakter cocok."
+    - 'Cetak dengan `System.out.println("abra: " + hitungKemunculan("abrakadabra", "abra"));`, lalu baris serupa untuk `"aaaa"` dan `"aa"`. Untuk `"aaaa"`, pola `"aa"` cocok di posisi 0, 1, dan 2.'

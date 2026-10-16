@@ -1,0 +1,46 @@
+- id: pangkat-ganjil
+  judul: Eksponen ganjil
+  soal: "`pangkatCepat` di editor baru benar bila `n` adalah pangkat dari 2. Perbaiki agar benar untuk **semua** n ≥ 0 tanpa menambah pemanggilan rekursif kedua. Lalu ubah `int n = 8;` menjadi `int n = 13;`, dan tambahkan `System.out.println(\"5^0 = \" + pangkatCepat(5, 0));` sebagai baris terakhir `main`. Output harus memuat baris `2^13 = 8192` dan baris `5^0 = 1`. Jumlah panggilannya untuk n ganjil harus tetap O(log n)."
+  cek:
+    - jenis: outputPola
+      pola: '^2\^13 = 8192$'
+    - jenis: outputPola
+      pola: '^5\^0 = 1$'
+    - jenis: harusMemakai
+      konstruksi: rekursi
+    - jenis: dilarangMemakai
+      konstruksi: "pustaka:Math.pow"
+    - jenis: kompleksitas
+      maks: "log n"
+      pertumbuhan:
+        variabel: n
+        nilai: [15, 31, 63, 127]
+        ukur: panggilan
+        seri:
+          - nama: pangkat cepat dengan n ganjil
+            ganti: { cepat: true }
+  petunjuk:
+    - "Masalahnya ada di `n / 2` untuk n ganjil: `13 / 2` bernilai 6, sehingga satu faktor `a` terbuang. Selain itu, base case `n == 1` tidak pernah tercapai bila n = 0, sehingga rekursinya tidak berhenti."
+    - "Ganti base case menjadi `if (n == 0) return 1;`. Setelah menghitung `setengah`, simpan kuadratnya di `long hasil = setengah * setengah;`."
+    - "Bila n ganjil, kalikan sekali lagi dengan `a`: `if (n % 2 == 1) hasil = hasil * a;`, lalu `return hasil;`. Contohnya a^13 = a^6 × a^6 × a."
+
+- id: maksimum-rekursif
+  judul: Maksimum dengan divide and conquer
+  soal: "Tambahkan method `static int maks(int[] data, int kiri, int kanan)` yang mencari nilai terbesar di antara `data[kiri]` sampai `data[kanan]` dengan divide and conquer. Bila `kiri == kanan`, kembalikan elemen itu. Selain itu, bagi dua di `tengah = (kiri + kanan) / 2`, cari maksimum kedua bagian secara rekursif, lalu kembalikan yang lebih besar. Di akhir `main`, buat `int[] data = {12, 49, 36, 23, 10, 47, 34};` dan `int terbesar = maks(data, 0, data.length - 1);`, lalu cetak `Maksimum: 49`. Jangan memakai perulangan."
+  cek:
+    - jenis: variabel
+      nama: terbesar
+      tipe: int
+      harapan: 49
+    - jenis: outputMemuat
+      harapan: "Maksimum: 49"
+    - jenis: harusMemakai
+      konstruksi: "method:maks"
+    - jenis: dilarangMemakai
+      konstruksi: for
+    - jenis: dilarangMemakai
+      konstruksi: while
+  petunjuk:
+    - "Base case: bila rentangnya tinggal satu elemen (`kiri == kanan`), maksimumnya adalah `data[kiri]`."
+    - "Pecah dan selesaikan: hitung `int tengah = (kiri + kanan) / 2;`, lalu `int maksKiri = maks(data, kiri, tengah);` dan `int maksKanan = maks(data, tengah + 1, kanan);`."
+    - "Gabung: `return Math.max(maksKiri, maksKanan);`. Lihat pohon panggilannya: 7 elemen menghasilkan 13 panggilan `maks` yang bercabang dua, seperti bagan turnamen."

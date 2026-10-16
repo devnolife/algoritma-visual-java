@@ -93,7 +93,7 @@ export function GrafView({ state, sorotan, konfig, adaDiKode = true, adaMemori =
   const digambar = berarah ? sisi : sisi.filter((s) => s.dari < s.ke || !sisi.some((t) => t.dari === s.ke && t.ke === s.dari))
   const sudahDikunjungi = (i: number) => dikunjungi !== undefined && (dikunjungi.nilai[i] === true || dikunjungi.nilai[i] === 1)
   const ringkasan = `Graf ${n} simpul, ${digambar.length} sisi${berarah ? ' berarah' : ''}${aktif !== undefined ? `, simpul aktif ${nama[aktif]}` : ''}${
-    dikunjungi ? `, sudah dikunjungi: ${nama.filter((_, i) => sudahDikunjungi(i)).join(', ') || 'belum ada'}` : ''
+    dikunjungi ? `, ${konfig.dikunjungi} bernilai true untuk: ${nama.filter((_, i) => sudahDikunjungi(i)).join(', ') || 'belum ada'}` : ''
   }.`
 
   return (
@@ -106,7 +106,8 @@ export function GrafView({ state, sorotan, konfig, adaDiKode = true, adaMemori =
         </span>
         {dikunjungi && (
           <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
-            <span aria-hidden="true" className="inline-block size-3 rounded-full border-[1.5px] border-tulis bg-tulis-lembut" /> sudah dikunjungi
+            <span aria-hidden="true" className="inline-block size-3 rounded-full border-[1.5px] border-tulis bg-tulis-lembut" />
+            <span className="font-mono">{konfig.dikunjungi}</span> = true
           </span>
         )}
         {penunjuk[0] && (

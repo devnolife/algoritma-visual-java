@@ -40,6 +40,7 @@ export function ArrayView({
   konfig,
   adaDiKode = true,
   adaMemori = true,
+  galat = false,
 }: {
   state: StateMesin
   sorotan: Sorotan
@@ -47,6 +48,8 @@ export function ArrayView({
   konfig: KonfigArray
   adaDiKode?: boolean
   adaMemori?: boolean
+  /** true bila langkah ini memicu exception: penunjuk di luar batas ditampilkan merah. */
+  galat?: boolean
 }) {
   const hasil = cariVariabel(state, konfig.variabel)
   const id = idArrayDari(state, konfig.variabel)
@@ -81,16 +84,17 @@ export function ArrayView({
       <div role="listitem" aria-label={`indeks ${indeks} berada di luar array`} className="flex w-14 shrink-0 flex-col items-center gap-1">
         <div
           className={cn(
-            'flex w-14 items-center justify-center rounded-lg border-[1.5px] border-dashed border-galat bg-galat-lembut/60 font-mono text-[15px] font-semibold text-galat',
+            'flex w-14 items-center justify-center rounded-lg border-[1.5px] border-dashed font-mono text-[15px] font-semibold',
+            galat ? 'border-galat bg-galat-lembut/60 text-galat' : 'border-muted-foreground/40 text-muted-foreground',
             batang ? 'h-28' : 'h-13',
           )}
         >
-          ✕
+          {galat ? '✕' : <span aria-hidden="true">·</span>}
         </div>
-        <span className="font-mono text-[11px] font-semibold text-galat">[{indeks}]</span>
+        <span className={cn('font-mono text-[11px]', galat ? 'font-semibold text-galat' : 'text-muted-foreground')}>[{indeks}]</span>
         <div className="flex min-h-6 flex-col items-center leading-none">
           {ps.map((p) => (
-            <span key={p.nama} className="flex flex-col items-center font-mono text-[11.5px] font-bold text-galat">
+            <span key={p.nama} className={cn('flex flex-col items-center font-mono text-[11.5px] font-bold', galat ? 'text-galat' : 'text-banding-teks')}>
               <span aria-hidden="true">▲</span>
               {p.nama}
             </span>
@@ -114,7 +118,7 @@ export function ArrayView({
           </span>
         )}
         {luarBatas.length > 0 && (
-          <span className="font-mono text-[12px] font-semibold text-galat">
+          <span className={cn('font-mono text-[12px]', galat ? 'font-semibold text-galat' : 'text-muted-foreground')}>
             · {luarBatas.map((p) => `${p.nama} = ${p.nilai}`).join(', ')} di luar indeks 0…{o.nilai.length - 1}
           </span>
         )}
@@ -126,17 +130,19 @@ export function ArrayView({
           const teks = tampilNilai(x, tipe, state.heap)
           const disini = penunjuk.filter((p) => p.nilai === i)
           const luar = diLuarRentang(i)
+          // Angka panjang (mis. Integer.MAX_VALUE) memperkecil huruf dan melebarkan sel, bukan meluber ke sel tetangga.
+          const ukuranHuruf = teks.length <= 4 ? 'text-[17px]' : teks.length <= 6 ? 'text-[14px]' : 'text-[12px]'
           return (
-            <div key={i} role="listitem" className={cn('flex w-14 shrink-0 flex-col items-center gap-1 transition-opacity duration-200 ease-out', luar && 'opacity-30')}>
+            <div key={i} role="listitem" className={cn('flex w-14 min-w-10 shrink flex-col items-center gap-1 transition-opacity duration-200 ease-out', teks.length > 6 && 'w-auto shrink-0', luar && 'opacity-30')}>
               {batang ? (
                 <div data-sasaran-panah={i === 0 ? '' : undefined} className="flex h-28 w-full flex-col items-center justify-end">
-                  <span className="mb-1 font-mono text-[12px] font-semibold">
+                  <span className={cn('mb-1 font-mono font-semibold whitespace-nowrap', teks.length > 5 ? 'text-[10.5px]' : 'text-[12px]')}>
                     <NilaiBerubah teks={teks} instan={instan} />
                   </span>
                   <div
                     className={cn(
-                      'gerak w-10 origin-bottom rounded-t-md border-[1.5px] border-b-0 transition-[transform,background-color,border-color] duration-200',
-                      kelasSorotan(sorotan, kunci),
+                      'gerak w-[72%] origin-bottom rounded-t-md border-[1.5px] border-b-0 transition-[transform,background-color,border-color] duration-200',
+                      kelasSorotan(sorotan, kunci, true),
                     )}
                     style={{ height: '88px', transform: `scaleY(${Math.max(0.04, Math.abs(angka[i]) / maks)})`, transitionTimingFunction: 'cubic-bezier(0.77, 0, 0.175, 1)' }}
                   />
@@ -145,7 +151,8 @@ export function ArrayView({
                 <div
                   data-sasaran-panah={i === 0 ? '' : undefined}
                   className={cn(
-                    'flex h-13 w-14 items-center justify-center rounded-lg border-[1.5px] font-mono text-[17px] font-semibold transition-[background-color,border-color,box-shadow] duration-300 ease-out',
+                    'flex h-13 w-full items-center justify-center rounded-lg border-[1.5px] px-1 font-mono font-semibold whitespace-nowrap transition-[background-color,border-color,box-shadow] duration-300 ease-out',
+                    ukuranHuruf,
                     kelasSorotan(sorotan, kunci),
                   )}
                 >

@@ -1,0 +1,30 @@
+- id: hitung-pertukaran
+  judul: Lewati pertukaran yang sia-sia
+  soal: "Bila minimum sudah berada di posisi `i` (`idxMin == i`), pertukaran tidak mengubah apa pun. Ubah program agar hanya menukar bila `idxMin != i`, lalu hitung pertukaran yang benar-benar terjadi di variabel `int pertukaran` yang dideklarasikan langsung di `main`. Output harus tepat tiga baris: `Terurut: [10, 12, 23, 34, 36, 47, 49]`, `Perbandingan: 21`, dan `Pertukaran: 5`."
+  cek:
+    - jenis: output
+      harapan: "Terurut: [10, 12, 23, 34, 36, 47, 49]\nPerbandingan: 21\nPertukaran: 5"
+    - jenis: variabel
+      nama: pertukaran
+      tipe: int
+      harapan: 5
+    - jenis: arrayTerurut
+      nama: data
+      arah: naik
+  petunjuk:
+    - "Buat `int pertukaran = 0;` di bawah `int perbandingan = 0;`, yaitu di luar kedua perulangan."
+    - "Bungkus tiga baris pertukaran dengan `if (idxMin != i) { ... }`, lalu tambahkan `pertukaran++;` di dalam blok itu."
+    - 'Cetak hasilnya paling akhir dengan `System.out.println("Pertukaran: " + pertukaran);`. Putaran terakhir (saat `i = 5`) seharusnya tidak menukar apa pun, karena 47 sudah di tempatnya.'
+
+- id: jejak-putaran
+  judul: Cetak setiap putaran
+  soal: "Tambahkan satu baris cetak di **akhir setiap putaran**, setelah pertukaran, dengan format `Putaran X: [isi array]` dan X mulai dari 1. Baris pertama output seharusnya `Putaran 1: [10, 49, 36, 23, 12, 47, 34]`. Setelah keenam baris putaran, dua baris terakhir tetap `Terurut: [10, 12, 23, 34, 36, 47, 49]` dan `Perbandingan: 21`. Amati: setelah putaran ke-X, X elemen pertama sudah berada di tempat akhirnya."
+  cek:
+    - jenis: output
+      harapan: "Putaran 1: [10, 49, 36, 23, 12, 47, 34]\nPutaran 2: [10, 12, 36, 23, 49, 47, 34]\nPutaran 3: [10, 12, 23, 36, 49, 47, 34]\nPutaran 4: [10, 12, 23, 34, 49, 47, 36]\nPutaran 5: [10, 12, 23, 34, 36, 47, 49]\nPutaran 6: [10, 12, 23, 34, 36, 47, 49]\nTerurut: [10, 12, 23, 34, 36, 47, 49]\nPerbandingan: 21"
+    - jenis: dilarangMemakai
+      konstruksi: "pustaka:Arrays.sort"
+  petunjuk:
+    - "Baris cetaknya harus berada di dalam perulangan luar (`for (int i ...`), tetapi di luar perulangan dalam (`for (int j ...`)."
+    - "Nomor putaran adalah `i + 1`, karena `i` dimulai dari 0. Tulis di dalam kurung, `(i + 1)`. Tanpa kurung, `\"Putaran \" + i + 1` menghasilkan teks `Putaran 01`."
+    - 'Letakkan `System.out.println("Putaran " + (i + 1) + ": " + Arrays.toString(data));` tepat setelah `data[idxMin] = sementara;`.'

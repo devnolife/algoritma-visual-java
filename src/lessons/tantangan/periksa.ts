@@ -1,5 +1,5 @@
 import type { Diagnostik, Trace } from '@/engine'
-import { kalimatKesimpulan, klasifikasi, labelKelas, urutanKelas, type HasilPertumbuhan, type KonfigPertumbuhan } from '@/engine/pertumbuhan'
+import { kalimatKesimpulan, klasifikasi, labelKelas, namaUkuran, urutanKelas, type HasilPertumbuhan, type KonfigPertumbuhan } from '@/engine/pertumbuhan'
 import type { Cek, Tantangan } from '../skema'
 
 /** Hasil satu kali menjalankan kode mahasiswa (bentuk minimal dari HasilEngine worker). */
@@ -7,7 +7,7 @@ export interface HasilJalan {
   ok: boolean
   diagnostik: Diagnostik[]
   konstruksi: string[]
-  trace?: Pick<Trace, 'output' | 'rentangErr' | 'status' | 'exception' | 'akhirMain' | 'pesanSimulator'> & { langkah: { length: number } }
+  trace?: Pick<Trace, 'output' | 'rentangErr' | 'status' | 'exception' | 'akhirMain' | 'akhirStatik' | 'pesanSimulator'> & { langkah: { length: number } }
   galat?: string
   timeout?: boolean
 }
@@ -163,11 +163,16 @@ async function periksaKompleksitas(c: Extract<Cek, { jenis: 'kompleksitas' }>, s
   for (const s of daftar) {
     const k = klasifikasi(s.titik)
     const macet = s.titik.find((t) => t.status === 'batas' || t.status === 'exception' || t.status === 'galat')
-    if (!k || macet) {
-      return gagal(
-        `Program tidak selesai normal untuk semua ukuran n${daftar.length > 1 ? ` (seri ${s.nama})` : ''}.`,
-        macet ? `n = ${macet.n}: ${macet.pesan ?? macet.status}` : 'Belum cukup titik untuk menyimpulkan pola.',
-      )
+    const dalamSeri = daftar.length > 1 ? ` (seri ${s.nama})` : ''
+    if (macet) return gagal(`Program tidak selesai normal untuk n = ${macet.n}${dalamSeri}.`, macet.pesan ?? macet.status)
+    if (!k) {
+      const semuaNol = s.titik.every((t) => t.nilai === 0)
+      return semuaNol
+        ? gagal(
+            `Nilai yang diukur (${namaUkuran(konfig.ukur).replace(/`/g, '')}) selalu 0${dalamSeri}, jadi pertumbuhannya tidak bisa disimpulkan.`,
+            'Pastikan bagian kode yang diukur benar-benar dijalankan untuk setiap ukuran n.',
+          )
+        : gagal(`Belum cukup titik untuk menyimpulkan pola pertumbuhan${dalamSeri}.`)
     }
     rincian.push(`${daftar.length > 1 ? `${s.nama}: ` : ''}${kalimatKesimpulan(k, konfig.ukur).replace(/\*\*/g, '')}`)
     if (!terburuk || urutanKelas(k.kelas) > urutanKelas(terburuk.kelas)) terburuk = { kelas: k.kelas, nama: s.nama }
@@ -228,14 +233,14 @@ function periksaSatu(c: CekJalan, h: HasilJalan): HasilCek {
         : gagal(`Bentuk output belum sesuai yang diminta${inp}.`, [berhenti, `Output-mu:\n${out || '(kosong)'}`].filter(Boolean).join('\n'))
     }
     case 'variabel': {
-      const v = t.akhirMain[c.nama]
-      if (!v) return gagal(`Variabel \`${c.nama}\` tidak ditemukan di akhir method main.`, berhenti ?? `Pastikan ${c.nama} dideklarasikan langsung di dalam main (bukan di dalam blok if/for).`)
+      const v = t.akhirMain[c.nama] ?? t.akhirStatik?.[c.nama]
+      if (!v) return gagal(`Variabel \`${c.nama}\` tidak ditemukan di akhir method main.`, berhenti ?? `Pastikan ${c.nama} dideklarasikan langsung di dalam main (bukan di dalam blok if/for) atau sebagai field static.`)
       if (c.tipe && v.tipe !== c.tipe) return gagal(`Variabel \`${c.nama}\` harus bertipe \`${c.tipe}\`, bukan \`${v.tipe}\`.`)
       if (!samaNilai(v.nilai, c.harapan)) return gagal(`Nilai akhir \`${c.nama}\` belum tepat${inp}.`, [berhenti, `Diharapkan ${teksNilai(c.harapan, v.tipe)}, ternyata ${teksNilai(v.nilai, v.tipe)}.`].filter(Boolean).join('\n'))
       return lulus(`\`${c.nama}\` bernilai ${teksNilai(c.harapan, v.tipe)}${inp}.`)
     }
     case 'arrayTerurut': {
-      const v = t.akhirMain[c.nama]
+      const v = t.akhirMain[c.nama] ?? t.akhirStatik?.[c.nama]
       if (!v || !Array.isArray(v.nilai)) return gagal(`Array \`${c.nama}\` tidak ditemukan di akhir method main.`, berhenti ?? undefined)
       const a = v.nilai as unknown[]
       const terurut = a.every((x, i) => i === 0 || (c.arah === 'naik' ? (a[i - 1] as number) <= (x as number) : (a[i - 1] as number) >= (x as number)))

@@ -1,0 +1,33 @@
+- id: urutkan-menurun
+  judul: Urutkan menurun
+  soal: "Ubah insertion sort agar mengurutkan dari yang **terbesar** ke yang terkecil dengan mengubah kondisi berhentinya. Jangan memakai `Arrays.sort` dan jangan membalik array setelah diurutkan. Output harus tepat dua baris: `Terurut: [49, 47, 36, 34, 23, 12, 10]` dan `Perbandingan: 15`."
+  cek:
+    - jenis: output
+      harapan: "Terurut: [49, 47, 36, 34, 23, 12, 10]\nPerbandingan: 15"
+    - jenis: arrayTerurut
+      nama: data
+      arah: turun
+    - jenis: dilarangMemakai
+      konstruksi: "pustaka:Arrays.sort"
+  petunjuk:
+    - "Sekarang `kunci` harus berhenti tepat di kanan elemen yang **tidak lebih kecil** darinya, dan elemen yang lebih kecil darinya digeser ke kanan."
+    - "Cukup ubah satu operator pada baris `if` di dalam `while`."
+    - "Ganti `data[j] <= kunci` menjadi `data[j] >= kunci`. Jumlah perbandingannya berubah menjadi 15 karena data yang sama kini diurutkan ke arah sebaliknya."
+
+- id: hitung-pergeseran
+  judul: Hitung pergeseran
+  soal: "Tambahkan variabel `int pergeseran` (dideklarasikan langsung di `main`) yang menghitung berapa kali sebuah elemen digeser ke kanan. Output harus tepat tiga baris: `Terurut: [10, 12, 23, 34, 36, 47, 49]`, `Perbandingan: 16`, dan `Pergeseran: 11`. Kasus terbaiknya harus tetap O(n): seri data terurut di tab Pertumbuhan tidak boleh berubah menjadi O(n²)."
+  cek:
+    - jenis: output
+      harapan: "Terurut: [10, 12, 23, 34, 36, 47, 49]\nPerbandingan: 16\nPergeseran: 11"
+    - jenis: variabel
+      nama: pergeseran
+      tipe: int
+      harapan: 11
+    - jenis: kompleksitas
+      maks: n
+      seri: data terurut
+  petunjuk:
+    - "Satu pergeseran terjadi setiap kali baris `data[j + 1] = data[j];` di dalam `while` dijalankan."
+    - "Buat `int pergeseran = 0;` di bawah `int perbandingan = 0;`, lalu tambahkan `pergeseran++;` tepat sebelum atau sesudah baris penggeseran, yaitu setelah blok `if` yang berisi `break`."
+    - "Cetak `\"Pergeseran: \" + pergeseran` di baris terakhir. Angka 11 itu juga banyaknya pasangan elemen yang urutannya terbalik (**inversi**) pada data awal, misalnya pasangan 49 dan 36."

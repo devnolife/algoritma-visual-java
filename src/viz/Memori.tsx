@@ -90,7 +90,13 @@ function KotakVariabel({
 
 function labelFrame(f: FrameState, heap: StateMesin['heap']): string {
   const param = f.vars.filter((v) => v.param && !(f.method === 'main' && v.nama === 'args'))
-  return `${f.method}(${param.map((p) => `${p.nama} = ${tampilNilai(p.nilai, p.tipe, heap)}`).join(', ')})`
+  // Parameter array cukup ditulis namanya (isinya sudah terlihat lewat panah); String panjang dipotong.
+  const teks = (p: (typeof param)[number]) => {
+    if (p.tipe.endsWith('[]')) return p.nama
+    const nilai = tampilNilai(p.nilai, p.tipe, heap)
+    return `${p.nama} = ${nilai.length > 14 ? `${nilai.slice(0, 12)}…${nilai.endsWith('"') ? '"' : ''}` : nilai}`
+  }
+  return `${f.method}(${param.map(teks).join(', ')})`
 }
 
 function KotakFrame({

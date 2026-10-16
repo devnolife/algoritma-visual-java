@@ -33,6 +33,8 @@ export const skemaVisual = z.discriminatedUnion('jenis', [
     /** Hanya tampilkan pemanggilan method ini (mis. fib). */
     method: z.string().optional(),
     maks: z.number().int().min(7).max(255).optional(),
+    /** Garis putus-putus untuk panggilan berargumen sama; matikan untuk backtracking. */
+    tandaiBerulang: z.boolean().optional(),
   }),
   z.object({
     jenis: z.literal('graf'),

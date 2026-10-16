@@ -1,0 +1,44 @@
+- id: urutkan-menurun
+  judul: Urutkan menurun
+  soal: "Ubah merge sort agar mengurutkan dari yang **terbesar** ke yang terkecil dengan mengubah cara `gabung` memilih elemen. Jangan memakai `Arrays.sort` dan jangan membalik array di akhir. Output harus tepat dua baris: `Terurut: [49, 47, 36, 34, 23, 12, 10]` dan `Perbandingan: 14`."
+  cek:
+    - jenis: output
+      harapan: "Terurut: [49, 47, 36, 34, 23, 12, 10]\nPerbandingan: 14"
+    - jenis: arrayTerurut
+      nama: data
+      arah: turun
+    - jenis: dilarangMemakai
+      konstruksi: "pustaka:Arrays.sort"
+    - jenis: harusMemakai
+      konstruksi: rekursi
+    - jenis: kompleksitas
+      maks: "n log n"
+  petunjuk:
+    - "Pembelahan di `mergeSort` tidak perlu diubah. Yang menentukan arah urutan hanyalah elemen mana yang diambil lebih dulu saat menggabung."
+    - "Sekarang yang disalin lebih dulu ke `bantu` adalah elemen yang **lebih besar**. Cukup ubah satu operator di baris `if` dalam `gabung`."
+    - "Ganti `data[i] <= data[j]` menjadi `data[i] >= data[j]`. Dua perulangan sisa dan penyalinan kembali tetap sama."
+
+- id: lewati-gabung
+  judul: Lewati gabung yang tidak perlu
+  soal: "Bila elemen terakhir bagian kiri (`data[tengah]`) tidak lebih besar dari elemen pertama bagian kanan (`data[tengah + 1]`), rentang `kiri..kanan` sebenarnya sudah terurut, jadi `gabung` tidak perlu dipanggil. Tambahkan pemeriksaan ini di `mergeSort`, tepat sebelum memanggil `gabung`. Kasus terbaiknya, yaitu data yang sudah terurut, akan turun dari O(n log n) menjadi O(n). Output tetap dua baris seperti semula, diawali `Terurut: [10, 12, 23, 34, 36, 47, 49]`; angka perbandingannya boleh berubah."
+  cek:
+    - jenis: outputMemuat
+      harapan: "Terurut: [10, 12, 23, 34, 36, 47, 49]"
+    - jenis: arrayTerurut
+      nama: data
+      arah: naik
+    - jenis: harusMemakai
+      konstruksi: "method:gabung"
+    - jenis: kompleksitas
+      maks: n
+      pertumbuhan:
+        variabel: n
+        nilai: [16, 32, 64, 128, 256]
+        ukur: "method:mergeSort"
+        seri:
+          - nama: data terurut
+            ganti: { terurut: true }
+  petunjuk:
+    - "Setelah dua panggilan rekursif selesai, `data[kiri..tengah]` dan `data[tengah + 1..kanan]` masing-masing sudah terurut. Bila `data[tengah] <= data[tengah + 1]`, tidak ada elemen kiri yang lebih besar dari elemen kanan."
+    - "Tambahkan `if (data[tengah] <= data[tengah + 1]) return;` tepat sebelum baris `gabung(data, kiri, tengah, kanan);`."
+    - "Hitung juga pemeriksaan itu sebagai perbandingan dengan `perbandingan++;` tepat sebelum `if`. Di tab Pertumbuhan, seri data terurut kini hanya naik 2 kali setiap n dua kali lipat, yaitu O(n)."

@@ -1,0 +1,26 @@
+- id: jarak-bfs
+  judul: Jarak dari simpul 0
+  soal: "Karena BFS mengunjungi simpul lapis demi lapis, BFS bisa sekaligus menghitung **jarak** setiap simpul dari simpul 0, yaitu banyaknya sisi pada jalur terpendek. Ubah method `bfs` agar mengisi array `int[] jarak` selama penelusuran lalu mengembalikannya. Di main, simpan hasilnya di variabel `int[] jarak`, lalu cetak satu baris `Jarak: [0, 1, 1, 2, 2, 2]` dengan `Arrays.toString` tepat setelah baris `BFS:`. Output yang diharapkan tepat tiga baris: `BFS: 0 1 2 3 4 5`, `Jarak: [0, 1, 1, 2, 2, 2]`, dan `DFS: 0 1 3 4 5 2`."
+  cek:
+    - jenis: variabel
+      nama: jarak
+      harapan: [0, 1, 1, 2, 2, 2]
+    - jenis: output
+      harapan: "BFS: 0 1 2 3 4 5\nJarak: [0, 1, 1, 2, 2, 2]\nDFS: 0 1 3 4 5 2"
+  petunjuk:
+    - "Ganti `static void bfs(int awal)` menjadi `static int[] bfs(int awal)`. Di dalamnya buat `int[] jarak = new int[graf.length];`, dan akhiri method dengan `return jarak;`. Jarak simpul awal 0, dan isi awal array `int` memang 0."
+    - "Saat tetangga `v` dimasukkan ke antrean dari simpul `u`, jaraknya satu sisi lebih jauh daripada `u`: tambahkan `jarak[v] = jarak[u] + 1;` di dalam blok `if`."
+    - "Di main, ganti `bfs(0);` dengan `int[] jarak = bfs(0);`. Tambahkan `import java.util.Arrays;` di baris paling atas, lalu tepat setelah `System.out.println();` milik BFS, cetak `System.out.println(\"Jarak: \" + Arrays.toString(jarak));`."
+
+- id: dfs-tanpa-rekursi
+  judul: DFS tanpa rekursi
+  soal: "Rekursi sebenarnya memakai **tumpukan** (stack), yaitu call stack milik Java. Tulis ulang method `dfs` **tanpa rekursi** dengan tumpukan buatan sendiri: array `int[] tumpukan` dan indeks `atas`. Urutan kunjungannya harus tetap sama, jadi output tetap tepat dua baris: `BFS: 0 1 2 3 4 5` dan `DFS: 0 1 3 4 5 2`."
+  cek:
+    - jenis: output
+      harapan: "BFS: 0 1 2 3 4 5\nDFS: 0 1 3 4 5 2"
+    - jenis: dilarangMemakai
+      konstruksi: rekursi
+  petunjuk:
+    - "Tumpukan adalah kebalikan antrean: yang terakhir masuk diambil **pertama**. Masukkan dengan `tumpukan[atas++] = v;`, ambil dengan `int u = tumpukan[--atas];`, dan ulangi selama `atas > 0`. Awali dengan memasukkan simpul awal ke tumpukan."
+    - "Sebuah simpul bisa masuk tumpukan lebih dari sekali, jadi buat tumpukan yang cukup besar, misalnya `new int[graf.length * graf.length]`. Saat simpul diambil: bila sudah dikunjungi, lewati dengan `continue`; bila belum, tandai lalu cetak."
+    - "Agar tetangga bernomor **kecil** diambil lebih dulu seperti pada DFS rekursif, masukkan tetangga yang belum dikunjungi dari nomor besar ke kecil: `for (int v = graf.length - 1; v >= 0; v--)`."
