@@ -1,3 +1,4 @@
+import { narasiExceptionFase2, narasiPanggilFase2, narasiPernyataanFase2, penjelasanExceptionFase2 } from './narasiFase2'
 import type { Langkah, Peristiwa, PohonEval, StateMesin, Trace } from './trace'
 import { tampilNilai } from './trace'
 
@@ -28,7 +29,8 @@ const PENJELASAN_EXCEPTION: Record<string, string> = {
   'java.lang.StringIndexOutOfBoundsException': 'Posisi karakter yang diminta berada di luar panjang String. Posisi yang sah adalah 0 sampai length() − 1.',
   'java.lang.NumberFormatException': 'Teks tersebut tidak bisa diubah menjadi angka.',
   'java.util.InputMismatchException': 'Input yang dibaca Scanner tidak cocok dengan tipe yang diminta, mis. huruf saat memanggil nextInt().',
-  'java.util.NoSuchElementException': 'Scanner kehabisan input. Isi tab Input dengan data yang dibutuhkan program.',
+  'java.util.NoSuchElementException':
+    'Elemen yang diminta tidak ada. Bila berasal dari Scanner, input sudah habis: isi tab Input dengan data yang dibutuhkan program. Bila berasal dari koleksi atau iterator, koleksinya sudah kosong.',
   'java.lang.StackOverflowError': 'Pemanggilan method terlalu dalam. Biasanya karena rekursi tidak pernah mencapai base case.',
   'java.util.IllegalFormatConversionException': 'Penentu format printf tidak cocok dengan tipe argumennya, mis. %d dipakai untuk double.',
   'java.util.MissingFormatArgumentException': 'Jumlah argumen printf lebih sedikit daripada penentu format (%d, %s, …).',
@@ -116,7 +118,9 @@ export function narasikan(trace: Trace, i: number, sesudah: StateMesin, ktx: Kon
     }
     case 'panggil': {
       const pg = cari('panggil')[0]
-      if (pg) {
+      const fase2 = pg ? narasiPanggilFase2(pg, cari, sesudah) : undefined
+      if (fase2) kalimat.push(...fase2)
+      else if (pg) {
         const params = pg.frame.vars.map((v) => `${k(v.nama)} = ${k(tampil(v.nilai, v.tipe))}`)
         kalimat.push(
           `Memanggil ${k(`${pg.method}(${pg.argumen.join(', ')})`)}. Java membuat **frame baru** di call stack untuk method ini` +
@@ -127,7 +131,11 @@ export function narasikan(trace: Trace, i: number, sesudah: StateMesin, ktx: Kon
     }
     case 'kembali': {
       const kb = cari('kembali')[0]
-      if (kb) {
+      if (kb?.jenis === 'konstruktor') {
+        kalimat.push(`Konstruktor ${k(kb.method)} selesai. Objeknya sudah siap, dan referensinya menjadi hasil ekspresi ${k('new')}.`)
+      } else if (kb?.jenis === 'lambda') {
+        kalimat.push(`Lambda selesai dan mengembalikan ${k(kb.nilai ?? '?')} ke ${k('Comparator')}.`)
+      } else if (kb) {
         kalimat.push(
           kb.nilai !== undefined
             ? `Method ${k(kb.method)} selesai dan **mengembalikan** ${k(kb.nilai)} ke pemanggilnya. Frame-nya akan dibuang dari call stack.`
@@ -146,9 +154,9 @@ export function narasikan(trace: Trace, i: number, sesudah: StateMesin, ktx: Kon
     case 'exception': {
       const ex = cari('exception')[0]
       if (ex) {
-        const nama = ex.kelas.split('.').pop()
+        const nama = ex.kelas.split('.').pop()?.replace(/^.*\$/, '')
         kalimat.push(`Terjadi **${nama}**${ex.pesan ? `: ${k(ex.pesan)}` : ''}. Program berhenti di baris ${l.baris}.`)
-        const jelas = PENJELASAN_EXCEPTION[ex.kelas]
+        const jelas = PENJELASAN_EXCEPTION[ex.kelas] ?? penjelasanExceptionFase2(ex.kelas)
         if (jelas) kalimat.push(jelas)
       } else if (trace.exception) {
         kalimat.push(`Program berhenti: ${trace.exception.pesan ?? trace.exception.kelas}.`)
@@ -290,10 +298,17 @@ export function narasikan(trace: Trace, i: number, sesudah: StateMesin, ktx: Kon
             : `${k('continue')} melewati sisa badan perulangan dan lanjut ke putaran berikutnya.`,
         )
       }
+      {
+        const f2 = narasiPernyataanFase2(cari, sesudah, teks, ubah)
+        kalimat.push(...f2.kalimat)
+        hasil.peringatan.push(...f2.peringatan)
+      }
       if (kalimat.length === 0 && teks) kalimat.push(`Menjalankan ${k(teks)}.`)
       break
     }
   }
+
+  if (l.jenis !== 'exception') kalimat.push(...narasiExceptionFase2(cari))
 
   for (const a of cari('aritmetika')) {
     const n = narasiAritmetika(a)

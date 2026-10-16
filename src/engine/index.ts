@@ -1,4 +1,3 @@
-import { analisisAlur } from './alur'
 import { periksa, type ProgramTerperiksa } from './checker'
 import { PengumpulDiagnostik, type Diagnostik } from './diagnostik'
 import { lex } from './lexer'
@@ -35,8 +34,8 @@ export function kompilasi(teks: string): HasilKompilasi {
     const lanjutan = diag.daftar.slice(jumlahErrorLeksikal).filter((d) => d.span.awal < batas)
     diag.daftar.splice(jumlahErrorLeksikal, diag.daftar.length - jumlahErrorLeksikal, ...lanjutan)
   }
-  // Error sintaks & tipe diurutkan menurut posisi; error analisis alur mengikuti urutan javac
-  // (semua error keterjangkauan dulu, baru error penugasan).
+  // Error sintaks diurutkan menurut posisi; error tipe dan analisis alur dilaporkan pemeriksa dalam urutan javac
+  // (per class top-level: Attr lalu Flow).
   const gagal = (urutkan: boolean): HasilKompilasi => ({
     ok: false,
     diagnostik: urutkan ? [...diag.daftar].sort((a, b) => a.span.awal - b.span.awal) : [...diag.daftar],
@@ -45,9 +44,7 @@ export function kompilasi(teks: string): HasilKompilasi {
   })
   if (diag.adaError) return gagal(true)
   const program = periksa(unit, diag)
-  if (diag.adaError || !program) return gagal(true)
-  analisisAlur(program.kelas, diag)
-  if (diag.adaError) return gagal(false)
+  if (diag.adaError || !program) return gagal(false)
   return { ok: true, diagnostik: [], penanda: objPenanda, program, sumber }
 }
 

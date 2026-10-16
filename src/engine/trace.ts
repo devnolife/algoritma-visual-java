@@ -24,6 +24,18 @@ export type ObjekHeap =
   | { k: 'array'; tipeElemen: string; nilai: Nilai[] }
   | { k: 'string'; nilai: string }
   | { k: 'scanner'; posisi: number }
+  /**
+   * Objek berfield: class mahasiswa, exception, dan objek internal pustaka (koleksi java.util, Random).
+   * `kelas` = nama biner JVM: `Main$Node`, `Node`, `java.util.ArrayList`, `java.util.HashMap$Node`,
+   * `java.lang.IllegalStateException`. Urutan kunci `field` = urutan deklarasi field.
+   */
+  | { k: 'objek'; kelas: string; field: Record<string, Nilai>; tipeField: Record<string, string>; jejak?: string[] }
+  /** Wrapper hasil boxing (imutabel), mis. `{kelas: 'Integer', nilai: 128}`. */
+  | { k: 'boks'; kelas: string; nilai: Nilai }
+  /** StringBuilder: isi karakternya saat ini. */
+  | { k: 'pembangun'; nilai: string }
+  /** Lambda (Comparator): nama method sintetis, teks sumber, dan nilai tangkapan. */
+  | { k: 'lambda'; nama: string; teks: string; tangkapan: VarState[] }
 
 export interface StateMesin {
   frames: FrameState[]
@@ -46,12 +58,32 @@ export type Peristiwa =
   | { k: 'tulis-statik'; nama: string; tipe: string; lama?: Nilai; baru: Nilai; op?: string; operand?: string }
   | { k: 'alokasi'; id: number; objek: ObjekHeap }
   | { k: 'tulis-elemen'; id: number; indeks: number; tipe: string; lama: Nilai; baru: Nilai; op?: string; operand?: string }
-  | { k: 'panggil'; frame: FrameState; method: string; argumen: string[]; barisPemanggil: number }
+  | { k: 'panggil'; frame: FrameState; method: string; argumen: string[]; barisPemanggil: number; jenis?: 'konstruktor' | 'lambda' }
   | { k: 'buang-frame'; frame: number }
   | { k: 'scanner'; id: number; posisiLama: number; posisi: number; token: string; metode: string }
   | { k: 'baris-frame'; frame: number; baris: number }
+  /** Tulis field objek (class mahasiswa maupun objek internal pustaka). */
+  | { k: 'tulis-field'; id: number; field: string; tipe: string; lama: Nilai; baru: Nilai; op?: string; operand?: string }
+  /** Isi StringBuilder berubah. */
+  | { k: 'tulis-pembangun'; id: number; lama: string; baru: string; metode: string }
+  /** Tulis beberapa elemen array sekaligus mulai indeks `mulai` (mis. System.arraycopy di dalam koleksi). */
+  | { k: 'salin-elemen'; id: number; mulai: number; nilai: Nilai[] }
   // Peristiwa informatif (tidak mengubah state)
-  | { k: 'kembali'; frame: number; method: string; nilai?: string; tipe?: string }
+  | { k: 'baca-field'; id: number; field: string }
+  /** Exception dilempar (oleh `throw`, mesin, atau pustaka). `id` = objek exception bila sudah ada di heap. */
+  | { k: 'lempar'; kelas: string; pesan: string | null; id?: number }
+  /** Frame dibuang karena exception merambat keluar darinya. */
+  | { k: 'rambat'; frame: number; method: string; kelas: string }
+  /** Exception ditangkap blok catch. */
+  | { k: 'tangkap'; kelas: string; tipe: string; variabel: string; id: number }
+  /** Masuk blok finally, beserta sebabnya. */
+  | { k: 'finally'; sebab: 'normal' | 'exception' | 'return' | 'break' | 'continue' }
+  /** Boxing (primitif → wrapper) atau unboxing. `cache` true bila objek diambil dari cache JDK (Integer −128..127). */
+  | { k: 'boxing'; arah: 'box' | 'unbox'; kelas: string; nilai: string; id: number; cache?: boolean }
+  /** Pemanggilan method pustaka pada objek (koleksi, StringBuilder, wrapper) untuk narasi. */
+  | { k: 'pustaka'; id: number; kelas: string; metode: string; hasil?: string }
+  // Peristiwa informatif (tidak mengubah state)
+  | { k: 'kembali'; frame: number; method: string; nilai?: string; tipe?: string; jenis?: 'konstruktor' | 'lambda' }
   | { k: 'baca'; frame: number; slot: number; nama: string }
   | { k: 'baca-statik'; nama: string }
   | { k: 'baca-elemen'; id: number; indeks: number }
@@ -118,6 +150,10 @@ function cariFrame(state: StateMesin, id: number): FrameState | undefined {
 function salinObjek(o: ObjekHeap): ObjekHeap {
   if (o.k === 'array') return { k: 'array', tipeElemen: o.tipeElemen, nilai: o.nilai.slice() }
   if (o.k === 'scanner') return { k: 'scanner', posisi: o.posisi }
+  // tipeField & jejak tidak pernah diubah setelah objek dibuat, jadi boleh dibagi pakai.
+  if (o.k === 'objek') return { k: 'objek', kelas: o.kelas, field: { ...o.field }, tipeField: o.tipeField, jejak: o.jejak }
+  if (o.k === 'pembangun') return { k: 'pembangun', nilai: o.nilai }
+  // string, boks, lambda: imutabel.
   return o
 }
 
@@ -182,6 +218,21 @@ export function terapkan(state: StateMesin, p: Peristiwa): void {
     case 'baris-frame': {
       const f = cariFrame(state, p.frame)
       if (f) f.baris = p.baris
+      return
+    }
+    case 'tulis-field': {
+      const o = state.heap[p.id]
+      if (o && o.k === 'objek') o.field[p.field] = p.baru
+      return
+    }
+    case 'tulis-pembangun': {
+      const o = state.heap[p.id]
+      if (o && o.k === 'pembangun') o.nilai = p.baru
+      return
+    }
+    case 'salin-elemen': {
+      const o = state.heap[p.id]
+      if (o && o.k === 'array') for (let i = 0; i < p.nilai.length; i++) o.nilai[p.mulai + i] = p.nilai[i]
       return
     }
     default:
@@ -266,8 +317,26 @@ export function tampilNilai(v: Nilai | undefined, tipe: string, heap: Record<num
   if (!o) return tipe === 'String' ? '"…"' : '…'
   if (o.k === 'string') return `"${escapeTampil(o.nilai)}"`
   if (o.k === 'scanner') return 'Scanner'
+  if (o.k === 'boks') return tampilNilai(o.nilai, PRIMITIF_BOKS[o.kelas] ?? 'int', heap, kedalaman)
+  if (o.k === 'pembangun') return `"${escapeTampil(o.nilai)}"`
+  if (o.k === 'lambda') return 'lambda'
+  if (o.k === 'objek') return `${namaKelasTampil(o.kelas)}#${v as number}`
   if (kedalaman > 1) return `${o.tipeElemen}[${o.nilai.length}]`
   const isi = o.nilai.slice(0, BATAS_TAMPIL_ARRAY).map((x) => tampilNilai(x, o.tipeElemen, heap, kedalaman + 1))
   if (o.nilai.length > BATAS_TAMPIL_ARRAY) isi.push('…')
   return `[${isi.join(', ')}]`
+}
+
+const PRIMITIF_BOKS: Record<string, string> = {
+  Integer: 'int', Long: 'long', Double: 'double', Float: 'float', Short: 'short', Byte: 'byte', Character: 'char', Boolean: 'boolean',
+}
+
+/** Nama kelas untuk tampilan dari nama biner: `Main$Node` → `Node`, `java.util.ArrayList` → `ArrayList`, `java.util.HashMap$Node` → `HashMap.Node`. */
+export function namaKelasTampil(biner: string): string {
+  const tanpaPaket = biner.startsWith('java.') ? biner.slice(biner.lastIndexOf('.') + 1) : biner
+  if (!biner.startsWith('java.')) {
+    const i = tanpaPaket.lastIndexOf('$')
+    return i < 0 ? tanpaPaket : tanpaPaket.slice(i + 1)
+  }
+  return tanpaPaket.replace(/\$/g, '.')
 }

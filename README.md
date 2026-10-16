@@ -2,14 +2,14 @@
 
 Web app pembelajaran visual untuk mahasiswa. Program Java dijalankan **langkah demi langkah** di browser: geser slider untuk melihat isi memori pada setiap langkah, sementara kode sumbernya selalu terlihat di samping. Begitu kode diedit, termasuk bila sebaris dihapus, program dijalankan ulang dan animasinya ikut berubah.
 
-Bahasanya Java karena tipenya tegas (*strong typing*). Mahasiswa melihat setiap variabel sebagai kotak bertipe (`int`, `double`, `char`, `String`, array) dan mendapat error kompilasi yang sama dengan `javac`.
+Bahasanya Java karena tipenya tegas (*strong typing*). Mahasiswa melihat setiap variabel sebagai kotak bertipe (`int`, `double`, `char`, `String`, array, objek) dan mendapat error kompilasi yang sama dengan `javac`.
 
 > **Tersedia sekarang:**
 > - Modul 1 *Algoritma & Pemrograman Dasar*: 15 pelajaran, 30 tantangan.
 > - Modul 3 *Strategi Algoritma*: 16 pelajaran, 32 tantangan, dengan grafik pertumbuhan untuk analisis kompleksitas.
-> - Ruang Coba.
+> - Ruang Coba, termasuk class/objek, exception, wrapper, dan koleksi `java.util` (mesin Fase 2).
 >
-> Modul 2 *Struktur Data* menunggu perluasan mesin Fase 2 (class/objek, koleksi, exception); lihat [roadmap](#roadmap).
+> Materi Modul 2 *Struktur Data* sedang ditulis; lihat [roadmap](#roadmap).
 
 ## Fitur utama
 
@@ -26,10 +26,13 @@ Bahasanya Java karena tipenya tegas (*strong typing*). Mahasiswa melihat setiap 
   - Catatan dosen muncul tepat saat baris yang ditandai dijalankan.
 - **Error seperti javac, lengkap dengan penjelasan.** Teks pesan, nomor baris, dan posisi caret identik dengan `javac` 21. Setiap error dilengkapi *Artinya* dan *Saran* dalam Bahasa Indonesia.
 - **Visualisasi**
-  - Call stack dan memori: kotak variabel bertipe dan panah referensi ke heap.
+  - Call stack dan memori: kotak variabel bertipe dan panah referensi ke heap, termasuk objek, wrapper (dengan cache `Integer`), dan `StringBuilder`.
+  - Alur exception: objek exception beserta pesannya, frame yang dibuang saat exception merambat, blok `catch` yang menangkap, dan `finally`.
   - Array (sel atau batang, dengan penunjuk indeks dan rentang aktif) dan array 2D (termasuk tabel dynamic programming berlabel dan papan catur).
+  - Struktur data: rantai node (linked list), pohon biner/BST, stack, queue, dan tabel hash, lengkap dengan penunjuk seperti `curr` dan `prev`.
+  - Koleksi `java.util` dalam bentuk abstraknya, dengan tombol **Lihat isi dalam** untuk struktur internal JDK (`elementData`, `table` + `Node`, heap, pohon merah-hitam).
   - Pohon panggilan untuk rekursi, divide and conquer, memoisasi, dan backtracking.
-  - Graf dari matriks ketetanggaan: bobot, simpul yang sudah dikunjungi, dan label jarak.
+  - Graf dari matriks atau daftar ketetanggaan: bobot, simpul yang sudah dikunjungi, dan label jarak.
   - Evaluasi ekspresi, misalnya `nilai[i] > maks` → `7 > 9` → `false`.
   - Konsol, buffer input Scanner, dan String sebagai deretan karakter.
 - **Grafik pertumbuhan (analisis kompleksitas)**
@@ -123,23 +126,24 @@ src/
                      definite assignment), runtime/interpreter, pustaka Java, narasi
   worker/            Web Worker + klien (timeout 3 dtk, hasil run basi diabaikan)
   player/            Pemutar: store (zustand), bilah kontrol, slider, kartu penjelasan
-  viz/               Renderer: memori, array, array2d, evaluasi, konsol, input, string
+  viz/               Renderer: memori, array, array2d, evaluasi, konsol, input, string,
+                     graf, pohon panggilan, rantai, pohon, tumpukan, antrean, tabel hash, koleksi
   editor/            Editor CodeMirror 6: sorotan baris, diagnostik, chip penanda
   lessons/           Skema materi (zod), pemuat, pemeriksa tantangan
-  app/               Halaman: Beranda, Modul, Pelajaran, Ruang Coba
+  app/               Halaman: Beranda, Modul, Pelajaran, Ruang Coba (+ Uji Visual, khusus dev)
   components/, lib/  Komponen UI dasar (shadcn/ui) dan utilitas
 tests/
   engine/ lessons/ unit/   Unit test (Vitest)
-  korpus/            162 program Java (+ berkas .in) untuk uji diferensial
-  korpus-error/      140 program dengan error kompilasi, dibandingkan dengan javac
+  korpus/            366 program Java (+ berkas .in) untuk uji diferensial
+  korpus-error/      256 program dengan error kompilasi, dibandingkan dengan javac
   e2e/               Skenario Playwright
 ```
 
 </details>
 
-## Java yang didukung (Fase 1)
+## Java yang didukung
 
-**Didukung**
+**Didukung (Fase 1)**
 - **Struktur program:** satu berkas `Main.java` berisi `public class Main`, method `static`, serta field `static` / `static final`.
 - **Tipe:** delapan tipe primitif, `String`, dan array 1D/2D.
 - **Operator:** aritmatika, `++`/`--`, *compound assignment*, relasional, logika, bitwise/shift, ternary, casting.
@@ -151,7 +155,15 @@ tests/
 - **Method:** parameter, nilai kembali, overloading, rekursi.
 - **Pustaka:** `System.out.print/println/printf`, `String`, `Math`, `Integer`/`Double`/`Character`, `Arrays`, dan `Scanner`.
 
-**Belum didukung.** Fitur berikut memunculkan pesan ramah beserta alternatifnya: class/objek buatan sendiri, koleksi dan generic, `try/catch`, lambda, `var`. Rinciannya ada di [DESAIN.md §5](docs/DESAIN.md#5-mesin-java-mini).
+**Didukung (Fase 2)**
+- **Class & objek:** class lain di berkas yang sama (non-public, bersarang `static`, atau inner class), field dengan initializer, konstruktor (overload, `this(...)`), method instance, `this`, modifier akses, dan field `final`.
+- **Override `Object`:** `toString()`, `equals(Object)`, `hashCode()`, dipanggil otomatis oleh `println`, konkatenasi, dan koleksi; `implements Comparable<T>`.
+- **Exception:** `try`/`catch` (termasuk multi-catch), `finally`, `throw`, `throws`, checked vs unchecked, dan exception buatan sendiri. Pesan `NullPointerException` sama persis dengan JDK 21, misalnya `Cannot read field "next" because "curr" is null`.
+- **Wrapper & autoboxing:** `Integer`, `Long`, `Double`, `Character`, `Boolean`, dengan cache −128..127 seperti JDK; `StringBuilder`.
+- **Koleksi `java.util` dengan generik:** `ArrayList`, `LinkedList`, `ArrayDeque`, `Stack`, `HashMap`, `HashSet`, `LinkedHashMap`, `LinkedHashSet`, `TreeMap`, `TreeSet`, `PriorityQueue`, dan `Iterator`, beserta `Collections`, `Arrays.asList`, dan `List.of`. Urutan iterasi, pertumbuhan kapasitas, dan `ConcurrentModificationException` identik dengan JDK 21.
+- **Lambda `Comparator`** dan `Random` dengan seed (deretnya sama dengan JDK).
+
+**Belum didukung.** Fitur berikut memunculkan pesan ramah beserta alternatifnya: pewarisan antar-class biasa (selain exception), interface/abstract class/generik buatan sendiri, `instanceof`, enum, record, anonymous class, lambda selain `Comparator`, method reference, stream, `var`, dan `Map.of`/`Set.of`. Rinciannya ada di [DESAIN.md §5](docs/DESAIN.md#5-mesin-java-mini) dan [§11](docs/DESAIN.md#11-fase-2-perluasan-mesin-untuk-struktur-data).
 
 **Batas pengaman simulator.** Batas ini diberi label `[Simulator]` agar tidak dikira perilaku Java:
 - **20.000 langkah** per program (bisa diubah per pelajaran) untuk menangkap perulangan tak berujung;
@@ -163,15 +175,17 @@ tests/
 ## Pengujian dan jaminan mutu
 
 - **Uji diferensial terhadap JDK 21**
-  - Korpus berisi 302 program: 162 program benar dan 140 program dengan error kompilasi.
+  - Korpus berisi 622 program: 366 program benar dan 256 program dengan error kompilasi, termasuk 320 program untuk class/objek, exception, wrapper, dan koleksi.
   - Setiap program dijalankan dengan `javac`/`java` asli dan dengan Java Mini.
-  - Yang dibandingkan: stdout, kelas dan pesan exception, serta baris, teks, dan posisi caret error kompilasi.
-  - **Hasil terakhir: 302/302 identik.**
+  - Yang dibandingkan: stdout, kelas dan pesan exception beserta stack trace, serta baris, teks, dan posisi caret error kompilasi.
+  - **Hasil terakhir: 622/622 identik.**
 - **Unit test** (Vitest) untuk lexer, parser, checker, analisis alur, runtime, rekonstruksi state per langkah, narasi, dan pemeriksa tantangan.
 - **E2E** (Playwright, build produksi)
   - Sinkronisasi slider, sorotan baris, dan penjelasan.
   - Menghapus baris mengubah animasi dan hasil tantangan.
   - Error kompilasi, perulangan tak berujung, dan indeks di luar batas.
+  - Menghapus baris saat berada di langkah terakhir tidak membuat editor galat.
+  - Fase 2: linked list dan pesan NullPointerException, exception yang merambat ke `catch` lalu `finally`, cache `Integer`, serta koleksi dengan tombol **Lihat isi dalam**.
   - Progres tersimpan setelah halaman dimuat ulang.
   - Ruang Coba dan tema gelap.
   - Semua pelajaran di semua modul termuat tanpa error, termasuk grafik pertumbuhannya.
@@ -188,18 +202,10 @@ Semua pemeriksaan di atas, kecuali kinerja, dijalankan otomatis oleh GitHub Acti
 
 ## Roadmap
 
-- **Fase 2 + Modul 2: Struktur Data** (sedang dikerjakan)
-  - Mesin:
-    - class & objek, `null`, `this`, konstruktor;
-    - `try/catch/finally` dan exception buatan sendiri;
-    - wrapper/autoboxing;
-    - koleksi `java.util` yang meniru JDK 21 sampai ke struktur internalnya;
-    - `Comparable` dan lambda `Comparator`.
-  - Visual:
-    - memori objek dan alur exception;
-    - rantai node (linked list), pohon/BST, stack/queue, tabel hash;
-    - koleksi dengan tombol "Lihat isi dalam";
-    - graf dari daftar ketetanggaan.
+- **Fase 2 + Modul 2: Struktur Data**
+  - ~~Mesin~~ **selesai**: class & objek, `null`, `this`, konstruktor; `try/catch/finally` dan exception buatan sendiri; wrapper/autoboxing; koleksi `java.util` yang meniru JDK 21 sampai ke struktur internalnya; `Comparable` dan lambda `Comparator`.
+  - ~~Visual~~ **selesai**: memori objek dan alur exception; rantai node, pohon/BST, stack/queue, tabel hash; koleksi dengan tombol "Lihat isi dalam"; graf dari daftar ketetanggaan.
+  - Materi Modul 2 (15 pelajaran): sedang ditulis.
 
 Rincian: [DESAIN.md §9](docs/DESAIN.md#9-kurikulum) dan [§11](docs/DESAIN.md#11-fase-2-perluasan-mesin-untuk-struktur-data).
 

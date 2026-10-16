@@ -17,6 +17,11 @@ export interface Panah {
   ke: string
   /** Panah dari frame yang tidak aktif digambar redup. */
   redup?: boolean
+  /**
+   * `kanan`: rute lewat sisi kanan kolom heap lalu masuk dari kanan sasaran (referensi antarobjek di Memori),
+   * agar tidak berbaur dengan panah variabel → heap yang lewat celah kiri.
+   */
+  jalur?: 'kanan'
 }
 
 interface Garis {
@@ -28,7 +33,7 @@ interface Garis {
 type Titik = [number, number]
 
 /** Polyline dengan sudut membulat. */
-function jalur(titik: Titik[], jari = 7): string {
+export function jalurSiku(titik: Titik[], jari = 7): string {
   const bersih = titik.filter((t, i) => i === 0 || Math.abs(t[0] - titik[i - 1][0]) + Math.abs(t[1] - titik[i - 1][1]) > 0.5)
   let d = `M${bersih[0][0]},${bersih[0][1]}`
   for (let i = 1; i < bersih.length; i++) {
@@ -58,6 +63,7 @@ function jalur(titik: Titik[], jari = 7): string {
 function hitungGaris(wadah: HTMLElement, peta: Map<string, HTMLElement>, panah: Panah[]): Garis[] {
   const w = wadah.getBoundingClientRect()
   const rute = []
+  const kanan: { kunci: string; redup?: boolean; x1: number; y1: number; tepi: number; x2: number; y2: number }[] = []
   for (const p of panah) {
     const a = peta.get(p.dari)
     const b = peta.get(p.ke)
@@ -67,6 +73,18 @@ function hitungGaris(wadah: HTMLElement, peta: Map<string, HTMLElement>, panah: 
     const kotak = (a.closest('[data-kotak-nilai]') ?? a).getBoundingClientRect()
     const bingkai = (a.closest('[data-bingkai]') ?? a).getBoundingClientRect()
     const sasaran = (b.querySelector('[data-sasaran-panah]') ?? b).getBoundingClientRect()
+    if (p.jalur === 'kanan') {
+      kanan.push({
+        kunci: `${p.dari}->${p.ke}`,
+        redup: p.redup,
+        x1: ra.left + ra.width / 2 - w.left,
+        y1: ra.top + ra.height / 2 - w.top,
+        tepi: Math.max(bingkai.right, rb.right) - w.left,
+        x2: rb.right - w.left + 2,
+        y2: rb.top + Math.min(rb.height / 2, 14) - w.top,
+      })
+      continue
+    }
     rute.push({
       kunci: `${p.dari}->${p.ke}`,
       redup: p.redup,
@@ -90,7 +108,7 @@ function hitungGaris(wadah: HTMLElement, peta: Map<string, HTMLElement>, panah: 
       hasil.push({
         kunci: r.kunci,
         redup: r.redup,
-        d: jalur([
+        d: jalurSiku([
           [r.x1, r.y1],
           [r.x1, yCelah],
           [xLajur, yCelah],
@@ -100,6 +118,23 @@ function hitungGaris(wadah: HTMLElement, peta: Map<string, HTMLElement>, panah: 
       })
     })
   }
+  // Referensi antarobjek di kolom heap: keluar ke kanan, turun/naik di lajur kanan, masuk dari kanan sasaran.
+  const tepiKanan = Math.max(0, ...kanan.map((r) => r.tepi))
+  kanan
+    .sort((a, b) => Math.abs(a.y2 - a.y1) - Math.abs(b.y2 - b.y1))
+    .forEach((r, lajur) => {
+      const xLajur = tepiKanan + 12 + lajur * 6
+      hasil.push({
+        kunci: r.kunci,
+        redup: r.redup,
+        d: jalurSiku([
+          [r.x1, r.y1],
+          [xLajur, r.y1],
+          [xLajur, r.y2],
+          [r.x2, r.y2],
+        ]),
+      })
+    })
   return hasil
 }
 
@@ -117,18 +152,21 @@ export function WadahPanah({ children, panah, pemicu, className }: { children: R
     else peta.current.delete(kunci)
   }, [])
 
-  const kunciPanah = panah.map((p) => `${p.dari}>${p.ke}${p.redup ? '~' : ''}`).join('|')
+  const kunciPanah = panah.map((p) => `${p.dari}>${p.ke}${p.redup ? '~' : ''}${p.jalur ? '^' : ''}`).join('|')
 
   useLayoutEffect(() => {
     const el = wadah.current
     if (!el) return
     const ukur = () => setGaris(hitungGaris(el, peta.current, panah))
     ukur()
-    // Ukur ulang setelah transisi masuk selesai.
+    // Ukur ulang setelah transisi masuk selesai, dan setelah font termuat (lebar teks berubah).
     const t = setTimeout(ukur, 240)
+    let aktif = true
+    void document.fonts?.ready.then(() => aktif && ukur())
     const ro = new ResizeObserver(ukur)
     ro.observe(el)
     return () => {
+      aktif = false
       clearTimeout(t)
       ro.disconnect()
     }

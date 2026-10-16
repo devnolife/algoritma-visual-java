@@ -1,5 +1,7 @@
 import type { Diagnostik, Trace } from '@/engine'
 import { kalimatKesimpulan, klasifikasi, labelKelas, namaUkuran, urutanKelas, type HasilPertumbuhan, type KonfigPertumbuhan } from '@/engine/pertumbuhan'
+import { PembacaTrace, type StateMesin } from '@/engine/trace'
+import { isiRantai, telusuriPohon, type NilaiSederhana } from '@/viz/dataStruktur'
 import type { Cek, Tantangan } from '../skema'
 
 /** Hasil satu kali menjalankan kode mahasiswa (bentuk minimal dari HasilEngine worker). */
@@ -117,24 +119,78 @@ function alasanBerhenti(t: NonNullable<HasilJalan['trace']>): string | null {
   }
 }
 
-function samaNilai(a: unknown, b: unknown): boolean {
+/** Objek JSON biasa (nilai akhir objek class mahasiswa atau Map), bukan array/null. */
+const adalahObjekBiasa = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x)
+
+/** Kesamaan nilai akhir: angka pecahan dengan toleransi, array per elemen, objek per field (kunci harus sama persis). */
+export function samaNilai(a: unknown, b: unknown): boolean {
   if (typeof a === 'number' && typeof b === 'number') {
     if (Number.isInteger(a) && Number.isInteger(b)) return a === b
     return Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b))
   }
   if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && a.every((x, i) => samaNilai(x, b[i]))
+  if (adalahObjekBiasa(a) && adalahObjekBiasa(b)) {
+    const kunci = Object.keys(a)
+    return kunci.length === Object.keys(b).length && kunci.every((k) => Object.hasOwn(b, k) && samaNilai(a[k], b[k]))
+  }
   return a === b
 }
 
-const teksNilai = (v: unknown, tipe?: string): string => {
-  if (Array.isArray(v)) return `{${v.map((x) => teksNilai(x, tipe?.replace(/\[\]$/, ''))).join(', ')}}`
-  if (typeof v === 'string') return tipe === 'char' ? `'${v}'` : `"${v}"`
+const WRAPPER: Record<string, string> = { Integer: 'int', Long: 'long', Double: 'double', Float: 'float', Short: 'short', Byte: 'byte', Character: 'char', Boolean: 'boolean' }
+
+/** Argumen tipe generik tingkat teratas, mis. `Map<String,List<Integer>>` → [`String`, `List<Integer>`]. */
+function argumenTipe(tipe: string | undefined): string[] {
+  const i = tipe?.indexOf('<') ?? -1
+  if (!tipe || i < 0 || !tipe.endsWith('>')) return []
+  const hasil: string[] = []
+  let dalam = 0
+  let awal = i + 1
+  for (let j = awal; j < tipe.length - 1; j++) {
+    const c = tipe[j]
+    if (c === '<') dalam++
+    else if (c === '>') dalam--
+    else if (c === ',' && dalam === 0) {
+      hasil.push(tipe.slice(awal, j).trim())
+      awal = j + 1
+    }
+  }
+  hasil.push(tipe.slice(awal, -1).trim())
+  return hasil
+}
+
+/**
+ * Nilai akhir seperti ditulis di pesan cek: array `{1, 2}`, koleksi `[1, 2]` (tipe generik), Map `{"a"=1}`,
+ * objek `{nama="Ani", ipk=3.5}`, String `"hai"`, char `'A'`, pecahan `7.0`.
+ */
+export const teksNilai = (v: unknown, tipe?: string): string => {
+  const t = tipe ? (WRAPPER[tipe] ?? tipe) : undefined
+  const argumen = argumenTipe(t)
+  if (Array.isArray(v)) {
+    if (argumen.length === 1 && !t?.endsWith('[]')) return `[${v.map((x) => teksNilai(x, argumen[0])).join(', ')}]`
+    return `{${v.map((x) => teksNilai(x, t?.replace(/\[\]$/, ''))).join(', ')}}`
+  }
+  if (adalahObjekBiasa(v)) {
+    // Map<K,V>: kunci JSON selalu teks; kunci String ditulis berkutip seperti nilai String lainnya.
+    const peta = argumen.length === 2
+    const isi = Object.entries(v).map(([k, x]) => `${peta && argumen[0] === 'String' ? `"${k}"` : k}=${teksNilai(x, peta ? argumen[1] : undefined)}`)
+    return `{${isi.join(', ')}}`
+  }
+  if (typeof v === 'string') return t === 'char' ? `'${v}'` : `"${v}"`
   // Bilangan pecahan ditulis seperti Java mencetaknya: 7.0, bukan 7.
-  if (typeof v === 'number' && (tipe === 'double' || tipe === 'float') && Number.isInteger(v)) return `${v}.0`
+  if (typeof v === 'number' && (t === 'double' || t === 'float') && Number.isInteger(v)) return `${v}.0`
   return String(v)
 }
 
 type CekJalan = Exclude<Cek, { jenis: 'kompleksitas' }>
+
+/** State mesin di akhir program (untuk cek struktur data), bila trace lengkap tersedia. */
+function stateAkhir(t: NonNullable<HasilJalan['trace']>): StateMesin | undefined {
+  const lengkap = t as Partial<Trace>
+  if (!Array.isArray(lengkap.langkah) || !Array.isArray(lengkap.checkpoint) || lengkap.langkah.length === 0 || lengkap.checkpoint.length === 0) return undefined
+  return new PembacaTrace(lengkap as Trace).stateDi(lengkap.langkah.length - 1)
+}
+
+const teksDaftar = (xs: readonly NilaiSederhana[]) => `[${xs.map((x) => (typeof x === 'string' ? `"${x}"` : String(x))).join(', ')}]`
 
 /** Kode belum bisa dinilai sama sekali (timeout, galat simulator, atau error kompilasi). */
 function gagalAwal(c: Cek, h: HasilJalan): HasilCek | null {
@@ -253,6 +309,18 @@ function periksaSatu(c: CekJalan, h: HasilJalan): HasilCek {
       return t.langkah.length <= c.batas
         ? lulus(`Selesai dalam ${t.langkah.length} langkah (batas ${c.batas}).`)
         : gagal(`Program memakai ${t.langkah.length} langkah, padahal batasnya ${c.batas}. Cari cara yang lebih efisien.`)
+    case 'isiRantai':
+    case 'isiPohon': {
+      const s = stateAkhir(t)
+      if (!s) return gagal('Isi struktur data tidak bisa dibaca dari jejak eksekusi.', berhenti ?? undefined)
+      const rantai = c.jenis === 'isiRantai'
+      const nama = rantai ? c.kepala : c.akar
+      const h = rantai ? isiRantai(s, c) : telusuriPohon(s, c, c.urutan)
+      const apa = rantai ? `Isi rantai \`${nama}\`` : `Isi pohon \`${nama}\` (${c.urutan})`
+      if (!h.ok) return gagal(`${apa} belum bisa dibaca di akhir program: ${h.masalah}.`, berhenti ?? undefined)
+      if (samaNilai(h.nilai, c.harapan)) return lulus(`${apa} sesuai: ${teksDaftar(c.harapan)}${inp}.`)
+      return gagal(`${apa} belum sesuai${inp}.`, [berhenti, `Diharapkan ${teksDaftar(c.harapan)}, ternyata ${teksDaftar(h.nilai)}.`].filter(Boolean).join('\n'))
+    }
   }
 }
 

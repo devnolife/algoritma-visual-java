@@ -361,8 +361,8 @@ Setiap pelajaran punya 2 tantangan beserta solusinya (32 tantangan). Cek `komple
   - grafik pertumbuhan, yaitu program dijalankan untuk beberapa ukuran n lalu jumlah operasinya dibandingkan dengan kurva acuan;
   - renderer rentang aktif pada array, pohon panggilan, tabel DP berlabel, papan backtracking, dan graf dari matriks.
 - **Fase 2 + Modul 2: Struktur Data.**
-  - Mesin: lihat [§11](#11-fase-2-perluasan-mesin-untuk-struktur-data).
-  - Renderer: memori objek dan alur exception, rantai node, pohon, tumpukan, antrean, tabel hash, koleksi `java.util` (abstrak + "Lihat isi dalam"), graf dari daftar ketetanggaan.
+  - ~~Mesin~~ **selesai**: lihat [§11](#11-fase-2-perluasan-mesin-untuk-struktur-data). Seluruh korpus (622 program) identik dengan JDK 21.
+  - ~~Renderer~~ **selesai**: memori objek dan alur exception, rantai node, pohon, tumpukan, antrean, tabel hash, koleksi `java.util` (abstrak + "Lihat isi dalam"), graf dari daftar ketetanggaan.
   - Materi (15 pelajaran): class & objek, konstruktor & `this`, exception, ArrayList & wrapper, singly/doubly linked list, stack, queue, hashing, HashMap & HashSet, pohon biner, BST, heap & PriorityQueue, graf, mengurutkan objek & Iterator.
 
 ## 10. Pengujian & kualitas
@@ -462,6 +462,6 @@ Setiap koleksi dimodelkan sebagai objek heap dengan field yang sama seperti JDK 
 - **Lambda:** `local variables referenced from a lambda expression must be final or effectively final`, `incompatible types: bad return type in lambda expression`.
 
 ### 11.6 Pengujian
-- **Korpus Fase 2:** disiapkan di folder staging `tests/korpus-fase2/` dan `tests/korpus-error-fase2/` (≥ 150 program jalan, ≥ 100 program error). Selama staging, `pnpm uji:diferensial -- --hanya-jdk` hanya menjalankan JDK pada folder ini. Setelah integrasi, korpus dipindah ke folder utama.
+- **Korpus Fase 2:** 204 program jalan (nomor 201-404 di `tests/korpus/`) dan 116 program error (nomor 201-316 di `tests/korpus-error/`). Selama staging, korpus ini berada di folder terpisah dan hanya dijalankan dengan JDK. Setelah integrasi, korpus dipindah ke folder utama, sehingga `pnpm uji:diferensial` menjalankan semuanya. Catatan perilaku JDK yang menjadi rujukan ada di `tests/korpus/CATATAN-FASE2.md`. Untuk memeriksa program korpus baru sebelum mesin mendukungnya, pakai `pnpm uji:diferensial <filter> --hanya-jdk`.
 - **Target:** seluruh korpus lama dan baru identik dengan JDK 21. Untuk diagnostik generik yang sangat panjang, minimal baris pertama dan posisinya identik; kasus ini dilaporkan terpisah.
 - **Anggaran performa:** kompilasi + eksekusi satu pelajaran < 5 ms (median), `stateDi` < 1 ms, 60 fps pada build produksi.

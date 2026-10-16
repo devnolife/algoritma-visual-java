@@ -2,14 +2,16 @@ import type { StateMesin } from '@/engine'
 import { tampilNilai } from '@/engine'
 import type { Nilai } from '@/engine/nilai'
 import { cn } from '@/lib/utils'
-import { cariVariabel, PesanVariabel, type Sorotan } from './bersama'
+import { cariVariabel, kelasSorotanBanyak, PesanVariabel, type Sorotan } from './bersama'
 import { idArrayDari } from './ArrayView'
-import { sisiDariMatriks, TAK_HINGGA } from './dataGraf'
+import { objekInternal } from './dataKoleksi'
+import { sisiDariMatriks, TAK_HINGGA, type Sisi } from './dataGraf'
+import { daftarKetetanggaan, type DaftarTetangga } from './dataStruktur'
 import { useJangkar } from './panah'
 
 export interface KonfigGraf {
   jenis: 'graf'
-  /** Matriks ketetanggaan int[][] atau boolean[][]. */
+  /** Matriks ketetanggaan int[][]/boolean[][], atau daftar ketetanggaan (ArrayList<ArrayList<Integer>>, ArrayList<Integer>[]). */
   variabel: string
   nama?: string | (string | number)[]
   berarah?: boolean
@@ -29,22 +31,47 @@ function teksLabel(v: Nilai | undefined, tipe: string, heap: StateMesin['heap'])
 
 export function GrafView({ state, sorotan, konfig, adaDiKode = true, adaMemori = true }: { state: StateMesin; sorotan: Sorotan; konfig: KonfigGraf; adaDiKode?: boolean; adaMemori?: boolean }) {
   const hasil = cariVariabel(state, konfig.variabel)
-  const id = idArrayDari(state, konfig.variabel)
+  const idLangsung = hasil && typeof hasil.v.nilai === 'number' ? hasil.v.nilai : undefined
+  const id = hasil?.v.tipe.endsWith('[][]') ? idArrayDari(state, konfig.variabel) : idLangsung
   const jangkar = useJangkar(typeof id === 'number' ? `heap:${id}` : `heap:kosong:${konfig.variabel}`)
   if (!hasil) return <PesanVariabel nama={konfig.variabel} adaDiKode={adaDiKode} adaMemori={adaMemori} />
   const luar = typeof id === 'number' ? state.heap[id] : undefined
-  if (!luar || luar.k !== 'array' || !hasil.v.tipe.endsWith('[][]')) {
+
+  let n: number
+  let sisi: Sisi[]
+  let berbobot = false
+  let simetris: boolean
+  let daftar: DaftarTetangga | undefined
+  // Sisi yang sel matriksnya dibaca/ditulis pada langkah ini.
+  const sisiDibaca = new Set<string>()
+  if (luar && luar.k === 'array' && hasil.v.tipe.endsWith('[][]')) {
+    const idBaris = luar.nilai as (number | null)[]
+    const baris = idBaris.map((r) => (typeof r === 'number' && state.heap[r]?.k === 'array' ? (state.heap[r] as { nilai: Nilai[] }).nilai : []))
+    n = baris.length
+    ;({ sisi, berbobot, simetris } = sisiDariMatriks(baris, hasil.v.tipe.slice(0, -4), konfig.kosong))
+    idBaris.forEach((r, i) => {
+      if (typeof r !== 'number') return
+      for (let j = 0; j < n; j++) if (sorotan.baca.has(`el:${r}:${j}`) || sorotan.tulis.has(`el:${r}:${j}`)) sisiDibaca.add(`${i}-${j}`)
+    })
+  } else if (typeof id === 'number' && (daftar = daftarKetetanggaan(state.heap, id))) {
+    n = daftar.tetangga.length
+    const ada = new Set<string>()
+    sisi = []
+    daftar.tetangga.forEach((tetangga, u) => {
+      for (const v of tetangga) {
+        if (v < 0 || v >= n || ada.has(`${u}-${v}`)) continue
+        ada.add(`${u}-${v}`)
+        sisi.push({ dari: u, ke: v, bobot: null })
+      }
+    })
+    simetris = sisi.every((s) => ada.has(`${s.ke}-${s.dari}`))
+  } else {
     return (
       <p className="rounded-lg border border-dashed px-3 py-2 text-[13px] text-muted-foreground">
-        <code className="kode-sebaris">{konfig.variabel}</code> belum berisi matriks ketetanggaan.
+        <code className="kode-sebaris">{konfig.variabel}</code> belum berisi matriks ketetanggaan atau daftar ketetanggaan.
       </p>
     )
   }
-  const idBaris = luar.nilai as (number | null)[]
-  const baris = idBaris.map((r) => (typeof r === 'number' && state.heap[r]?.k === 'array' ? (state.heap[r] as { nilai: Nilai[] }).nilai : []))
-  const tipe = hasil.v.tipe.slice(0, -4)
-  const n = baris.length
-  const { sisi, berbobot, simetris } = sisiDariMatriks(baris, tipe, konfig.kosong)
   const berarah = konfig.berarah ?? !simetris
 
   // Nama simpul.
@@ -72,13 +99,6 @@ export function GrafView({ state, sorotan, konfig, adaDiKode = true, adaMemori =
   const aktif = penunjuk[0]?.i
   const tetangga = penunjuk[1]?.i
 
-  // Sisi yang sel matriksnya dibaca pada langkah ini.
-  const sisiDibaca = new Set<string>()
-  idBaris.forEach((r, i) => {
-    if (typeof r !== 'number') return
-    for (let j = 0; j < n; j++) if (sorotan.baca.has(`el:${r}:${j}`) || sorotan.tulis.has(`el:${r}:${j}`)) sisiDibaca.add(`${i}-${j}`)
-  })
-
   // Tata letak.
   const W = Math.max(320, Math.min(520, 120 + n * 46))
   const H = Math.max(240, Math.min(380, 100 + n * 34))
@@ -103,6 +123,7 @@ export function GrafView({ state, sorotan, konfig, adaDiKode = true, adaMemori =
         <span className="text-muted-foreground">
           · graf {n} simpul{berarah ? ', berarah' : ''}
           {berbobot ? ', berbobot' : ''}
+          {daftar ? ', daftar ketetanggaan' : ''}
         </span>
         {dikunjungi && (
           <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
@@ -203,6 +224,59 @@ export function GrafView({ state, sorotan, konfig, adaDiKode = true, adaMemori =
           )
         })}
       </svg>
+      {daftar && <PanelTetangga daftar={daftar} nama={nama} aktif={aktif} tetangga={tetangga} state={state} sorotan={sorotan} variabel={konfig.variabel} />}
+    </div>
+  )
+}
+
+/** Daftar ketetanggaan apa adanya: satu baris per simpul, `u → [v1, v2]`. */
+function PanelTetangga({
+  daftar,
+  nama,
+  aktif,
+  tetangga,
+  state,
+  sorotan,
+  variabel,
+}: {
+  daftar: DaftarTetangga
+  nama: string[]
+  aktif?: number
+  tetangga?: number
+  state: StateMesin
+  sorotan: Sorotan
+  variabel: string
+}) {
+  return (
+    <div role="list" aria-label={`Daftar ketetanggaan ${variabel}`} className="flex flex-col gap-1 font-mono text-[13px]">
+      {daftar.tetangga.map((ts, u) => {
+        const dalam = daftar.idDalam[u]
+        const berubah = dalam !== null && objekInternal(state.heap, dalam).some((x) => sorotan.berubah.has(x))
+        const kunci = [...daftar.kunciDalam[u], ...(dalam !== null ? [`obj:${dalam}`] : [])]
+        return (
+          <div key={u} role="listitem" className="flex items-center gap-2">
+            <span className={cn('w-8 shrink-0 text-right text-[11.5px] font-semibold', u === aktif ? 'text-banding-teks' : 'text-muted-foreground')}>{nama[u]}</span>
+            <span aria-hidden="true" className="text-muted-foreground">
+              →
+            </span>
+            <span
+              className={cn(
+                'rounded-md border-[1.5px] px-2 py-0.5 transition-[background-color,border-color] duration-200',
+                berubah ? 'border-tulis bg-tulis-lembut' : u === aktif ? 'border-banding bg-banding-lembut' : kelasSorotanBanyak(sorotan, kunci),
+              )}
+            >
+              [
+              {ts.map((v, k) => (
+                <span key={k}>
+                  {k > 0 && ', '}
+                  <span className={cn(u === aktif && v === tetangga && 'rounded-sm bg-baca/20 font-bold')}>{v}</span>
+                </span>
+              ))}
+              ]
+            </span>
+          </div>
+        )
+      })}
     </div>
   )
 }

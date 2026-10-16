@@ -16,13 +16,20 @@ export const LONG_MAX = 2n ** 63n - 1n
 
 /** Exception Java yang dilempar oleh program (mis. ArithmeticException). */
 export class LemparanJava extends Error {
+  /** Nama JVM kelas exception, mis. `java.lang.ArithmeticException`, `Main$StokHabis`. */
   readonly kelas: string
   readonly pesanJava: string | null
+  /** Objek exception di heap (ada untuk `throw` objek, atau setelah ditangkap catch). */
+  objek?: number
+  /** Stack trace saat exception dibuat, mis. `\tat Main.bagi(Main.java:7)`. */
+  jejak?: string[]
 
-  constructor(kelas: string, pesanJava: string | null = null) {
+  constructor(kelas: string, pesanJava: string | null = null, objek?: number, jejak?: string[]) {
     super(pesanJava === null ? kelas : `${kelas}: ${pesanJava}`)
     this.kelas = kelas
     this.pesanJava = pesanJava
+    this.objek = objek
+    this.jejak = jejak
   }
 }
 

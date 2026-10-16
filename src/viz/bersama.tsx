@@ -1,19 +1,9 @@
 import { AnimatePresence, motion } from 'motion/react'
-import type { Langkah, StateMesin, Trace } from '@/engine'
+
+export { hitungSorotan, kelasSorotan, kelasSorotanBanyak, jenisSorotan, type Sorotan } from './sorotan'
+export { cariVariabel, namaVariabelDiTrace } from './jalur'
 
 export const EASE_KELUAR = [0.23, 1, 0.32, 1] as const
-
-/** Semua nama variabel (lokal, parameter, static) yang pernah ada selama program berjalan. */
-export function namaVariabelDiTrace(trace: Trace): Set<string> {
-  const nama = new Set<string>()
-  for (const l of trace.langkah) {
-    for (const p of l.peristiwa) {
-      if (p.k === 'deklarasi' || p.k === 'deklarasi-statik') nama.add(p.nama)
-      else if (p.k === 'panggil') for (const v of p.frame.vars) nama.add(v.nama)
-    }
-  }
-  return nama
-}
 
 /**
  * Pesan saat variabel yang dirujuk sebuah visual tidak tersedia: belum dideklarasikan pada langkah ini,
@@ -30,56 +20,6 @@ export function PesanVariabel({ nama, adaDiKode, adaMemori }: { nama: string; ad
       )}
     </p>
   )
-}
-
-/** Sorotan yang diturunkan dari peristiwa sebuah langkah. */
-export interface Sorotan {
-  /** Kunci: `var:<frame>:<slot>`, `statik:<nama>`, `el:<id>:<indeks>`. */
-  baca: Set<string>
-  tulis: Set<string>
-  baru: Set<string>
-  /** Langkah kondisi: elemen yang dibaca sedang dibandingkan. */
-  banding: boolean
-}
-
-export function hitungSorotan(l: Langkah | undefined): Sorotan {
-  const s: Sorotan = { baca: new Set(), tulis: new Set(), baru: new Set(), banding: l?.jenis === 'kondisi' }
-  for (const p of l?.peristiwa ?? []) {
-    switch (p.k) {
-      case 'baca':
-        s.baca.add(`var:${p.frame}:${p.slot}`)
-        break
-      case 'baca-statik':
-        s.baca.add(`statik:${p.nama}`)
-        break
-      case 'baca-elemen':
-        s.baca.add(`el:${p.id}:${p.indeks}`)
-        break
-      case 'tulis':
-        s.tulis.add(`var:${p.frame}:${p.slot}`)
-        break
-      case 'tulis-statik':
-        s.tulis.add(`statik:${p.nama}`)
-        break
-      case 'tulis-elemen':
-        s.tulis.add(`el:${p.id}:${p.indeks}`)
-        break
-      case 'deklarasi':
-        s.baru.add(`var:${p.frame}:${p.slot}`)
-        break
-      case 'deklarasi-statik':
-        s.baru.add(`statik:${p.nama}`)
-        break
-    }
-  }
-  return s
-}
-
-/** Kelas sorotan untuk sebuah kotak nilai. `batang` = isi batang grafik (warna diam lebih pekat agar tetap kontras). */
-export function kelasSorotan(sorotan: Sorotan, kunci: string, batang = false): string {
-  if (sorotan.tulis.has(kunci) || sorotan.baru.has(kunci)) return 'border-tulis bg-tulis-lembut'
-  if (sorotan.baca.has(kunci)) return sorotan.banding ? 'border-banding bg-banding-lembut' : 'border-baca ring-2 ring-baca/25'
-  return batang ? 'border-muted-foreground/60 bg-muted-foreground/15' : 'border-input bg-card'
 }
 
 /** Teks nilai yang berganti dengan transisi singkat (lama keluar ke atas, baru masuk dari bawah). */
@@ -100,14 +40,4 @@ export function NilaiBerubah({ teks, instan, className }: { teks: string; instan
       </AnimatePresence>
     </span>
   )
-}
-
-/** Cari variabel bernama `nama` dari frame teratas ke bawah, lalu variabel statik. */
-export function cariVariabel(state: StateMesin, nama: string) {
-  for (let i = state.frames.length - 1; i >= 0; i--) {
-    const v = state.frames[i].vars.find((x) => x.nama === nama)
-    if (v) return { v, frame: state.frames[i] }
-  }
-  const s = state.statik.find((x) => x.nama === nama)
-  return s ? { v: s, frame: undefined } : undefined
 }

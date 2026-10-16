@@ -3,9 +3,10 @@
  * - tests/korpus/*.java (+ .in): stdout, stderr (exception + stack trace), dan kode keluar harus identik.
  * - tests/korpus-error/*.java: baris dan teks error pertama harus sama dengan javac (kolom dilaporkan bila beda).
  * Hasil JDK disimpan di node_modules/.cache/uji-diferensial agar run berikutnya cepat.
+ * `filter` mempersempit berkas berdasarkan nama, mis. `pnpm uji:diferensial hashmap`.
  *
- * `--hanya-jdk`: hanya memproses korpus calon fase berikutnya (tests/korpus-fase2 dan tests/korpus-error-fase2)
- * dengan JDK saja, tanpa mesin, lalu menampilkan cuplikan hasilnya untuk diperiksa mata.
+ * `--hanya-jdk`: proses korpus dengan JDK saja, tanpa mesin, lalu tampilkan cuplikan hasilnya untuk diperiksa mata.
+ * Dipakai untuk memeriksa program korpus baru sebelum mesin mendukungnya (persempit dengan filter).
  * `--ulang` (bersama `--hanya-jdk`): jalankan tiap program dua kali lagi tanpa cache dan laporkan keluaran yang berubah.
  */
 import { spawn } from 'node:child_process'
@@ -216,8 +217,11 @@ function daftarBerkas(dir: string): string[] {
     .sort()
 }
 
+const DIR_KORPUS = join('tests', 'korpus')
+const DIR_KORPUS_ERROR = join('tests', 'korpus-error')
+
 async function ujiKorpus(): Promise<{ total: number; gagal: number }> {
-  const dir = join('tests', 'korpus')
+  const dir = DIR_KORPUS
   const berkas = daftarBerkas(dir)
   const hasil = await paralel(berkas, async (f) => {
     const sumber = rapikan(readFileSync(join(dir, f), 'utf8'))
@@ -244,7 +248,7 @@ async function ujiKorpus(): Promise<{ total: number; gagal: number }> {
     if (!mesin.catatan && jdk.kode !== mesin.kode) masalah.push(`kode keluar berbeda: JDK ${jdk.kode}, mesin ${mesin.kode}`)
     return { f, masalah }
   })
-  console.log(`\n${'Korpus program'} ${redup(`(${dir})`)}`)
+  console.log(`\nKorpus program ${redup(`(${dir})`)}`)
   for (const h of hasil) {
     if (h.masalah.length === 0) continue
     console.log(`  ${merah('✘')} ${h.f}`)
@@ -256,7 +260,7 @@ async function ujiKorpus(): Promise<{ total: number; gagal: number }> {
 }
 
 async function ujiKorpusError(): Promise<{ total: number; gagal: number }> {
-  const dir = join('tests', 'korpus-error')
+  const dir = DIR_KORPUS_ERROR
   const berkas = daftarBerkas(dir)
   let bedaKolom = 0
   const hasil = await paralel(berkas, async (f) => {
@@ -279,7 +283,7 @@ async function ujiKorpusError(): Promise<{ total: number; gagal: number }> {
     }
     return { f, masalah: null }
   })
-  console.log(`\n${'Korpus error kompilasi'} ${redup(`(${dir})`)}`)
+  console.log(`\nKorpus error kompilasi ${redup(`(${dir})`)}`)
   for (const h of hasil) {
     if (h.masalah) console.log(`  ${merah('✘')} ${h.f}\n    ${h.masalah}`)
     else if ('peringatan' in h && h.peringatan) console.log(`  ${kuning('!')} ${h.f}\n    ${h.peringatan}`)
@@ -310,7 +314,7 @@ function bedaRun(a: HasilJdk, b: HasilJdk, label: [string, string]): string[] {
 }
 
 async function ujiJdkKorpus(): Promise<{ total: number; gagal: number }> {
-  const dir = join('tests', 'korpus-fase2')
+  const dir = DIR_KORPUS
   const berkas = daftarBerkas(dir)
   const hasil = await paralel(berkas, async (f) => {
     const sumber = rapikan(readFileSync(join(dir, f), 'utf8'))
@@ -339,7 +343,7 @@ async function ujiJdkKorpus(): Promise<{ total: number; gagal: number }> {
     }
     return { f, kode: jdk.kode, masalah, info }
   })
-  console.log(`\nKorpus program fase 2, hanya JDK ${redup(`(${dir})`)}`)
+  console.log(`\nKorpus program, hanya JDK ${redup(`(${dir})`)}`)
   for (const h of hasil) {
     console.log(`  ${h.masalah.length ? merah('✘') : hijau('✔')} ${h.f} ${redup(`kode keluar ${h.kode}`)}`)
     for (const b of h.info) console.log(b)
@@ -351,7 +355,7 @@ async function ujiJdkKorpus(): Promise<{ total: number; gagal: number }> {
 }
 
 async function ujiJdkKorpusError(): Promise<{ total: number; gagal: number }> {
-  const dir = join('tests', 'korpus-error-fase2')
+  const dir = DIR_KORPUS_ERROR
   const berkas = daftarBerkas(dir)
   const hasil = await paralel(berkas, async (f) => {
     const keluaran = await javacStderr(rapikan(readFileSync(join(dir, f), 'utf8')))
@@ -364,7 +368,7 @@ async function ujiJdkKorpusError(): Promise<{ total: number; gagal: number }> {
     ]
     return { f, masalah: null, info }
   })
-  console.log(`\nKorpus error kompilasi fase 2, hanya javac ${redup(`(${dir})`)}`)
+  console.log(`\nKorpus error kompilasi, hanya javac ${redup(`(${dir})`)}`)
   for (const h of hasil) {
     console.log(`  ${h.masalah ? merah('✘') : hijau('✔')} ${h.f}`)
     for (const b of h.info) console.log(b)
@@ -381,7 +385,7 @@ async function utamaHanyaJdk(): Promise<void> {
   const b = await ujiJdkKorpusError()
   const durasi = ((performance.now() - mulai) / 1000).toFixed(1)
   const gagal = a.gagal + b.gagal
-  console.log(`\n${a.total + b.total} program fase 2 diperiksa dengan JDK dalam ${durasi} dtk: ${gagal ? merah(`${gagal} gagal`) : hijau('semua lolos')}.`)
+  console.log(`\n${a.total + b.total} program diperiksa dengan JDK dalam ${durasi} dtk: ${gagal ? merah(`${gagal} gagal`) : hijau('semua lolos')}.`)
   process.exit(gagal ? 1 : 0)
 }
 

@@ -55,6 +55,16 @@ export function anakNode(n: A.Pernyataan | A.Ekspresi): (A.Pernyataan | A.Ekspre
       return [n.kondisi, n.ya, n.tidak]
     case 'Cast':
       return [n.ekspresi]
+    case 'This':
+      return []
+    case 'Lambda':
+      return [n.badan]
+    case 'PanggilKonstruktor':
+      return n.argumen
+    case 'Try':
+      return [n.blok, ...n.tangkap.map((t) => t.badan), ...(n.akhirnya ? [n.akhirnya] : [])]
+    case 'Throw':
+      return [n.ekspresi]
   }
 }
 
@@ -78,24 +88,65 @@ const NAMA_KONSTRUKSI: Partial<Record<string, string>> = {
   Continue: 'continue',
 }
 
+/** Semua deklarasi class (top-level dan bersarang) dalam program. */
+export function semuaDeklarasiKelas(program: ProgramTerperiksa): A.DeklarasiKelas[] {
+  const hasil: A.DeklarasiKelas[] = []
+  const kunjungi = (k: A.DeklarasiKelas) => {
+    hasil.push(k)
+    for (const x of k.kelas ?? []) kunjungi(x)
+  }
+  for (const k of program.unit.kelas.length ? program.unit.kelas : [program.kelas]) kunjungi(k)
+  return hasil
+}
+
+const KELAS_KOLEKSI = new Set([
+  'ArrayList', 'LinkedList', 'ArrayDeque', 'Stack', 'Vector', 'PriorityQueue', 'HashMap', 'LinkedHashMap', 'TreeMap',
+  'HashSet', 'LinkedHashSet', 'TreeSet',
+])
+
 /**
  * Konstruksi Java yang dipakai program, untuk cek tantangan `harusMemakai`/`dilarangMemakai`.
- * Hasil: for, while, do-while, for-each, if, switch, casting, ternary, array, scanner, rekursi, method:<nama>.
+ * Hasil: for, while, do-while, for-each, if, switch, casting, ternary, array, scanner, rekursi, method:<nama>,
+ * pustaka:<Kelas.method>, dan (Fase 2) class:<Nama>, konstruktor, objek, try, throw, lambda, koleksi:<Kelas>.
  */
 export function analisisKonstruksi(program: ProgramTerperiksa): string[] {
   const hasil = new Set<string>()
   const memanggil = new Map<string, Set<string>>()
-  for (const m of program.kelas.method) {
-    hasil.add(`method:${m.nama}`)
-    const dipanggil = new Set<string>()
-    telusuri(m.badan, (n) => {
-      const k = NAMA_KONSTRUKSI[n.jenis]
-      if (k) hasil.add(k)
-      if (n.jenis === 'BaruObjek' && n.target?.k === 'pustaka' && n.target.id.startsWith('Scanner.')) hasil.add('scanner')
-      if (n.jenis === 'PanggilMethod' && n.target?.k === 'user') dipanggil.add(n.target.method.nama)
-      if (n.jenis === 'PanggilMethod' && n.target?.k === 'pustaka') hasil.add(`pustaka:${n.target.id.slice(0, n.target.id.indexOf('('))}`)
-    })
-    memanggil.set(m.nama, dipanggil)
+  const telusuriMethod = (m: A.DeklarasiMethod) => {
+    if (!m.konstruktor) hasil.add(`method:${m.nama}`)
+    else hasil.add('konstruktor')
+    const dipanggil = memanggil.get(m.nama) ?? new Set<string>()
+    telusuri(m.badan, (n) => kunjungiNode(n, dipanggil))
+    if (!m.konstruktor) memanggil.set(m.nama, dipanggil)
+  }
+  const kunjungiNode = (n: A.Pernyataan | A.Ekspresi, dipanggil?: Set<string>) => {
+    const k = NAMA_KONSTRUKSI[n.jenis]
+    if (k) hasil.add(k)
+    if (n.jenis === 'BaruObjek') {
+      const t = n.target
+      if (t?.k === 'pustaka' && t.id.startsWith('Scanner.')) hasil.add('scanner')
+      if (t?.k === 'user') hasil.add('objek')
+      if (t?.k === 'pustaka') {
+        const kelas = t.id.slice(0, t.id.indexOf('.'))
+        if (KELAS_KOLEKSI.has(kelas)) hasil.add(`koleksi:${kelas}`)
+      }
+    }
+    if (n.jenis === 'PanggilMethod' && n.target?.k === 'user') dipanggil?.add(n.target.method.nama)
+    if (n.jenis === 'PanggilMethod' && n.target?.k === 'pustaka') {
+      hasil.add(`pustaka:${n.target.id.slice(0, n.target.id.indexOf('('))}`)
+      // Juga menurut tipe statis penerimanya, mis. `daftar.add(x)` dengan `ArrayList<Integer> daftar` → pustaka:ArrayList.add.
+      const t = n.objek?.tipe
+      if (t?.k === 'kelas') hasil.add(`pustaka:${t.nama}.${n.nama}`)
+    }
+    if (n.jenis === 'Try') hasil.add('try')
+    if (n.jenis === 'Throw') hasil.add('throw')
+    if (n.jenis === 'Lambda') hasil.add('lambda')
+  }
+  for (const kelas of semuaDeklarasiKelas(program)) {
+    if (kelas !== program.kelas) hasil.add(`class:${kelas.nama}`)
+    for (const m of kelas.method) telusuriMethod(m)
+    for (const m of kelas.konstruktor ?? []) telusuriMethod(m)
+    for (const f of kelas.field) for (const d of f.deklarator) if (d.init) telusuri(d.init, (n) => kunjungiNode(n))
   }
   // Rekursi: ada method yang (langsung/tidak langsung) memanggil dirinya sendiri.
   for (const awal of memanggil.keys()) {
@@ -164,11 +215,29 @@ export function barisBisaDijalankan(program: ProgramTerperiksa, sumber: Sumber):
         tambah(p.span)
         for (const g of p.grup) g.pernyataan.forEach(kunjungi)
         return
+      case 'Throw':
+        tambah(p.span)
+        return
+      case 'Try':
+        kunjungi(p.blok)
+        for (const c of p.tangkap) {
+          tambah(c.span)
+          kunjungi(c.badan)
+        }
+        if (p.akhirnya) kunjungi(p.akhirnya)
+        return
     }
   }
-  for (const m of program.kelas.method) {
-    tambah(m.spanNama)
-    kunjungi(m.badan)
+  for (const kelas of semuaDeklarasiKelas(program)) {
+    for (const m of [...kelas.method, ...(kelas.konstruktor ?? [])]) {
+      tambah(m.spanNama)
+      kunjungi(m.badan)
+    }
+    // Initializer field instance dijalankan sebagai langkah di dalam konstruktor.
+    for (const f of kelas.field) {
+      if (f.modifier.includes('static')) continue
+      for (const d of f.deklarator) if (d.init) tambah(d.span)
+    }
   }
   return [...hasil].sort((a, b) => a - b)
 }

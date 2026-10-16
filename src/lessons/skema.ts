@@ -38,7 +38,7 @@ export const skemaVisual = z.discriminatedUnion('jenis', [
   }),
   z.object({
     jenis: z.literal('graf'),
-    /** Matriks ketetanggaan int[][] atau boolean[][]. */
+    /** Matriks ketetanggaan int[][]/boolean[][], atau daftar ketetanggaan ArrayList<ArrayList<Integer>> / ArrayList<Integer>[]. */
     variabel: z.string(),
     /** Nama simpul: daftar teks atau nama variabel String[]/char[]. */
     nama: skemaLabel.optional(),
@@ -53,6 +53,79 @@ export const skemaVisual = z.discriminatedUnion('jenis', [
     posisi: z.array(z.tuple([z.number(), z.number()])).optional(),
     /** Nilai matriks yang berarti "tidak ada sisi" (selain 0 dan Integer.MAX_VALUE). */
     kosong: z.number().optional(),
+  }),
+  z.object({
+    jenis: z.literal('rantai'),
+    /** Jalur ke simpul pertama: `head`, `daftar.head`, `this.head`, atau field static. */
+    kepala: z.string(),
+    /** Field penghubung (bawaan: `next`, `berikut`, atau field bertipe class simpul itu sendiri). */
+    berikut: z.string().optional(),
+    /** Field ke simpul sebelumnya untuk rantai dua arah, mis. `prev`. */
+    sebelum: z.string().optional(),
+    /** Field yang ditampilkan di dalam simpul (bawaan: `data`, `nilai`, `val`, …). */
+    data: z.string().optional(),
+    /** Variabel/jalur penunjuk yang tampil sebagai label di atas simpul, mis. [curr, prev, tail]. */
+    penunjuk: z.array(z.string()).max(6).optional(),
+    judul: z.string().optional(),
+  }),
+  z.object({
+    jenis: z.literal('pohon'),
+    /** Jalur ke akar: `root`, `pohon.root`, `this.root`, atau field static. */
+    akar: z.string(),
+    /** Field anak kiri/kanan (bawaan: `left`/`right` atau `kiri`/`kanan`). */
+    kiri: z.string().optional(),
+    kanan: z.string().optional(),
+    data: z.string().optional(),
+    /** Penunjuk: simpulnya disorot beserta jalur dari akar. */
+    penunjuk: z.array(z.string()).max(6).optional(),
+    judul: z.string().optional(),
+  }),
+  z.object({
+    jenis: z.literal('tumpukan'),
+    /** Stack/Deque/LinkedList, array (dengan `puncak` atau `ukuran`), atau simpul teratas tumpukan berantai. */
+    variabel: z.string(),
+    /** Variabel int: indeks elemen teratas pada array (−1 = kosong). */
+    puncak: z.string().optional(),
+    /** Variabel int: jumlah elemen pada array (alternatif `puncak`). */
+    ukuran: z.string().optional(),
+    berikut: z.string().optional(),
+    data: z.string().optional(),
+    judul: z.string().optional(),
+  }),
+  z.object({
+    jenis: z.literal('antrian'),
+    /** Queue/Deque, array (dengan `depan` + `belakang`/`ukuran`), atau simpul terdepan antrean berantai. */
+    variabel: z.string(),
+    /** Variabel int: indeks elemen terdepan pada array. */
+    depan: z.string().optional(),
+    /** Variabel int: indeks elemen terakhir pada array. */
+    belakang: z.string().optional(),
+    /** Variabel int: jumlah elemen (disarankan untuk array melingkar). */
+    ukuran: z.string().optional(),
+    berikut: z.string().optional(),
+    data: z.string().optional(),
+    judul: z.string().optional(),
+  }),
+  z.object({
+    jenis: z.literal('tabelHash'),
+    /** Array bucket berisi simpul (chaining), atau HashMap/HashSet (memakai `table` internalnya). */
+    variabel: z.string(),
+    berikut: z.string().optional(),
+    kunci: z.string().optional(),
+    nilai: z.string().optional(),
+    /** Variabel int menandai bucket, variabel simpul menandai simpul. */
+    penunjuk: z.array(z.string()).max(6).optional(),
+    judul: z.string().optional(),
+  }),
+  z.object({
+    jenis: z.literal('koleksi'),
+    /** Variabel koleksi java.util (List, Set, Map, Queue/Deque, Stack, PriorityQueue). */
+    variabel: z.string(),
+    /** Tampilkan struktur internal JDK sejak awal (tombol "Lihat isi dalam" sudah aktif). */
+    isiDalam: z.boolean().optional(),
+    /** ArrayDeque/LinkedList: gambar sebagai tumpukan (push/pop di depan) atau antrean (offer/poll). */
+    sebagai: z.enum(['tumpukan', 'antrian']).optional(),
+    judul: z.string().optional(),
   }),
 ])
 
@@ -109,7 +182,8 @@ export const skemaCek = z.discriminatedUnion('jenis', [
     ...denganInput,
     nama: z.string(),
     tipe: z.string().optional(),
-    harapan: z.union([z.number(), z.string(), z.boolean(), z.null(), z.array(z.unknown())]),
+    /** Nilai akhir; objek class mahasiswa/Map ditulis sebagai objek `{field: nilai}`, List/Set/Queue sebagai array. */
+    harapan: z.union([z.number(), z.string(), z.boolean(), z.null(), z.array(z.unknown()), z.record(z.string(), z.unknown())]),
   }),
   z.object({ jenis: z.literal('arrayTerurut'), ...denganInput, nama: z.string(), arah: z.enum(['naik', 'turun']).default('naik') }),
   z.object({ jenis: z.literal('harusMemakai'), konstruksi: z.string() }),
@@ -124,6 +198,27 @@ export const skemaCek = z.discriminatedUnion('jenis', [
     seri: z.string().optional(),
     /** Bila kosong, dipakai konfigurasi `pertumbuhan` pelajaran. */
     pertumbuhan: skemaPertumbuhan.optional(),
+  }),
+  z.object({
+    jenis: z.literal('isiRantai'),
+    ...denganInput,
+    /** Jalur ke simpul pertama di akhir program, mis. `head`, `daftar.head`, atau field static. */
+    kepala: z.string(),
+    berikut: z.string().optional(),
+    data: z.string().optional(),
+    /** Isi rantai dari kepala sampai null, mis. [1, 2, 3]. */
+    harapan: z.array(z.union([z.number(), z.string()])),
+  }),
+  z.object({
+    jenis: z.literal('isiPohon'),
+    ...denganInput,
+    /** Jalur ke akar pohon di akhir program. */
+    akar: z.string(),
+    kiri: z.string().optional(),
+    kanan: z.string().optional(),
+    data: z.string().optional(),
+    urutan: z.enum(['inorder', 'preorder', 'postorder']).default('inorder'),
+    harapan: z.array(z.union([z.number(), z.string()])),
   }),
 ])
 

@@ -15,6 +15,8 @@ const muatPelajaran = () => import('./halaman/HalamanPelajaran')
 const muatRuangCoba = () => import('./halaman/RuangCoba')
 const HalamanPelajaran = lazy(() => muatPelajaran().then((m) => ({ default: m.HalamanPelajaran })))
 const RuangCoba = lazy(() => muatRuangCoba().then((m) => ({ default: m.RuangCoba })))
+// Harness visual hanya ada di mode pengembangan; di build produksi cabang ini (dan chunk-nya) dibuang.
+const UjiVisual = import.meta.env.DEV ? lazy(() => import('./halaman/UjiVisual').then((m) => ({ default: m.UjiVisual }))) : null
 
 function MemuatHalaman() {
   return (
@@ -52,6 +54,7 @@ export function App() {
                 <Route path="/ruang-coba" element={<RuangCoba />} />
                 <Route path="/modul/:modul" element={<HalamanModul />} />
                 <Route path="/modul/:modul/:pelajaran" element={<HalamanPelajaran />} />
+                {UjiVisual && <Route path="/uji-visual/:skenario?" element={<UjiVisual />} />}
                 <Route path="*" element={<TidakDitemukan />} />
               </Routes>
             </Suspense>

@@ -5,17 +5,20 @@
  * - setiap tantangan punya solusi `solusi/<id>.java` yang lulus semua cek;
  * - kode awal belum langsung lulus tantangan;
  * - setiap penanda `// #nama` punya `## Catatan #nama`, dan sebaliknya;
- * - variabel yang disebut di `visual`/`pantau` memang muncul saat program berjalan;
+ * - variabel yang disebut di `visual`/`pantau` memang muncul saat program berjalan, termasuk akar jalur dan nama field
+ *   pada visual struktur data (`daftar.head`, `berikut: next`);
  * - grafik `pertumbuhan` bisa diukur pada kode awal.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import { jalankan, kompilasi, PembacaTrace } from '@/engine'
+import { jalankan, kompilasi, PembacaTrace, type Trace } from '@/engine'
 import { analisisKonstruksi } from '@/engine/analisis'
 import { ukurPertumbuhan } from '@/engine/ukurPertumbuhan'
+import type { KonfigVisualPelajaran } from '@/lessons/skema'
 import { periksaTantangan } from '@/lessons/tantangan/periksa'
 import { pengukurLangsung, penjalanLangsung } from '@/lessons/tantangan/penjalanLangsung'
 import { GalatKonten, susunKonten, type Pelajaran } from '@/lessons/urai'
+import { bagianJalur } from '@/viz/jalur'
 
 const AKAR = process.env.KONTEN ?? 'content'
 const warna = (kode: number) => (s: string) => (process.stdout.isTTY ? `\x1b[${kode}m${s}\x1b[0m` : s)
@@ -67,6 +70,51 @@ function namaVariabelTerpakai(sumber: string, input: string, batasLangkah?: numb
   return nama
 }
 
+/** Nama field semua objek yang pernah dibuat (class mahasiswa maupun simpul internal koleksi). */
+function namaFieldTerpakai(trace: Trace): Set<string> {
+  const nama = new Set<string>()
+  for (const l of trace.langkah) {
+    for (const p of l.peristiwa) if (p.k === 'alokasi' && p.objek.k === 'objek') for (const f of Object.keys(p.objek.field)) nama.add(f)
+  }
+  return nama
+}
+
+/**
+ * Jalur dan nama field yang disebut renderer struktur data. Jalur seperti `daftar.head`, `this.top`,
+ * `Main.kepala`, atau `Antrean.depan` dicek dari akarnya; nama field dicek terhadap objek yang pernah dibuat.
+ */
+function sebutanStruktur(v: KonfigVisualPelajaran): { jalur: string[]; field: [opsi: string, nama: string | undefined][] } | undefined {
+  switch (v.jenis) {
+    case 'rantai':
+      return { jalur: [v.kepala, ...(v.penunjuk ?? [])], field: [['berikut', v.berikut], ['sebelum', v.sebelum], ['data', v.data]] }
+    case 'pohon':
+      return { jalur: [v.akar, ...(v.penunjuk ?? [])], field: [['kiri', v.kiri], ['kanan', v.kanan], ['data', v.data]] }
+    case 'tumpukan':
+      return { jalur: [v.variabel, v.puncak, v.ukuran].filter((x) => x !== undefined), field: [['berikut', v.berikut], ['data', v.data]] }
+    case 'antrian':
+      return { jalur: [v.variabel, v.depan, v.belakang, v.ukuran].filter((x) => x !== undefined), field: [['berikut', v.berikut], ['data', v.data]] }
+    case 'tabelHash':
+      return { jalur: [v.variabel, ...(v.penunjuk ?? [])], field: [['berikut', v.berikut], ['kunci', v.kunci], ['nilai', v.nilai]] }
+    case 'koleksi':
+      return { jalur: [v.variabel], field: [] }
+    default:
+      return undefined
+  }
+}
+
+/** Pesan bila jalur tidak cocok dengan program, atau undefined bila akarnya dan semua field-nya pernah ada. */
+function masalahJalur(jalur: string, variabel: Set<string>, field: Set<string>): string | undefined {
+  const b = bagianJalur(jalur)
+  let pakai = 1
+  if (!variabel.has(b[0])) {
+    const statik = b.length >= 2 && (variabel.has(`${b[0]}.${b[1]}`) || (b[0] === 'Main' && variabel.has(b[1])))
+    if (!statik) return b[0] === 'this' ? 'tidak ada method objek (`this`) yang berjalan' : `variabel \`${b[0]}\` tidak pernah muncul`
+    pakai = 2
+  }
+  const hilang = b.slice(pakai).find((f) => !field.has(f))
+  return hilang ? `field \`${hilang}\` tidak ada di objek mana pun` : undefined
+}
+
 async function cekPelajaran(p: Pelajaran): Promise<void> {
   const lokasi = `content/${p.kunci}`
   const dir = join(AKAR, p.modul, p.slug)
@@ -96,7 +144,7 @@ async function cekPelajaran(p: Pelajaran): Promise<void> {
   const terpakai = namaVariabelTerpakai(p.kode, p.meta.input, p.meta.batasLangkah)
   const disebut = new Set<string>(p.meta.pantau)
   for (const v of p.meta.visual) {
-    if ('variabel' in v) disebut.add(v.variabel)
+    if ('variabel' in v && !sebutanStruktur(v)) disebut.add(v.variabel)
     if (v.jenis === 'array') for (const x of [...(v.penunjuk ?? []), ...(v.rentang ?? [])]) disebut.add(x)
     if (v.jenis === 'array2d') {
       for (const x of [v.baris, v.kolom]) if (x) disebut.add(x)
@@ -111,6 +159,18 @@ async function cekPelajaran(p: Pelajaran): Promise<void> {
     }
   }
   for (const n of disebut) if (!terpakai.has(n)) peringatan(`${lokasi}/pelajaran.md`, `Variabel \`${n}\` disebut di visual/pantau, tetapi tidak pernah muncul saat kode awal dijalankan.`)
+  const fieldTerpakai = namaFieldTerpakai(trace)
+  for (const v of p.meta.visual) {
+    const s = sebutanStruktur(v)
+    if (!s) continue
+    for (const j of new Set(s.jalur)) {
+      const m = masalahJalur(j, terpakai, fieldTerpakai)
+      if (m) peringatan(`${lokasi}/pelajaran.md`, `Visual ${v.jenis} menyebut \`${j}\`, tetapi ${m} saat kode awal dijalankan.`)
+    }
+    for (const [opsi, f] of s.field) {
+      if (f && !fieldTerpakai.has(f)) peringatan(`${lokasi}/pelajaran.md`, `Visual ${v.jenis} memakai field \`${f}\` (opsi \`${opsi}\`), tetapi tidak ada objek dengan field itu saat kode awal dijalankan.`)
+    }
+  }
 
   // 4. Grafik pertumbuhan bisa diukur pada kode awal.
   if (p.meta.pertumbuhan) {

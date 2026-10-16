@@ -126,7 +126,7 @@ export const katalog = {
   }),
   belumDidukung: (fitur: string, alternatif?: string): IsiPesan => ({
     pesan: `[Simulator] ${fitur} belum didukung`,
-    artinya: `${fitur} adalah Java yang sah, tetapi simulator ini (Fase 1) belum mendukungnya.`,
+    artinya: `${fitur} adalah Java yang sah, tetapi simulator ini belum mendukungnya.`,
     saran: alternatif,
     simulator: true,
   }),
@@ -180,10 +180,15 @@ export const katalog = {
     pesan: `incomparable types: ${a} and ${b}`,
     artinya: `Nilai bertipe ${kode(a)} tidak bisa dibandingkan dengan ${kode(b)}.`,
   }),
-  sudahDidefinisikan: (x: string, metode: string): IsiPesan => ({
-    pesan: `variable ${x} is already defined in method ${metode}`,
-    artinya: `Nama ${kode(x)} sudah dipakai variabel lain di method ini. Satu nama variabel hanya boleh dideklarasikan sekali dalam jangkauan yang sama.`,
-    saran: `Gunakan nama lain, atau hapus tipe di depannya bila kamu hanya ingin mengubah nilainya: ${kode(`${x} = ...;`)}`,
+  /** `lokasi` gaya javac: `method main(String[])`, `constructor Titik(int)`, atau `class Produk`. */
+  sudahDidefinisikan: (x: string, lokasi: string): IsiPesan => ({
+    pesan: `variable ${x} is already defined in ${lokasi}`,
+    artinya: lokasi.startsWith('class ')
+      ? `Field ${kode(x)} sudah dideklarasikan di class ini. Satu nama field hanya boleh dipakai sekali dalam satu class.`
+      : `Nama ${kode(x)} sudah dipakai variabel lain di method ini. Satu nama variabel hanya boleh dideklarasikan sekali dalam jangkauan yang sama.`,
+    saran: lokasi.startsWith('class ')
+      ? 'Hapus salah satu deklarasi atau beri nama yang berbeda.'
+      : `Gunakan nama lain, atau hapus tipe di depannya bila kamu hanya ingin mengubah nilainya: ${kode(`${x} = ...;`)}`,
   }),
   belumDiinisialisasi: (x: string): IsiPesan => ({
     pesan: `variable ${x} might not have been initialized`,
@@ -257,36 +262,42 @@ export const katalog = {
     artinya: 'Method ini harus mengembalikan nilai, tetapi return ditulis tanpa nilai.',
     saran: 'Tuliskan nilai yang dikembalikan, mis. return hasil;',
   }),
-  methodTidakCocok: (m: string, butuh: string, ditemukan: string, alasan: string): IsiPesan => ({
-    pesan: `method ${m} in class Main cannot be applied to given types;`,
-    detail: [`required: ${butuh || 'no arguments'}`, `found:    ${ditemukan || 'no arguments'}`, `reason: ${alasan}`],
-    artinya: `Argumen yang diberikan ke ${kode(m)} tidak sesuai dengan parameternya (jumlah atau tipenya berbeda).`,
-    saran: `Method ini membutuhkan (${butuh || 'tanpa argumen'}).`,
-  }),
-  methodPustakaTidakCocok: (m: string, kelas: string, butuh: string, ditemukan: string, alasan: string): IsiPesan => ({
-    pesan: `method ${m} in class ${kelas} cannot be applied to given types;`,
-    detail: [`required: ${butuh || 'no arguments'}`, `found:    ${ditemukan || 'no arguments'}`, `reason: ${alasan}`],
-    artinya: `Argumen untuk ${kode(m)} tidak sesuai jumlah atau tipenya.`,
-  }),
-  tidakAdaMethodCocok: (m: string, argumen: string, detail: string[] = []): IsiPesan => ({
-    pesan: `no suitable method found for ${m}(${argumen})`,
-    detail,
-    artinya: `Tidak ada versi method ${kode(m)} yang menerima argumen bertipe (${argumen}). Detail di bawah menjelaskan mengapa setiap versi tidak cocok.`,
-  }),
-  referensiAmbigu: (m: string): IsiPesan => ({
-    pesan: `reference to ${m} is ambiguous`,
-    artinya: `Ada lebih dari satu versi method ${kode(m)} yang sama-sama cocok, sehingga Java tidak bisa memilih.`,
+  /**
+   * `jenis` = `method`/`constructor`; `pemilik` gaya javac, mis. `class Main`, `interface List<E>`.
+   * `where` = baris klausa where (variabel tipe) bila ada.
+   */
+  methodTidakCocok: (jenis: 'method' | 'constructor', m: string, pemilik: string, butuh: string, ditemukan: string, alasan: string[], where: string[] = []): IsiPesan => ({
+    pesan: `${jenis} ${m} in ${pemilik} cannot be applied to given types;`,
+    detail: [`required: ${butuh || 'no arguments'}`, `found:    ${ditemukan || 'no arguments'}`, `reason: ${alasan[0]}`, ...alasan.slice(1), ...where],
+    artinya:
+      jenis === 'constructor'
+        ? `Argumen yang diberikan saat membuat objek ${kode(m)} tidak sesuai dengan parameter konstruktornya (jumlah atau tipenya berbeda).`
+        : `Argumen yang diberikan ke ${kode(m)} tidak sesuai dengan parameternya (jumlah atau tipenya berbeda).`,
+    saran:
+      jenis === 'constructor'
+        ? butuh
+          ? `Konstruktor ini membutuhkan argumen (${butuh}).`
+          : `Class ini hanya punya konstruktor tanpa argumen. Tulis ${kode(`new ${m}()`)} lalu isi field-nya, atau buat konstruktor yang menerima argumen tersebut.`
+        : `Method ini membutuhkan (${butuh || 'tanpa argumen'}).`,
   }),
   konteksStatikMethod: (sig: string): IsiPesan => ({
     pesan: `non-static method ${sig} cannot be referenced from a static context`,
     artinya: 'Method ini tidak bertanda static, sehingga tidak bisa dipanggil langsung dari method static seperti main.',
     saran: `Tambahkan kata kunci static pada deklarasi method, mis. ${kode('public static ...')}.`,
   }),
-  konteksStatikVariabel: (x: string): IsiPesan => ({
-    pesan: `non-static variable ${x} cannot be referenced from a static context`,
-    artinya: `Variabel ${kode(x)} tidak bertanda static, sehingga tidak bisa dipakai dari method static seperti main.`,
-    saran: `Tambahkan static pada deklarasinya, mis. ${kode(`static int ${x}`)}.`,
-  }),
+  konteksStatikVariabel: (x: string): IsiPesan =>
+    x === 'this'
+      ? {
+          pesan: 'non-static variable this cannot be referenced from a static context',
+          artinya:
+            'Di dalam method static (seperti main) tidak ada objek "this". Ini juga terjadi saat membuat objek inner class (class non-static di dalam class lain) langsung dari method static, karena objek inner selalu membutuhkan objek class luarnya.',
+          saran: 'Jadikan class bersarangnya static (`static class ...`), atau buat objeknya dari method instance class luar.',
+        }
+      : {
+          pesan: `non-static variable ${x} cannot be referenced from a static context`,
+          artinya: `Variabel ${kode(x)} milik objek (tidak bertanda static), sehingga tidak bisa dipakai dari konteks static, mis. method static seperti main atau lewat nama class.`,
+          saran: `Pakai lewat sebuah objek, mis. ${kode(`obj.${x}`)}, atau tambahkan static pada deklarasinya bila memang milik class.`,
+        },
   dereferencePrimitif: (t: string): IsiPesan => ({
     pesan: `${t} cannot be dereferenced`,
     artinya: `Nilai bertipe ${kode(t)} adalah primitif, bukan objek, sehingga tidak punya method atau field yang bisa dipanggil dengan titik (.).`,
@@ -333,23 +344,21 @@ export const katalog = {
     detail: ['required: array or java.lang.Iterable', `found:    ${t}`],
     artinya: 'Perulangan for-each hanya bisa menelusuri array (atau koleksi).',
   }),
-  methodSudahAda: (sig: string): IsiPesan => ({
-    pesan: `method ${sig} is already defined in class Main`,
-    artinya: 'Sudah ada method dengan nama dan tipe parameter yang sama.',
+  methodSudahAda: (sig: string, kelas: string, konstruktor = false): IsiPesan => ({
+    pesan: `${konstruktor ? 'constructor' : 'method'} ${sig} is already defined in class ${kelas}`,
+    artinya: konstruktor
+      ? 'Sudah ada konstruktor dengan tipe parameter yang sama di class ini.'
+      : 'Sudah ada method dengan nama dan tipe parameter yang sama di class ini. Tipe kembalian yang berbeda tidak cukup untuk membedakan dua method.',
+    saran: 'Hapus salah satunya, atau ubah nama/tipe parameternya.',
   }),
   selektorSwitch: (t: string): IsiPesan => ({
     pesan: `selector type ${t} is not allowed`,
-    artinya: `Nilai yang diperiksa switch tidak boleh bertipe ${kode(t)}. Switch hanya menerima int, char, short, byte, dan String.`,
+    artinya: `Nilai yang diperiksa switch tidak boleh bertipe ${kode(t)}. Switch menerima int, char, short, byte, class pembungkusnya (Integer, Character, Short, Byte), dan String.`,
     saran: t === 'boolean' ? 'Untuk nilai true/false, gunakan if/else.' : 'Gunakan rangkaian if/else if untuk membandingkan nilai bertipe ini.',
   }),
   labelCaseTidakCocok: (dari: string, ke: string): IsiPesan => ({
     pesan: `constant label of type ${dari} is not compatible with switch selector type ${ke}`,
     artinya: `Nilai case bertipe ${kode(dari)} tidak cocok dengan tipe nilai switch (${kode(ke)}).`,
-  }),
-  pemanggilanKonstruktor: (t: string): IsiPesan => ({
-    pesan: `[Simulator] membuat objek ${t} dengan new belum didukung`,
-    artinya: 'Pada Fase 1 simulator hanya mendukung new untuk array, Scanner, dan String.',
-    simulator: true,
   }),
   paketTidakAda: (nama: string, mirip?: string): IsiPesan => ({
     pesan: `package ${nama} does not exist`,
@@ -360,6 +369,167 @@ export const katalog = {
     pesan: '[Simulator] class Main tidak ditemukan',
     artinya: 'File Main.java harus berisi public class Main.',
     simulator: true,
+  }),
+
+  // ---------- Fase 2: class, objek, akses ----------
+  tidakAdaMethodCocok: (jenis: 'method' | 'constructor', m: string, argumen: string, detail: string[] = []): IsiPesan => ({
+    pesan: `no suitable ${jenis} found for ${m}(${argumen})`,
+    detail,
+    artinya:
+      jenis === 'constructor'
+        ? `Tidak ada konstruktor ${kode(m)} yang menerima argumen bertipe (${argumen}). Detail di bawah menjelaskan mengapa setiap konstruktor tidak cocok.`
+        : `Tidak ada versi method ${kode(m)} yang menerima argumen bertipe (${argumen}). Detail di bawah menjelaskan mengapa setiap versi tidak cocok.`,
+  }),
+  referensiAmbigu: (m: string, detail: string[] = []): IsiPesan => ({
+    pesan: `reference to ${m} is ambiguous`,
+    detail,
+    artinya: `Ada lebih dari satu versi ${kode(m)} yang sama-sama cocok, sehingga Java tidak bisa memilih.`,
+    saran: 'Tulis argumen dengan tipe yang lebih jelas, mis. dengan casting.',
+  }),
+  aksesPrivat: (simbol: string, kelas: string): IsiPesan => ({
+    pesan: `${simbol} has private access in ${kelas}`,
+    artinya: `${kode(simbol)} dideklarasikan private di class ${kode(kelas)}, sehingga hanya bisa dipakai dari dalam class itu (beserta class yang membungkusnya).`,
+    saran: 'Pakai method publik yang disediakan class itu (mis. getter), atau hapus private bila memang boleh diakses dari luar.',
+  }),
+  aksesProtected: (simbol: string, kelas: string): IsiPesan => ({
+    pesan: `${simbol} has protected access in ${kelas}`,
+    artinya: `${kode(simbol)} dideklarasikan protected di ${kode(kelas)}, sehingga tidak bisa dipakai dari sini.`,
+  }),
+  aksesPaket: (simbol: string, kelas: string): IsiPesan => ({
+    pesan: `${simbol} is not public in ${kelas}; cannot be accessed from outside package`,
+    artinya: `${kode(simbol)} adalah bagian internal ${kode(kelas)} yang tidak bisa dipakai dari luar package-nya.`,
+    saran: 'Gunakan method publik class itu, mis. size() dengan tanda kurung.',
+  }),
+  kelasDuplikat: (x: string): IsiPesan => ({
+    pesan: `duplicate class: ${x}`,
+    artinya: `Ada dua class bernama ${kode(x)} di file ini. Setiap class harus punya nama yang berbeda.`,
+    saran: 'Hapus salah satunya atau ganti namanya.',
+  }),
+  kelasSudahAda: (x: string, luar: string): IsiPesan => ({
+    pesan: `class ${x} is already defined in class ${luar}`,
+    artinya: `Class ${kode(luar)} sudah punya class bersarang bernama ${kode(x)}.`,
+  }),
+  modifierTidakBoleh: (m: string): IsiPesan => ({
+    pesan: `modifier ${m} not allowed here`,
+    artinya:
+      m === 'static'
+        ? 'Class top-level (yang tidak berada di dalam class lain) tidak boleh diberi static. Kata kunci static hanya untuk class bersarang.'
+        : `Kata kunci ${kode(m)} tidak boleh dipakai di posisi ini.`,
+    saran: `Hapus ${kode(m)}.`,
+  }),
+  finalBelumDiisiKonstruktorBawaan: (x: string): IsiPesan => ({
+    pesan: `variable ${x} not initialized in the default constructor`,
+    artinya: `Field ${kode(x)} bertanda final tetapi tidak pernah diisi. Class ini tidak punya konstruktor, sehingga konstruktor bawaan (tanpa isi) yang dipakai dan ${kode(x)} tetap kosong.`,
+    saran: `Beri nilai awal saat deklarasi, mis. ${kode(`final int ${x} = 0;`)}, atau buat konstruktor yang mengisinya.`,
+  }),
+  panggilKonstruktorPertama: (bentuk: 'this' | 'super'): IsiPesan => ({
+    pesan: `call to ${bentuk} must be first statement in constructor`,
+    artinya: `${kode(`${bentuk}(...)`)} hanya boleh ditulis sebagai pernyataan pertama di dalam konstruktor.`,
+    saran: `Pindahkan ${kode(`${bentuk}(...)`)} ke baris pertama konstruktor; hitung argumennya langsung di dalam kurung bila perlu.`,
+  }),
+  butuhObjekLuar: (x: string): IsiPesan => ({
+    pesan: `an enclosing instance that contains ${x} is required`,
+    artinya: `${kode(x)} adalah inner class (tidak static), jadi objeknya hanya bisa dibuat dari dalam objek class luarnya.`,
+    saran: 'Jadikan class bersarangnya static, atau buat objeknya dari method instance class luar.',
+  }),
+  tidakMengoverride: (): IsiPesan => ({
+    pesan: 'method does not override or implement a method from a supertype',
+    artinya: '@Override menyatakan method ini menimpa method milik class induk (mis. toString, equals, hashCode dari Object), tetapi tidak ada method dengan nama dan parameter yang sama di sana.',
+    saran: 'Periksa ejaan nama method dan tipe parameternya, mis. `public String toString()` atau `public boolean equals(Object o)`.',
+  }),
+  tidakBisaOverride: (m: string, kelas: string, mInduk: string, kelasInduk: string, alasan: string, kata: 'override' | 'implement' = 'override', detail: string[] = []): IsiPesan => ({
+    pesan: `${m} in ${kelas} cannot ${kata} ${mInduk} in ${kelasInduk}`,
+    detail: [alasan, ...detail],
+    artinya: alasan.startsWith('attempting to assign weaker access')
+      ? `Method yang menimpa (override) tidak boleh lebih tertutup aksesnya daripada aslinya. ${kode(mInduk)} di ${kode(kelasInduk)} bersifat public.`
+      : alasan.startsWith('return type')
+        ? `Method yang menimpa (override) harus punya tipe kembalian yang sama dengan aslinya di ${kode(kelasInduk)}.`
+        : `Method static tidak bisa menimpa method instance ${kode(mInduk)} milik ${kode(kelasInduk)}.`,
+    saran: alasan.startsWith('attempting') ? 'Tambahkan public di depan deklarasi method.' : undefined,
+  }),
+  tidakAbstrak: (kelas: string, m: string, induk: string): IsiPesan => ({
+    pesan: `${kelas} is not abstract and does not override abstract method ${m} in ${induk}`,
+    artinya: `Class ${kode(kelas)} menyatakan implements ${kode(induk)}, sehingga wajib menulis method ${kode(m)} dengan tanda tangan yang persis sama.`,
+    saran: induk === 'Comparable' ? `Tambahkan ${kode(`public int ${m.replace(/\((\w+)\)/, '($1 lain)')} { ... }`)} di class ${kode(kelas)}.` : undefined,
+  }),
+  tipeTakTerdugaGenerik: (ditemukan: string): IsiPesan => ({
+    pesan: 'unexpected type',
+    detail: ['required: reference', `found:    ${ditemukan}`],
+    artinya: `Argumen tipe generik (di dalam < >) harus berupa class, bukan tipe primitif ${kode(ditemukan)}.`,
+    saran: `Gunakan class pembungkusnya, mis. ${kode(ditemukan === 'int' ? 'Integer' : ditemukan === 'char' ? 'Character' : ditemukan.charAt(0).toUpperCase() + ditemukan.slice(1))}.`,
+  }),
+  jumlahArgumenTipe: (n: number): IsiPesan => ({
+    pesan: `wrong number of type arguments; required ${n}`,
+    artinya: `Tipe ini membutuhkan ${n} argumen tipe di dalam < >.`,
+    saran: n === 2 ? 'Map membutuhkan tipe kunci dan tipe nilai, mis. Map<String, Integer>.' : undefined,
+  }),
+  arrayGenerik: (): IsiPesan => ({
+    pesan: 'generic array creation',
+    artinya: 'Java tidak mengizinkan membuat array dari tipe generik berparameter, mis. new ArrayList<Integer>[n].',
+    saran: 'Gunakan ArrayList<ArrayList<Integer>> sebagai gantinya, atau new ArrayList[n] (tanpa argumen tipe).',
+  }),
+  bukanAntarmukaFungsional: (t: string): IsiPesan => ({
+    pesan: `incompatible types: ${t} is not a functional interface`,
+    artinya: `Ekspresi lambda hanya bisa disimpan ke tipe antarmuka fungsional (mis. Comparator), bukan ke ${kode(t)}.`,
+  }),
+  lambdaParameterTidakCocok: (): IsiPesan => ({
+    pesan: 'incompatible types: incompatible parameter types in lambda expression',
+    artinya: 'Jumlah atau tipe parameter lambda tidak sesuai dengan yang diharapkan. Lambda untuk Comparator harus punya tepat dua parameter, mis. (a, b) -> ...',
+  }),
+  lambdaKembalianSalah: (detail: string): IsiPesan => ({
+    pesan: 'incompatible types: bad return type in lambda expression',
+    detail: [detail],
+    artinya: 'Nilai yang dikembalikan lambda tidak sesuai. Lambda Comparator harus mengembalikan int: negatif bila a lebih dulu, positif bila b lebih dulu, 0 bila setara.',
+    saran: detail === 'missing return value' ? 'Tambahkan return di akhir badan lambda, mis. return a - b;' : undefined,
+  }),
+  /** Cabang `? :` tidak cocok dengan tipe tujuan; `detail` = baris javac (kondisional bersarang menambah baris). */
+  kondisionalTidakCocok: (detail: string[]): IsiPesan => ({
+    pesan: 'incompatible types: bad type in conditional expression',
+    detail,
+    artinya: 'Salah satu hasil operator ? : tidak cocok dengan tipe yang dibutuhkan di sini. Kedua cabangnya (setelah ? dan setelah :) harus bisa disimpan ke tipe tujuan.',
+    saran: 'Samakan tipe kedua cabang, mis. keduanya String atau keduanya angka.',
+  }),
+  lambdaVariabelTidakFinal: (): IsiPesan => ({
+    pesan: 'local variables referenced from a lambda expression must be final or effectively final',
+    artinya: 'Variabel lokal yang dipakai di dalam lambda tidak boleh diubah, baik sebelum, sesudah, maupun di dalam lambda.',
+    saran: 'Salin nilainya ke variabel baru yang tidak pernah diubah, mis. `final int arahTetap = arah;`, lalu pakai variabel itu di lambda.',
+  }),
+
+  // ---------- Fase 2: exception ----------
+  tryTanpaCatch: (): IsiPesan => ({
+    pesan: "'try' without 'catch', 'finally' or resource declarations",
+    artinya: 'Blok try harus diikuti setidaknya satu blok catch atau finally.',
+    saran: 'Tambahkan catch (TipeException e) { ... } setelah blok try.',
+  }),
+  catchTanpaTry: (): IsiPesan => ({
+    pesan: "'catch' without 'try'",
+    artinya: 'Blok catch harus langsung mengikuti blok try { ... }.',
+    saran: 'Bungkus kode yang mungkin melempar exception dengan try { ... } tepat sebelum catch.',
+  }),
+  finallyTanpaTry: (): IsiPesan => ({
+    pesan: "'finally' without 'try'",
+    artinya: 'Blok finally harus mengikuti blok try (atau catch).',
+  }),
+  exceptionTidakDilaporkan: (x: string): IsiPesan => ({
+    pesan: `unreported exception ${x}; must be caught or declared to be thrown`,
+    artinya: `${kode(x)} adalah checked exception: Java mewajibkan kamu menangkapnya dengan try-catch, atau menyatakan bahwa method ini meneruskannya dengan throws.`,
+    saran: `Bungkus dengan try { ... } catch (${x} e) { ... }, atau tambahkan ${kode(`throws ${x}`)} pada deklarasi method.`,
+  }),
+  exceptionTidakPernahDilempar: (x: string): IsiPesan => ({
+    pesan: `exception ${x} is never thrown in body of corresponding try statement`,
+    artinya: `Tidak ada kode di dalam blok try yang bisa melempar checked exception ${kode(x)}, sehingga catch ini tidak akan pernah berjalan.`,
+    saran: 'Hapus catch ini, atau pastikan kode di dalam try memang memanggil method yang melempar exception tersebut.',
+  }),
+  exceptionSudahDitangkap: (x: string): IsiPesan => ({
+    pesan: `exception ${x} has already been caught`,
+    artinya: `Catch sebelumnya sudah menangkap ${kode(x)} (atau class induknya), sehingga catch ini tidak akan pernah berjalan.`,
+    saran: 'Urutkan catch dari exception yang paling khusus ke yang paling umum (Exception paling akhir).',
+  }),
+  multiCatchBersubkelas: (sub: string, induk: string): IsiPesan => ({
+    pesan: 'Alternatives in a multi-catch statement cannot be related by subclassing',
+    detail: [`Alternative ${sub} is a subclass of alternative ${induk}`],
+    artinya: `${kode(sub)} adalah turunan ${kode(induk)}, jadi menangkap ${kode(induk)} saja sudah cukup.`,
+    saran: `Hapus ${kode(sub)} dari multi-catch.`,
   }),
 }
 
@@ -377,6 +547,9 @@ export class PengumpulDiagnostik {
 
   tambah(kodeDiag: string, span: Span, isi: IsiPesan): Diagnostik {
     const titik = span.fokus ?? span.awal
+    // Seperti javac (Log.shouldReport): paling banyak satu error per posisi sumber.
+    const sama = this.daftar.find((x) => (x.span.fokus ?? x.span.awal) === titik)
+    if (sama) return sama
     const d: Diagnostik = {
       kode: kodeDiag,
       span,

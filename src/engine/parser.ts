@@ -6,6 +6,16 @@ import type { NamaPrimitif } from './tipe'
 
 class GagalParse extends Error {}
 
+/** Nama bertitik dari ekspresi nama (`Main`, `Main.Gudang`) untuk `Kualifier.this`; undefined bila bukan nama. */
+function namaKualifier(e: A.Ekspresi): string | undefined {
+  if (e.jenis === 'Nama') return e.nama
+  if (e.jenis === 'AksesField') {
+    const dasar = namaKualifier(e.objek)
+    return dasar === undefined ? undefined : `${dasar}.${e.nama}`
+  }
+  return undefined
+}
+
 const PRIMITIF = new Set(['byte', 'short', 'int', 'long', 'float', 'double', 'char', 'boolean'])
 const MODIFIER = new Set([
   'public', 'private', 'protected', 'static', 'final', 'abstract', 'native', 'synchronized', 'transient',
@@ -28,6 +38,8 @@ class Parser {
   private perubahan: { i: number; tk: Token }[] = []
   /** true saat mengurai label `case` (tanda `->` setelah label bukan lambda). */
   private dalamLabelCase = false
+  /** true saat membaca tipe secara spekulatif (`cobaTipe`): sebagian error ditunda ke pembacaan sungguhan. */
+  private spekulatif = false
 
   constructor(
     private readonly tok: Token[],
@@ -162,22 +174,23 @@ class Parser {
     return { id: this.nodeId(), span: this.spanDari(awal), nama, wildcard, statik }
   }
 
-  private modifier(): string[] {
+  private modifier(): { modifier: string[]; anotasi: A.Anotasi[] } {
     const hasil: string[] = []
+    const anotasi: A.Anotasi[] = []
     for (;;) {
       if (this.t.jenis === 'kunci' && MODIFIER.has(this.t.teks)) {
         hasil.push(this.ambil().teks)
         continue
       }
       if (this.adalah('@')) {
-        // Anotasi (mis. @SuppressWarnings) dilewati.
-        this.ambil()
+        const awal = this.ambil().awal
         if (this.adalah('interface')) this.belumDidukung(this.spanDari(this.sebelumnya.awal), 'Deklarasi anotasi')
-        this.namaBertitik()
+        const nama = this.namaBertitik()
+        anotasi.push({ nama, span: { awal, akhir: this.sebelumnya.akhir } })
         if (this.adalah('(')) this.lewatiSeimbang('(', ')')
         continue
       }
-      return hasil
+      return { modifier: hasil, anotasi }
     }
   }
 
@@ -203,9 +216,9 @@ class Parser {
 
   private kelas(): A.DeklarasiKelas {
     const awal = this.t.awal
-    const modifier = this.modifier()
+    const { modifier } = this.modifier()
     if (this.adalah('interface') || this.adalah('enum') || this.adalah('record')) {
-      this.belumDidukung({ awal: this.t.awal, akhir: this.t.akhir }, `Deklarasi ${this.t.teks}`, 'Gunakan class Main dengan method static.')
+      this.belumDidukung({ awal: this.t.awal, akhir: this.t.akhir }, `Deklarasi ${this.t.teks}`, 'Gunakan class biasa.')
     }
     if (!this.adalah('class')) {
       if (this.adalahIdent() && this.t.teks === 'record') this.belumDidukung({ awal: this.t.awal, akhir: this.t.akhir }, 'Deklarasi record')
@@ -213,22 +226,44 @@ class Parser {
       if (this.tampakAnggota()) this.gagal('kelas-tanpa-nama', { awal: this.t.awal, akhir: this.t.akhir }, katalog.kelasTanpaNama())
       this.gagal('class-diharapkan', { awal: this.t.awal, akhir: this.t.akhir }, katalog.kelasDiharapkan())
     }
+    return this.badanKelas(awal, modifier)
+  }
+
+  /** Deklarasi class mulai dari kata kunci `class` (top-level maupun bersarang). */
+  private badanKelas(awal: number, modifier: string[]): A.DeklarasiKelas {
     const kataKelas = this.ambil()
     const namaTok = this.harapIdent()
-    if (this.adalah('extends') || this.adalah('implements')) {
-      this.belumDidukung({ awal: this.t.awal, akhir: this.t.akhir }, 'Pewarisan (extends/implements)', 'Pewarisan akan dibahas di Modul 2.')
+    if (this.adalah('<')) this.belumDidukung({ awal: this.t.awal, akhir: this.t.akhir }, 'Class generik buatan sendiri', 'Gunakan tipe yang konkret, mis. int atau String.')
+    let induk: A.NodeTipe | undefined
+    const antarmuka: A.NodeTipe[] = []
+    if (this.adalah('extends')) {
+      this.ambil()
+      induk = this.tipe()
     }
-    if (this.adalah('<')) this.belumDidukung({ awal: this.t.awal, akhir: this.t.akhir }, 'Class generik')
+    if (this.adalah('implements')) {
+      this.ambil()
+      antarmuka.push(this.tipe())
+      while (this.adalah(',')) {
+        this.ambil()
+        antarmuka.push(this.tipe())
+      }
+    }
+    if (this.adalah('permits')) this.belumDidukung({ awal: this.t.awal, akhir: this.t.akhir }, 'Class sealed')
     this.harap('{')
     const kelas: A.DeklarasiKelas = {
       id: this.nodeId(),
       span: { awal, akhir: awal },
+      jenis: 'DeklarasiKelas',
       nama: namaTok.teks,
       spanNama: { awal: namaTok.awal, akhir: namaTok.akhir },
       posisiKataKelas: kataKelas.awal,
       modifier,
+      induk,
+      antarmuka,
       field: [],
       method: [],
+      konstruktor: [],
+      kelas: [],
       anggota: [],
     }
     while (!this.adalah('}')) {
@@ -246,27 +281,39 @@ class Parser {
       return
     }
     const awal = this.t.awal
-    const modifier = this.modifier()
+    const { modifier, anotasi } = this.modifier()
     const spanT = { awal: this.t.awal, akhir: this.t.akhir }
-    if (this.adalah('class') || this.adalah('interface') || this.adalah('enum')) {
-      this.belumDidukung(spanT, 'Class di dalam class (nested class)', 'Class buatan sendiri akan dibahas di Modul 2.')
+    if (this.adalah('class')) {
+      const k = this.badanKelas(awal, modifier)
+      kelas.kelas.push(k)
+      kelas.anggota.push(k)
+      return
+    }
+    if (this.adalah('interface') || this.adalah('enum')) {
+      this.belumDidukung(spanT, `Deklarasi ${this.t.teks}`, 'Gunakan class biasa.')
     }
     if (this.adalahIdent() && this.t.teks === 'record' && this.adalahIdent(this.lihat(1))) this.belumDidukung(spanT, 'Deklarasi record')
-    if (this.adalah('{')) this.belumDidukung(spanT, 'Blok inisialisasi')
-    if (this.adalah('<')) this.belumDidukung(spanT, 'Method generik')
+    if (this.adalah('{')) this.belumDidukung(spanT, 'Blok inisialisasi', 'Isi nilai awal field langsung saat deklarasi atau di konstruktor.')
+    if (this.adalah('<')) this.belumDidukung(spanT, 'Method generik buatan sendiri', 'Gunakan tipe yang konkret pada parameter.')
     let tipeKembali: A.NodeTipe | null = null
     if (this.adalah('void')) {
       this.ambil()
     } else {
       if (this.adalahIdent() && this.adalah('(', this.lihat(1))) {
-        if (this.t.teks === kelas.nama) this.belumDidukung(spanT, 'Konstruktor', 'Konstruktor akan dibahas di Modul 2 bersama class dan objek.')
+        if (this.t.teks === kelas.nama) {
+          const namaTok = this.ambil()
+          const k = this.method(awal, modifier, anotasi, null, namaTok, true)
+          kelas.konstruktor.push(k)
+          kelas.anggota.push(k)
+          return
+        }
         this.gagal('tipe-kembali-hilang', spanT, katalog.tipeKembaliHilang())
       }
       tipeKembali = this.tipe()
     }
     const namaTok = this.harapIdent()
     if (this.adalah('(')) {
-      const m = this.method(awal, modifier, tipeKembali, namaTok)
+      const m = this.method(awal, modifier, anotasi, tipeKembali, namaTok, false)
       kelas.method.push(m)
       kelas.anggota.push(m)
       return
@@ -283,7 +330,14 @@ class Parser {
     kelas.anggota.push(f)
   }
 
-  private method(awal: number, modifier: string[], tipeKembali: A.NodeTipe | null, namaTok: Token): A.DeklarasiMethod {
+  private method(
+    awal: number,
+    modifier: string[],
+    anotasi: A.Anotasi[],
+    tipeKembali: A.NodeTipe | null,
+    namaTok: Token,
+    konstruktor: boolean,
+  ): A.DeklarasiMethod {
     this.harap('(')
     const parameter: A.Parameter[] = []
     if (!this.adalah(')')) {
@@ -298,12 +352,13 @@ class Parser {
       this.ambil()
       this.harap(']')
     }
+    const throws: A.NodeTipe[] = []
     if (this.adalah('throws')) {
       this.ambil()
-      this.namaBertitik()
+      throws.push(this.tipe())
       while (this.adalah(',')) {
         this.ambil()
-        this.namaBertitik()
+        throws.push(this.tipe())
       }
     }
     if (this.adalah(';')) {
@@ -316,10 +371,13 @@ class Parser {
       span: this.spanDari(awal),
       jenis: 'DeklarasiMethod',
       modifier,
+      anotasi,
       tipeKembali,
+      konstruktor,
       nama: namaTok.teks,
       spanNama: { awal: namaTok.awal, akhir: namaTok.akhir },
       parameter,
+      throws,
       badan,
       spanTutup: { awal: this.sebelumnya.awal, akhir: this.sebelumnya.akhir },
     }
@@ -363,8 +421,10 @@ class Parser {
     } else if (this.adalahIdent()) {
       const nama = this.namaBertitik()
       let argumen: A.NodeTipe[] | undefined
-      if (this.adalah('<')) argumen = this.argumenTipe()
-      t = { id: this.nodeId(), span: this.spanDari(awal), jenis: 'TipeNama', nama, argumen }
+      // javac menunjuk ke `<` untuk error argumen tipe (mis. jumlahnya salah).
+      const posisiSudut = this.t.awal
+      if (this.adalah('<')) argumen = this.argumenTipe(false)
+      t = { id: this.nodeId(), span: argumen ? { ...this.spanDari(awal), fokus: posisiSudut } : this.spanDari(awal), jenis: 'TipeNama', nama, argumen }
     } else if (this.adalah('void')) {
       this.gagal('token-diharapkan', { awal: this.t.awal, akhir: this.t.akhir }, katalog.awalTipeIlegal())
     } else {
@@ -378,20 +438,25 @@ class Parser {
     return t
   }
 
-  private argumenTipe(): A.NodeTipe[] {
+  /** `<...>`; diamond `<>` hanya sah setelah `new` (selain itu javac: "illegal start of type" di `>`). */
+  private argumenTipe(bolehDiamond: boolean): A.NodeTipe[] {
     this.harap('<')
     const hasil: A.NodeTipe[] = []
     if (this.adalah('>')) {
+      if (!bolehDiamond && !this.spekulatif) this.gagal('awal-tipe-ilegal', { awal: this.t.awal, akhir: this.t.akhir }, katalog.awalTipeIlegal())
       this.ambil()
       return hasil
     }
     for (;;) {
       if (this.adalah('?')) {
-        this.ambil()
+        const awal = this.ambil().awal
+        let batas: 'extends' | 'super' | null = null
+        let tipe: A.NodeTipe | undefined
         if (this.adalah('extends') || this.adalah('super')) {
-          this.ambil()
-          hasil.push(this.tipe())
+          batas = this.ambil().teks as 'extends' | 'super'
+          tipe = this.tipe()
         }
+        hasil.push({ id: this.nodeId(), span: this.spanDari(awal), jenis: 'TipeWildcard', batas, tipe })
       } else hasil.push(this.tipe())
       if (!this.adalah(',')) break
       this.ambil()
@@ -414,12 +479,16 @@ class Parser {
   /** Coba baca tipe tanpa melaporkan error; kembalikan null (dan posisi dipulihkan) bila gagal. */
   private cobaTipe(): A.NodeTipe | null {
     const simpan = this.titikSimpan()
+    const spekulatifLama = this.spekulatif
+    this.spekulatif = true
     try {
       return this.tipe()
     } catch (e) {
       if (!(e instanceof GagalParse)) throw e
       this.pulihkan(simpan)
       return null
+    } finally {
+      this.spekulatif = spekulatifLama
     }
   }
 
@@ -506,10 +575,14 @@ class Parser {
           this.gagal('else-tanpa-if', spanT, katalog.elseTanpaIf())
           break
         case 'try':
-          this.belumDidukung(spanT, 'Penanganan exception try/catch', 'try/catch akan dibahas di Modul 2.')
-          break
+          return this.pernyataanTry()
         case 'throw':
-          this.belumDidukung(spanT, 'Pernyataan throw', 'throw akan dibahas di Modul 2.')
+          return this.pernyataanThrow()
+        case 'catch':
+          this.gagal('catch-tanpa-try', spanT, katalog.catchTanpaTry())
+          break
+        case 'finally':
+          this.gagal('finally-tanpa-try', spanT, katalog.finallyTanpaTry())
           break
         case 'class':
         case 'interface':
@@ -548,8 +621,56 @@ class Parser {
   }
 
   private cekPernyataanEkspresi(e: A.Ekspresi): void {
-    if (e.jenis === 'Assign' || e.jenis === 'IncDec' || e.jenis === 'PanggilMethod' || e.jenis === 'BaruObjek') return
+    if (e.jenis === 'Assign' || e.jenis === 'IncDec' || e.jenis === 'PanggilMethod' || e.jenis === 'BaruObjek' || e.jenis === 'PanggilKonstruktor') return
     this.gagal('bukan-pernyataan', e.span, katalog.bukanPernyataan())
+  }
+
+  private pernyataanTry(): A.Try {
+    const tokTry = this.ambil()
+    if (this.adalah('(')) this.belumDidukung({ awal: this.t.awal, akhir: this.t.akhir }, 'try-with-resources', 'Tutup sumber daya secara manual di blok finally.')
+    const blok = this.blok()
+    const tangkap: A.Tangkap[] = []
+    while (this.adalah('catch')) tangkap.push(this.klausaCatch())
+    let akhirnya: A.Blok | undefined
+    if (this.adalah('finally')) {
+      this.ambil()
+      akhirnya = this.blok()
+    }
+    if (tangkap.length === 0 && !akhirnya) {
+      this.gagal('try-tanpa-catch', { awal: tokTry.awal, akhir: tokTry.akhir }, katalog.tryTanpaCatch())
+    }
+    return { id: this.nodeId(), span: this.spanDari(tokTry.awal), jenis: 'Try', blok, tangkap, akhirnya }
+  }
+
+  private klausaCatch(): A.Tangkap {
+    const awal = this.ambil().awal
+    this.harap('(')
+    let final = false
+    for (;;) {
+      if (this.adalah('final')) {
+        this.ambil()
+        final = true
+      } else if (this.adalah('@')) {
+        this.ambil()
+        this.namaBertitik()
+      } else break
+    }
+    const tipe = [this.tipe()]
+    while (this.adalah('|')) {
+      this.ambil()
+      tipe.push(this.tipe())
+    }
+    const namaTok = this.harapIdent()
+    this.harap(')')
+    const badan = this.blok()
+    return { id: this.nodeId(), span: this.spanDari(awal), tipe, final, nama: namaTok.teks, spanNama: { awal: namaTok.awal, akhir: namaTok.akhir }, badan }
+  }
+
+  private pernyataanThrow(): A.Throw {
+    const awal = this.ambil().awal
+    const ekspresi = this.ekspresi()
+    this.harap(';')
+    return { id: this.nodeId(), span: this.spanDari(awal), jenis: 'Throw', ekspresi }
   }
 
   private deklarasiLokal(final: boolean, harapTitikKoma = true): A.DeklarasiLokal {
@@ -736,7 +857,7 @@ class Parser {
       if (bentukPanah) {
         panah = true
         if (this.adalah('{')) pernyataan.push(this.blok())
-        else if (this.adalah('throw')) this.belumDidukung({ awal: this.t.awal, akhir: this.t.akhir }, 'Pernyataan throw')
+        else if (this.adalah('throw')) pernyataan.push(this.pernyataanThrow())
         else {
           const awalE = this.t.awal
           const e = this.ekspresi()
@@ -884,8 +1005,17 @@ class Parser {
         if (this.t.jenis === 'kunci') {
           const tk = this.t
           if (tk.teks === 'class') this.belumDidukung({ awal: tk.awal, akhir: tk.akhir }, 'Ekspresi .class')
-          if (tk.teks === 'new') this.belumDidukung({ awal: tk.awal, akhir: tk.akhir }, 'Inner class')
-          if (tk.teks === 'this' || tk.teks === 'super') this.belumDidukung({ awal: tk.awal, akhir: tk.akhir }, `Ekspresi .${tk.teks}`)
+          if (tk.teks === 'new') {
+            this.belumDidukung({ awal: tk.awal, akhir: tk.akhir }, 'Membuat objek inner class lewat objek luar (luar.new Dalam())', 'Buat objek inner class dari method instance class luarnya.')
+          }
+          if (tk.teks === 'this') {
+            const kualifier = namaKualifier(e)
+            if (kualifier === undefined) this.gagal('awal-ekspresi-ilegal', { awal: tk.awal, akhir: tk.akhir }, katalog.awalEkspresiIlegal())
+            this.ambil()
+            e = { id: this.nodeId(), span: { ...this.spanDari(awal), fokus: titik }, jenis: 'This', kualifier }
+            continue
+          }
+          if (tk.teks === 'super') this.belumDidukung({ awal: tk.awal, akhir: tk.akhir }, 'Ekspresi .super')
         }
         const namaTok = this.harapIdent()
         // Seperti javac, error pada `a.b` / `a.b(...)` menunjuk ke titik.
@@ -990,7 +1120,7 @@ class Parser {
         this.ambil()
         return this.literal(tk)
       case 'ident': {
-        if (!this.dalamLabelCase && this.adalah('->', this.lihat(1))) this.belumDidukung(spanT, 'Ekspresi lambda')
+        if (!this.dalamLabelCase && this.adalah('->', this.lihat(1))) return this.lambda()
         this.ambil()
         if (this.adalah('(')) {
           // javac menunjuk ke `(` untuk error pada hasil pemanggilan (mis. tipe kembali tidak cocok).
@@ -1009,11 +1139,23 @@ class Parser {
             return this.literal(tk)
           case 'new':
             return this.baru()
-          case 'this':
-            this.belumDidukung(spanT, 'Kata kunci this', 'this dipakai bersama objek, yang akan dibahas di Modul 2.')
-            break
+          case 'this': {
+            this.ambil()
+            if (this.adalah('(')) {
+              const kurung = this.t.awal
+              const argumen = this.argumen()
+              return { id: this.nodeId(), span: { ...this.spanDari(awal), fokus: kurung }, jenis: 'PanggilKonstruktor', bentuk: 'this', argumen }
+            }
+            return { id: this.nodeId(), span: spanT, jenis: 'This' }
+          }
           case 'super':
-            this.belumDidukung(spanT, 'Kata kunci super')
+            this.ambil()
+            if (this.adalah('(')) {
+              const kurung = this.t.awal
+              const argumen = this.argumen()
+              return { id: this.nodeId(), span: { ...this.spanDari(awal), fokus: kurung }, jenis: 'PanggilKonstruktor', bentuk: 'super', argumen }
+            }
+            this.belumDidukung(spanT, 'Akses anggota class induk lewat super', 'Pewarisan antar-class buatan sendiri belum didukung.')
             break
           case 'switch':
             this.belumDidukung(spanT, 'Switch sebagai ekspresi', 'Gunakan switch sebagai pernyataan biasa.')
@@ -1033,10 +1175,11 @@ class Parser {
         break
       case 'op':
         if (tk.teks === '(') {
-          if (!this.dalamLabelCase && this.tampakLambda()) this.belumDidukung(spanT, 'Ekspresi lambda')
+          if (!this.dalamLabelCase && this.tampakLambda()) return this.lambda()
           this.ambil()
           const e = this.ekspresi()
           this.harap(')')
+          e.kurung = (e.kurung ?? 0) + 1
           return e
         }
         break
@@ -1059,6 +1202,48 @@ class Parser {
     return this.adalah('->', this.lihat(k))
   }
 
+  /** Ekspresi lambda: `x -> …`, `(a, b) -> …`, atau `(Tipe a, Tipe b) -> …`, dengan badan ekspresi atau blok. */
+  private lambda(): A.Lambda {
+    const awal = this.t.awal
+    const parameter: A.ParameterLambda[] = []
+    let berkurung = false
+    const parameterNama = (tok: Token, awalP: number, tipeNode?: A.NodeTipe): A.ParameterLambda => ({
+      id: this.nodeId(),
+      span: { awal: awalP, akhir: tok.akhir },
+      nama: tok.teks,
+      spanNama: { awal: tok.awal, akhir: tok.akhir },
+      tipeNode,
+    })
+    if (this.adalahIdent()) {
+      const tok = this.ambil()
+      parameter.push(parameterNama(tok, tok.awal))
+    } else {
+      berkurung = true
+      this.harap('(')
+      if (!this.adalah(')')) {
+        for (;;) {
+          const awalP = this.t.awal
+          if (this.adalahIdent() && (this.adalah(',', this.lihat(1)) || this.adalah(')', this.lihat(1)))) {
+            parameter.push(parameterNama(this.ambil(), awalP))
+          } else {
+            while (this.adalah('final') || this.adalah('@')) {
+              if (this.ambil().teks === '@') this.namaBertitik()
+            }
+            if (this.adalahIdent() && this.t.teks === 'var') this.belumDidukung({ awal: this.t.awal, akhir: this.t.akhir }, 'Kata kunci var')
+            const tipeNode = this.tipe()
+            parameter.push(parameterNama(this.harapIdent(), awalP, tipeNode))
+          }
+          if (!this.adalah(',')) break
+          this.ambil()
+        }
+      }
+      this.harap(')')
+    }
+    const panah = this.harap('->')
+    const badan = this.adalah('{') ? this.blok() : this.ekspresi()
+    return { id: this.nodeId(), span: this.spanDari(awal), jenis: 'Lambda', parameter, berkurung, posisiPanah: panah.awal, badan }
+  }
+
   private baru(): A.Ekspresi {
     const awal = this.ambil().awal
     const awalTipe = this.t.awal
@@ -1069,8 +1254,9 @@ class Parser {
     } else if (this.adalahIdent()) {
       const nama = this.namaBertitik()
       let argumen: A.NodeTipe[] | undefined
-      if (this.adalah('<')) argumen = this.argumenTipe()
-      dasar = { id: this.nodeId(), span: this.spanDari(awalTipe), jenis: 'TipeNama', nama, argumen }
+      const posisiSudut = this.t.awal
+      if (this.adalah('<')) argumen = this.argumenTipe(true)
+      dasar = { id: this.nodeId(), span: argumen ? { ...this.spanDari(awalTipe), fokus: posisiSudut } : this.spanDari(awalTipe), jenis: 'TipeNama', nama, argumen }
     } else {
       this.gagalDiharapkan('<identifier>')
     }
