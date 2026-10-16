@@ -128,8 +128,7 @@ function TabelPeta({ r, sorotan, instan }: { r: RingkasanPeta; sorotan: Sorotan;
           <th scope="col" className="pr-2 font-semibold">
             kunci
           </th>
-          <th aria-hidden="true" />
-          <th scope="col" className="pl-2 font-semibold">
+          <th scope="col" className="pl-8 font-semibold">
             nilai
           </th>
         </tr>
@@ -140,10 +139,10 @@ function TabelPeta({ r, sorotan, instan }: { r: RingkasanPeta; sorotan: Sorotan;
           return (
             <tr key={e.kunciReact}>
               <td className={cn('rounded-l-lg border-[1.5px] border-r-0 px-2.5 py-1 font-semibold whitespace-nowrap transition-colors duration-200', kelas)}>{e.teksKunci}</td>
-              <td aria-hidden="true" className={cn('border-y-[1.5px] px-1 text-muted-foreground transition-colors duration-200', kelas)}>
-                →
-              </td>
-              <td className={cn('rounded-r-lg border-[1.5px] border-l-0 px-2.5 py-1 whitespace-nowrap transition-colors duration-200', kelas)}>
+              <td className={cn('rounded-r-lg border-[1.5px] border-l-0 py-1 pr-2.5 whitespace-nowrap transition-colors duration-200', kelas)}>
+                <span aria-hidden="true" className="px-1 text-muted-foreground">
+                  →
+                </span>{' '}
                 <NilaiBerubah teks={e.teksNilai} instan={instan} />
               </td>
             </tr>

@@ -82,7 +82,7 @@ function SimpulPohonDiv({ s, px, py, w, h, instan }: { s: SimpulGambar; px: numb
         <span className="text-[14px] font-semibold">
           <NilaiBerubah teks={s.teks} instan={instan} />
         </span>
-        {s.teks2 !== undefined && <span className={cn('text-[11px]', s.warna ? 'text-white/85' : 'text-muted-foreground')}>{s.teks2}</span>}
+        {s.teks2 !== undefined && <span className={cn('text-[11px]', s.warna ? 'text-white' : 'text-muted-foreground')}>{s.teks2}</span>}
       </div>
       {s.catatan && <span className="absolute top-full left-1/2 mt-0.5 -translate-x-1/2 font-mono text-[10.5px] text-muted-foreground">{s.catatan}</span>}
     </motion.div>
