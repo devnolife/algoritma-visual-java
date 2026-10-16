@@ -50,6 +50,28 @@ for (const modul of semuaModul) {
   })
 }
 
+test.describe('Grafik pertumbuhan dan cek kompleksitas', () => {
+  test('berhenti dini mengubah seri data terurut dari O(n²) menjadi O(n), lalu cek kompleksitas lulus', async ({ page }) => {
+    await page.goto('/#/modul/modul-3-strategi/04-bubble-sort')
+    await page.getByRole('tab', { name: /Pertumbuhan/ }).click()
+    const seriTerurut = page.getByRole('tabpanel', { name: /Pertumbuhan/ }).locator('p', { hasText: 'data terurut' }).first()
+    await expect(seriTerurut).toContainText('O(n²)', { timeout: 10_000 })
+
+    const solusi = readFileSync(join(AKAR, 'modul-3-strategi', '04-bubble-sort', 'solusi', 'berhenti-dini.java'), 'utf8').replace(/\r\n/g, '\n')
+    await page.locator('.cm-content').click()
+    await page.keyboard.press('ControlOrMeta+a')
+    await page.keyboard.insertText(solusi)
+    // Grafik diukur ulang setelah kode diedit.
+    await expect(seriTerurut).not.toContainText('O(n²)', { timeout: 10_000 })
+    await expect(seriTerurut).toContainText('O(n)')
+
+    await page.getByRole('tab', { name: /Tantangan/ }).click()
+    const kartu = page.getByRole('region', { name: 'Berhenti dini' })
+    await kartu.getByRole('button', { name: 'Periksa' }).click()
+    await expect(kartu.getByText('Semua cek terpenuhi. Kerja bagus!')).toBeVisible({ timeout: 10_000 })
+  })
+})
+
 test.describe('Ketahanan visual terhadap edit', () => {
   test('variabel visual yang diganti nama: pesan jelas, array tetap terlihat di memori', async ({ page }) => {
     await page.goto('/#/modul/modul-1-dasar/11-array-1-dimensi')
