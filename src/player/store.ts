@@ -23,10 +23,14 @@ export interface StatePemutar {
   menyeret: boolean
   /** Nomor run berhasil (untuk indikator "dijalankan ulang"). */
   jumlahRun: number
+  /** Seed Math.random; undefined = seed bawaan mesin (hasil acak stabil saat kode diedit). */
+  seed: number | undefined
 
   muat: (sumber: string, stdin: string) => void
   setSumber: (sumber: string) => void
   setStdin: (stdin: string) => void
+  /** Ganti seed Math.random lalu jalankan ulang program. */
+  acakUlang: () => void
   mulaiJalan: () => void
   terimaHasil: (versi: number, h: HasilEngine) => void
   keLangkah: (i: number) => void
@@ -55,6 +59,7 @@ export const usePemutar = create<StatePemutar>((set, get) => ({
   kecepatan: 1,
   menyeret: false,
   jumlahRun: 0,
+  seed: undefined,
 
   muat: (sumber, stdin) =>
     set({
@@ -69,6 +74,7 @@ export const usePemutar = create<StatePemutar>((set, get) => ({
       langkah: 0,
       bermain: false,
       jumlahRun: 0,
+      seed: undefined,
     }),
   setSumber: (sumber) => {
     if (sumber === get().sumber) return
@@ -77,6 +83,11 @@ export const usePemutar = create<StatePemutar>((set, get) => ({
   setStdin: (stdin) => {
     if (stdin === get().stdin) return
     set({ stdin, versi: get().versi + 1, bermain: false })
+  },
+  acakUlang: () => {
+    let seed = Math.floor(Math.random() * 2 ** 31)
+    if (seed === get().seed) seed++
+    set({ seed, versi: get().versi + 1, bermain: false })
   },
   mulaiJalan: () => set({ sedangJalan: true }),
   terimaHasil: (versi, h) => {

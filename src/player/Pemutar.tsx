@@ -1,10 +1,11 @@
-import { AlertCircle, LoaderCircle, PencilLine, RotateCcw } from 'lucide-react'
+import { AlertCircle, Dices, LoaderCircle, PencilLine, RotateCcw } from 'lucide-react'
 import { useMemo } from 'react'
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { EditorJava } from '@/editor/EditorJava'
 import { cn } from '@/lib/utils'
 import { Panggung, VISUAL_BAWAAN, type KonfigVisual } from '@/viz/Panggung'
@@ -49,6 +50,7 @@ export function Pemutar({ kodeAwal, konfigVisual = VISUAL_BAWAAN, catatan, panta
   const sedangJalan = usePemutar((s) => s.sedangJalan)
   const menyeret = usePemutar((s) => s.menyeret)
   const penanda = usePemutar((s) => s.penanda)
+  const pakaiAcak = usePemutar((s) => s.konstruksi.includes('pustaka:Math.random'))
   const basi = traceBasi({ hasil, trace })
 
   const state = pembaca?.stateDi(langkah)
@@ -119,9 +121,22 @@ export function Pemutar({ kodeAwal, konfigVisual = VISUAL_BAWAAN, catatan, panta
             <PencilLine className="size-3" aria-hidden="true" />
             bisa diedit
           </span>
+          {pakaiAcak && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" className="ml-auto" onClick={() => usePemutar.getState().acakUlang()}>
+                  <Dices data-icon="inline-start" />
+                  Acak ulang
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-64 text-[12.5px] leading-snug">
+                Math.random() di simulator memakai benih tetap agar animasi tidak berubah setiap kali kode diedit. Klik untuk mencoba angka acak lain.
+              </TooltipContent>
+            </Tooltip>
+          )}
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="ml-auto" disabled={sumber === kodeAwal}>
+              <Button variant="ghost" size="sm" className={cn(!pakaiAcak && 'ml-auto')} disabled={sumber === kodeAwal}>
                 <RotateCcw data-icon="inline-start" />
                 Reset kode
               </Button>

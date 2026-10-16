@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { klienEngine } from '@/worker/klienEngine'
 import { usePemutar } from './store'
 
@@ -11,19 +11,24 @@ export function useJalankanOtomatis(batasLangkah?: number): void {
   const sumber = usePemutar((s) => s.sumber)
   const stdin = usePemutar((s) => s.stdin)
   const versi = usePemutar((s) => s.versi)
+  const seed = usePemutar((s) => s.seed)
+  const terakhir = useRef<{ sumber: string; stdin: string } | null>(null)
 
   useEffect(() => {
     if (!sumber) return
     const pertama = usePemutar.getState().trace === null && usePemutar.getState().hasil === null
+    // Jeda ketik hanya untuk perubahan kode/input; tombol (mis. Acak ulang) langsung menjalankan.
+    const sama = terakhir.current?.sumber === sumber && terakhir.current?.stdin === stdin
     const timer = setTimeout(
       () => {
+        terakhir.current = { sumber, stdin }
         usePemutar.getState().mulaiJalan()
-        void klienEngine.jalankan(sumber, { stdin, batasLangkah }).then((h) => usePemutar.getState().terimaHasil(versi, h))
+        void klienEngine.jalankan(sumber, { stdin, batasLangkah, seed }).then((h) => usePemutar.getState().terimaHasil(versi, h))
       },
-      pertama ? 0 : JEDA_KETIK_MS,
+      pertama || sama ? 0 : JEDA_KETIK_MS,
     )
     return () => clearTimeout(timer)
-  }, [sumber, stdin, versi, batasLangkah])
+  }, [sumber, stdin, versi, batasLangkah, seed])
 }
 
 /** Maju otomatis saat mode putar aktif. */

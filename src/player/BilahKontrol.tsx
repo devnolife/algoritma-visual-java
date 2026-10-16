@@ -123,6 +123,12 @@ export function BilahKontrol({ pantau = [] }: { pantau?: string[] }) {
             {pantau.join(', ')} berubah
           </span>
         )}
+        {trace && trace.status !== 'selesai' && trace.status !== 'keluar' && (
+          <span className="flex items-center gap-1.5">
+            <span className="h-3 w-[3px] rounded-full bg-galat" />
+            {trace.status === 'exception' ? 'exception' : 'dihentikan'}
+          </span>
+        )}
       </div>
 
       <div className="relative flex min-w-[120px] shrink-0 flex-col items-end justify-center whitespace-nowrap">

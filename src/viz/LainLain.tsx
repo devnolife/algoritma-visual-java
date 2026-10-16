@@ -3,7 +3,7 @@ import { Fragment } from 'react'
 import { tahapEvaluasi } from '@/engine/narasi'
 import type { Langkah, StateMesin } from '@/engine'
 import { cn } from '@/lib/utils'
-import { cariVariabel, EASE_KELUAR } from './bersama'
+import { cariVariabel, EASE_KELUAR, PesanVariabel } from './bersama'
 
 const LABEL_KONTEKS: Record<string, string> = {
   if: 'Kondisi if',
@@ -141,12 +141,14 @@ export interface KonfigString {
 }
 
 /** Karakter String sebagai sel berindeks. */
-export function StringView({ state, konfig }: { state: StateMesin; konfig: KonfigString }) {
+export function StringView({ state, konfig, adaDiKode = true, adaMemori = true }: { state: StateMesin; konfig: KonfigString; adaDiKode?: boolean; adaMemori?: boolean }) {
   const hasil = cariVariabel(state, konfig.variabel)
-  if (!hasil || hasil.v.tipe !== 'String' || typeof hasil.v.nilai !== 'number') {
+  if (!hasil) return <PesanVariabel nama={konfig.variabel} adaDiKode={adaDiKode} adaMemori={adaMemori} />
+  if (hasil.v.tipe !== 'String' || typeof hasil.v.nilai !== 'number') {
     return (
       <p className="rounded-lg border border-dashed px-3 py-2 text-[13px] text-muted-foreground">
-        String <code className="kode-sebaris">{konfig.variabel}</code> belum ada pada langkah ini.
+        <code className="kode-sebaris">{konfig.variabel}</code>{' '}
+        {hasil.v.tipe !== 'String' ? `bertipe ${hasil.v.tipe}, bukan String.` : hasil.v.nilai === null ? 'bernilai null (belum menunjuk String apa pun).' : 'belum diisi.'}
       </p>
     )
   }

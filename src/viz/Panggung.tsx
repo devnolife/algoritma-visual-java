@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import type { Langkah, StateMesin, Trace } from '@/engine'
 import { cn } from '@/lib/utils'
 import { Array2DView, ArrayView, idArrayDari, type KonfigArray, type KonfigArray2D } from './ArrayView'
-import { hitungSorotan } from './bersama'
+import { hitungSorotan, namaVariabelDiTrace } from './bersama'
 import { Evaluasi, InputView, Konsol, StringView, type KonfigString } from './LainLain'
 import { Memori, objekTerjangkau } from './Memori'
 import { WadahPanah, type Panah } from './panah'
@@ -31,6 +31,7 @@ export interface PropsPanggung {
 export function Panggung({ trace, state, indeks, output, stdin, konfig, instan }: PropsPanggung) {
   const langkah: Langkah | undefined = trace.langkah[indeks]
   const sorotan = useMemo(() => hitungSorotan(langkah), [langkah])
+  const namaDiKode = useMemo(() => namaVariabelDiTrace(trace), [trace])
 
   // Objek heap yang sudah digambar oleh renderer array (tidak digambar lagi di kolom Heap).
   const sudahTampil = new Set<number>()
@@ -67,11 +68,11 @@ export function Panggung({ trace, state, indeks, output, stdin, konfig, instan }
       {konfig.map((k, i) => {
         switch (k.jenis) {
           case 'array':
-            return <ArrayView key={i} state={state} sorotan={sorotan} instan={instan} konfig={k} />
+            return <ArrayView key={i} state={state} sorotan={sorotan} instan={instan} konfig={k} adaDiKode={namaDiKode.has(k.variabel)} adaMemori={adaMemori} />
           case 'array2d':
-            return <Array2DView key={i} state={state} sorotan={sorotan} instan={instan} konfig={k} />
+            return <Array2DView key={i} state={state} sorotan={sorotan} instan={instan} konfig={k} adaDiKode={namaDiKode.has(k.variabel)} adaMemori={adaMemori} />
           case 'string':
-            return <StringView key={i} state={state} konfig={k} />
+            return <StringView key={i} state={state} konfig={k} adaDiKode={namaDiKode.has(k.variabel)} adaMemori={adaMemori} />
           case 'evaluasi':
             return <Evaluasi key={i} langkah={langkah} instan={instan} />
           case 'konsol':

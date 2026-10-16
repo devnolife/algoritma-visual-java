@@ -1,7 +1,36 @@
 import { AnimatePresence, motion } from 'motion/react'
-import type { Langkah, StateMesin } from '@/engine'
+import type { Langkah, StateMesin, Trace } from '@/engine'
 
 export const EASE_KELUAR = [0.23, 1, 0.32, 1] as const
+
+/** Semua nama variabel (lokal, parameter, static) yang pernah ada selama program berjalan. */
+export function namaVariabelDiTrace(trace: Trace): Set<string> {
+  const nama = new Set<string>()
+  for (const l of trace.langkah) {
+    for (const p of l.peristiwa) {
+      if (p.k === 'deklarasi' || p.k === 'deklarasi-statik') nama.add(p.nama)
+      else if (p.k === 'panggil') for (const v of p.frame.vars) nama.add(v.nama)
+    }
+  }
+  return nama
+}
+
+/**
+ * Pesan saat variabel yang dirujuk sebuah visual tidak tersedia: belum dideklarasikan pada langkah ini,
+ * atau sama sekali tidak ada di kode (mis. namanya diubah mahasiswa).
+ */
+export function PesanVariabel({ nama, adaDiKode, adaMemori }: { nama: string; adaDiKode: boolean; adaMemori: boolean }) {
+  return (
+    <p className="rounded-lg border border-dashed px-3 py-2 text-[13px] text-muted-foreground">
+      Variabel <code className="kode-sebaris">{nama}</code>{' '}
+      {adaDiKode ? (
+        'belum ada pada langkah ini.'
+      ) : (
+        <>tidak ditemukan di kodemu, mungkin namanya sudah diubah.{adaMemori && ' Isi variabel lain tetap terlihat di panel memori di bawah.'}</>
+      )}
+    </p>
+  )
+}
 
 /** Sorotan yang diturunkan dari peristiwa sebuah langkah. */
 export interface Sorotan {

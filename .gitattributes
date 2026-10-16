@@ -1,0 +1,6 @@
+# Simpan semua berkas teks dengan akhir baris LF (korpus Java, materi, dan kode sama di Windows/Linux/CI).
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff2 binary

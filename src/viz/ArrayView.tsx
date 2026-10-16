@@ -1,6 +1,6 @@
 import { tampilNilai, type StateMesin } from '@/engine'
 import { cn } from '@/lib/utils'
-import { cariVariabel, kelasSorotan, NilaiBerubah, type Sorotan } from './bersama'
+import { cariVariabel, kelasSorotan, NilaiBerubah, PesanVariabel, type Sorotan } from './bersama'
 import { BadgeTipe } from './Memori'
 import { useJangkar } from './panah'
 
@@ -22,11 +22,25 @@ export function idArrayDari(state: StateMesin, variabel: string): number | null 
   return hasil.v.nilai === undefined ? undefined : (hasil.v.nilai as number | null)
 }
 
-export function ArrayView({ state, sorotan, instan, konfig }: { state: StateMesin; sorotan: Sorotan; instan: boolean; konfig: KonfigArray }) {
+export function ArrayView({
+  state,
+  sorotan,
+  instan,
+  konfig,
+  adaDiKode = true,
+  adaMemori = true,
+}: {
+  state: StateMesin
+  sorotan: Sorotan
+  instan: boolean
+  konfig: KonfigArray
+  adaDiKode?: boolean
+  adaMemori?: boolean
+}) {
   const hasil = cariVariabel(state, konfig.variabel)
   const id = idArrayDari(state, konfig.variabel)
   const jangkar = useJangkar(typeof id === 'number' ? `heap:${id}` : `heap:kosong:${konfig.variabel}`)
-  if (!hasil) return <Kosong teks={<>Variabel <code className="kode-sebaris">{konfig.variabel}</code> belum ada pada langkah ini.</>} />
+  if (!hasil) return <PesanVariabel nama={konfig.variabel} adaDiKode={adaDiKode} adaMemori={adaMemori} />
   if (!hasil.v.tipe.endsWith('[]')) return <Kosong teks={<>Variabel <code className="kode-sebaris">{konfig.variabel}</code> bukan array.</>} />
   if (id === undefined) return <Kosong teks={<><code className="kode-sebaris">{konfig.variabel}</code> belum diisi.</>} />
   if (id === null) return <Kosong teks={<><code className="kode-sebaris">{konfig.variabel} = null</code> (belum menunjuk array apa pun)</>} />
@@ -140,11 +154,25 @@ export interface KonfigArray2D {
   kolom?: string
 }
 
-export function Array2DView({ state, sorotan, instan, konfig }: { state: StateMesin; sorotan: Sorotan; instan: boolean; konfig: KonfigArray2D }) {
+export function Array2DView({
+  state,
+  sorotan,
+  instan,
+  konfig,
+  adaDiKode = true,
+  adaMemori = true,
+}: {
+  state: StateMesin
+  sorotan: Sorotan
+  instan: boolean
+  konfig: KonfigArray2D
+  adaDiKode?: boolean
+  adaMemori?: boolean
+}) {
   const hasil = cariVariabel(state, konfig.variabel)
   const id = idArrayDari(state, konfig.variabel)
   const jangkar = useJangkar(typeof id === 'number' ? `heap:${id}` : `heap:kosong:${konfig.variabel}`)
-  if (!hasil) return <Kosong teks={<>Variabel <code className="kode-sebaris">{konfig.variabel}</code> belum ada pada langkah ini.</>} />
+  if (!hasil) return <PesanVariabel nama={konfig.variabel} adaDiKode={adaDiKode} adaMemori={adaMemori} />
   if (id === undefined || id === null) return <Kosong teks={<><code className="kode-sebaris">{konfig.variabel}</code> belum menunjuk array.</>} />
   const luar = state.heap[id]
   if (!luar || luar.k !== 'array') return null
