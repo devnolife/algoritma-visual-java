@@ -8,13 +8,13 @@ export function Kepala({ children }: { children?: ReactNode }) {
   const tema = useTema((s) => s.tema)
   const alih = useTema((s) => s.alih)
   return (
-    <header className="flex h-[52px] shrink-0 items-center gap-6 border-b bg-card px-5">
-      <Link to="/" className="flex items-center gap-2.5 rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/40">
+    <header className="flex h-[52px] shrink-0 items-center gap-6 border-b bg-card px-4 sm:px-5">
+      <Link to="/" className="flex shrink-0 items-center gap-2.5 rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/40">
         <span className="grid size-7 place-items-center rounded-md bg-foreground font-mono text-[12px] font-bold text-background" aria-hidden="true">
           {'{ }'}
         </span>
-        <span className="font-heading text-[17px] font-semibold tracking-tight">Algoritma &amp; Pemrograman</span>
-        <span className="text-[14px] text-muted-foreground">· Java</span>
+        <span className="whitespace-nowrap font-heading text-[17px] font-bold tracking-tight">Algoritma &amp; Pemrograman</span>
+        <span className="hidden text-[14px] text-muted-foreground sm:inline">· Java</span>
       </Link>
       {children && (
         <nav aria-label="Lokasi" className="flex min-w-0 items-center gap-2 text-[14px] text-muted-foreground">
@@ -25,7 +25,7 @@ export function Kepala({ children }: { children?: ReactNode }) {
         <Button variant="outline" size="sm" asChild>
           <Link to="/ruang-coba">
             <FlaskConical data-icon="inline-start" />
-            Ruang Coba
+            <span className="sr-only sm:not-sr-only">Ruang Coba</span>
           </Link>
         </Button>
         <Button variant="ghost" size="icon" onClick={alih} aria-label={tema === 'terang' ? 'Pakai tema gelap' : 'Pakai tema terang'}>

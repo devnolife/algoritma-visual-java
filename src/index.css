@@ -1,15 +1,17 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
-@import '@fontsource-variable/fraunces/opsz.css';
 @import '@fontsource-variable/atkinson-hyperlegible-next';
+@import '@fontsource-variable/atkinson-hyperlegible-next/wght-italic.css';
 @import '@fontsource-variable/jetbrains-mono';
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* Satu keluarga huruf untuk judul dan isi: Atkinson Hyperlegible dirancang agar huruf mirip (I l 1, O 0) mudah dibedakan,
+     termasuk saat diproyeksikan di kelas. Hierarki dibangun dari tebal dan ukuran, bukan pergantian keluarga huruf. */
   --font-sans: 'Atkinson Hyperlegible Next Variable', ui-sans-serif, system-ui, sans-serif;
-  --font-heading: 'Fraunces Variable', ui-serif, Georgia, serif;
+  --font-heading: 'Atkinson Hyperlegible Next Variable', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, 'Cascadia Code', Consolas, monospace;
 
   --color-background: var(--background);
@@ -173,8 +175,9 @@
   h2,
   h3 {
     @apply font-heading;
-    font-variation-settings: 'opsz' 48;
-    letter-spacing: -0.01em;
+    font-weight: 700;
+    letter-spacing: -0.012em;
+    text-wrap: balance;
   }
   code,
   kbd,
@@ -280,6 +283,19 @@
   /* Gerakan dihapus, perubahan warna/opacity tetap dipertahankan. */
   .gerak {
     transform: none !important;
+  }
+}
+
+/* Masuknya isi hero di Beranda: naik sedikit sambil muncul, berurutan lewat animation-delay. */
+@keyframes muncul {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .muncul {
+    animation: muncul 620ms cubic-bezier(0.23, 1, 0.32, 1) both;
   }
 }
 

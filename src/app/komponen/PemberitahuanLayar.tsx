@@ -1,11 +1,16 @@
 import { Laptop } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router'
 import { Button } from '@/components/ui/button'
 
 const LEBAR_MINIMUM = 1100
 
-/** Aplikasi dirancang untuk laptop/desktop; beri tahu bila layarnya terlalu sempit. */
+/** Halaman yang menampilkan editor, visualisasi, dan slider berdampingan. Beranda dan daftar modul tetap nyaman di ponsel. */
+const BUTUH_LAYAR_LEBAR = /^\/(ruang-coba|modul\/[^/]+\/[^/]+)\/?$/
+
+/** Pemutar dirancang untuk laptop/desktop; beri tahu bila layarnya terlalu sempit. */
 export function PemberitahuanLayar() {
+  const { pathname } = useLocation()
   const [sempit, setSempit] = useState(() => window.innerWidth < LEBAR_MINIMUM)
   const [abaikan, setAbaikan] = useState(false)
   useEffect(() => {
@@ -14,7 +19,7 @@ export function PemberitahuanLayar() {
     mq.addEventListener('change', ubah)
     return () => mq.removeEventListener('change', ubah)
   }, [])
-  if (!sempit || abaikan) return null
+  if (!sempit || abaikan || !BUTUH_LAYAR_LEBAR.test(pathname)) return null
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-background/95 p-6" role="alertdialog" aria-labelledby="judul-layar" aria-describedby="isi-layar">
       <div className="flex max-w-sm flex-col items-center gap-3 text-center">

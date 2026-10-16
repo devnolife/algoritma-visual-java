@@ -139,9 +139,11 @@ export function ArrayView({
                   <span className={cn('mb-1 font-mono font-semibold whitespace-nowrap', teks.length > 5 ? 'text-[10.5px]' : 'text-[12px]')}>
                     <NilaiBerubah teks={teks} instan={instan} />
                   </span>
+                  {/* Tinggi batang = scaleY (ukuran, bukan gerakan), jadi tidak memakai kelas `gerak` yang mematikan transform
+                      saat prefers-reduced-motion; yang dimatikan hanya animasinya. */}
                   <div
                     className={cn(
-                      'gerak w-[72%] origin-bottom rounded-t-md border-[1.5px] border-b-0 transition-[transform,background-color,border-color] duration-200',
+                      'w-[72%] origin-bottom rounded-t-md border-[1.5px] border-b-0 transition-[transform,background-color,border-color] duration-200 motion-reduce:transition-[background-color,border-color]',
                       kelasSorotan(sorotan, kunci, true),
                     )}
                     style={{ height: '88px', transform: `scaleY(${Math.max(0.04, Math.abs(angka[i]) / maks)})`, transitionTimingFunction: 'cubic-bezier(0.77, 0, 0.175, 1)' }}

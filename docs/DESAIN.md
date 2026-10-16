@@ -18,7 +18,7 @@ Mahasiswa pemula sulit membayangkan apa yang terjadi di memori saat program Java
 
 | Topik | Keputusan |
 |---|---|
-| Bentuk aplikasi | Web app khusus laptop/desktop (target 1280×720; lebar < 1100 px menampilkan pemberitahuan) |
+| Bentuk aplikasi | Pemutar dan Ruang Coba khusus laptop/desktop (target 1280×720; lebar < 1100 px menampilkan pemberitahuan). Beranda dan daftar modul responsif sampai ponsel |
 | Bahasa yang diajarkan | Java (subset, semantik Java 21) |
 | Edit kode | Bebas penuh; dijalankan ulang otomatis 400 ms setelah berhenti mengetik |
 | Interaksi "geser" | Opsi **C**: slider langkah, kode selalu tampil, baris aktif tersorot |
@@ -30,6 +30,7 @@ Mahasiswa pemula sulit membayangkan apa yang terjadi di memori saat program Java
 | Penulisan materi | Dosen menulis file Markdown + Java + YAML di `content/` |
 | Animasi | Motion (motion.dev) + SVG/HTML; tanpa GSAP |
 | Tema | Terang sebagai bawaan (ramah proyektor) + mode gelap |
+| Tipografi | Satu keluarga huruf, Atkinson Hyperlegible Next, untuk judul dan isi. Huruf yang mirip (I l 1, O 0) mudah dibedakan, juga saat diproyeksikan. Hierarki dibangun dari tebal dan ukuran. Kode memakai JetBrains Mono tanpa ligatur |
 | Nama aplikasi | Sementara: "Algoritma & Pemrograman · Java" (bisa diganti) |
 
 ## 3. Temuan pencarian skill
@@ -192,6 +193,16 @@ Pesan berlabel `[Simulator]` bila bukan perilaku Java.
 - `klienEngine.jalankan(sumber, opsi)` → Promise. Setiap run diberi id sehingga hasil yang sudah basi diabaikan; ada timeout + respawn.
 
 ## 6. Pemutar pelajaran (lihat `docs/mockup-pemutar.html`)
+
+### Beranda dan daftar modul
+- **Hero:**
+  - Visualnya adalah demo yang benar-benar berjalan, bukan ilustrasi atau tangkapan layar tiruan. Program bubble sort dijalankan mesin Java Mini di Web Worker, lalu digambar dengan `ArrayView`, narasi, dan slider yang sama dengan pemutar.
+  - Tombol "Hapus baris 9" menjalankan ulang program tanpa baris pertukaran, sehingga pengunjung langsung melihat bahwa mengubah kode mengubah animasinya.
+  - Putar otomatis hanya berjalan saat demo terlihat. Dengan `prefers-reduced-motion`, demo diam di perbandingan pertama.
+- **Peta belajar:** modul tersedia, modul yang segera hadir, dan enam judul pelajaran pertama sebagai gambaran isi.
+- **Contoh error:** kode dengan kesalahan tipe dikompilasi mesin, lalu ditampilkan dengan panel Masalah milik pemutar (`DaftarMasalah`).
+- **Pemuatan:** demo dan contoh error dimuat terpisah (lazy) dengan kerangka berukuran sama, agar teks hero tampil lebih dulu tanpa pergeseran layout.
+- **Layar sempit:** semua bagian melipat menjadi satu kolom di bawah 1024 px. Pemberitahuan layar sempit hanya muncul di pemutar dan Ruang Coba.
 
 ### Tata letak
 - **Header:** identitas aplikasi, breadcrumb, posisi pelajaran, tautan Ruang Coba, tombol tema.
