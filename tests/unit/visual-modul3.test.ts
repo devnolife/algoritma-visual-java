@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { jalankan, kompilasi } from '@/engine'
-import { sisiDariMatriks } from '@/viz/Graf'
-import { bangunPohonPanggilan } from '@/viz/PohonPanggilan'
+import { sisiDariMatriks } from '@/viz/dataGraf'
+import { bangunPohonPanggilan } from '@/viz/dataPohon'
 
 function trace(kode: string) {
   const k = kompilasi(kode)

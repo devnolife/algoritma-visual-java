@@ -54,7 +54,7 @@ test.describe('Ketahanan visual terhadap edit', () => {
   test('variabel visual yang diganti nama: pesan jelas, array tetap terlihat di memori', async ({ page }) => {
     await page.goto('/#/modul/modul-1-dasar/11-array-1-dimensi')
     await expect(slider(page)).toHaveAttribute('aria-valuemax', '19')
-    const kode = readFileSync(`${DIR_MODUL}/11-array-1-dimensi/Main.java`, 'utf8').replace(/\r\n/g, '\n').replaceAll('nilai', 'angka')
+    const kode = readFileSync(join(AKAR, 'modul-1-dasar', '11-array-1-dimensi', 'Main.java'), 'utf8').replace(/\r\n/g, '\n').replaceAll('nilai', 'angka')
     await page.locator('.cm-content').click()
     await page.keyboard.press('ControlOrMeta+a')
     await page.keyboard.insertText(kode)

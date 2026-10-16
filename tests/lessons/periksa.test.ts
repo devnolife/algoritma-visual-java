@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { KonfigPertumbuhan } from '@/engine/pertumbuhan'
 import { periksaTantangan, rapikanOutput } from '@/lessons/tantangan/periksa'
 import { pengukurLangsung, penjalanLangsung } from '@/lessons/tantangan/penjalanLangsung'
 import type { Tantangan } from '@/lessons/skema'
@@ -143,7 +144,7 @@ describe('periksaTantangan', () => {
 })
 
 describe('cek kompleksitas', () => {
-  const konfig = {
+  const konfig: KonfigPertumbuhan = {
     variabel: 'n',
     nilai: [8, 16, 32, 64, 128],
     ukur: 'perbandingan',
