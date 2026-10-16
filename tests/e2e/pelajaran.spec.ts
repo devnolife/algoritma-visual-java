@@ -1,41 +1,54 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 
-const DIR_MODUL = 'content/modul-1-dasar'
-const pelajaran = readdirSync(DIR_MODUL)
-  .filter((d) => statSync(join(DIR_MODUL, d)).isDirectory())
+const AKAR = 'content'
+const semuaModul = readdirSync(AKAR)
+  .filter((m) => existsSync(join(AKAR, m, 'modul.yaml')))
   .sort()
+const pelajaranDari = (modul: string) =>
+  readdirSync(join(AKAR, modul))
+    .filter((d) => statSync(join(AKAR, modul, d)).isDirectory())
+    .sort()
 
 const slider = (page: Page) => page.getByRole('slider', { name: 'Langkah' })
 
-test.describe('Semua pelajaran Modul 1', () => {
-  for (const slug of pelajaran) {
-    test(`${slug}: termuat, program berjalan, tanpa error di konsol`, async ({ page }) => {
-      const galat: string[] = []
-      page.on('console', (m) => m.type() === 'error' && galat.push(m.text()))
-      page.on('pageerror', (e) => galat.push(e.message))
+for (const modul of semuaModul) {
+  test.describe(`Semua pelajaran ${modul}`, () => {
+    for (const slug of pelajaranDari(modul)) {
+      test(`${slug}: termuat, program berjalan, tanpa error di konsol`, async ({ page }) => {
+        const galat: string[] = []
+        page.on('console', (m) => m.type() === 'error' && galat.push(m.text()))
+        page.on('pageerror', (e) => galat.push(e.message))
 
-      await page.goto(`/#/modul/modul-1-dasar/${slug}`)
-      const judul = /^judul:\s*(.+)$/m.exec(readFileSync(join(DIR_MODUL, slug, 'pelajaran.md'), 'utf8'))![1].replace(/^"|"$/g, '')
-      await expect(page.getByRole('heading', { level: 1 })).toHaveText(judul)
-      // Program berjalan: slider punya lebih dari satu langkah dan tidak ada pesan "belum bisa dijalankan".
-      await expect(slider(page)).not.toHaveAttribute('aria-valuemax', '0')
-      await expect(page.getByText('Kode belum bisa dijalankan')).toHaveCount(0)
+        await page.goto(`/#/modul/${modul}/${slug}`)
+        const md = readFileSync(join(AKAR, modul, slug, 'pelajaran.md'), 'utf8')
+        const judul = /^judul:\s*(.+)$/m.exec(md)![1].replace(/^"|"$/g, '')
+        await expect(page.getByRole('heading', { level: 1 })).toHaveText(judul)
+        // Program berjalan: slider punya lebih dari satu langkah dan tidak ada pesan "belum bisa dijalankan".
+        await expect(slider(page)).not.toHaveAttribute('aria-valuemax', '0')
+        await expect(page.getByText('Kode belum bisa dijalankan')).toHaveCount(0)
 
-      // Melompat ke akhir lalu kembali ke awal tidak menimbulkan error render.
-      await page.getByRole('button', { name: 'Ke langkah terakhir' }).click()
-      await expect(page.getByRole('region', { name: /^Penjelasan langkah/ })).toBeVisible()
-      await page.getByRole('button', { name: 'Ke langkah pertama' }).click()
-      await expect(page.getByRole('region', { name: /^Penjelasan langkah/ })).toContainText('Program dimulai')
+        // Melompat ke akhir lalu kembali ke awal tidak menimbulkan error render.
+        await page.getByRole('button', { name: 'Ke langkah terakhir' }).click()
+        await expect(page.getByRole('region', { name: /^Penjelasan langkah/ })).toBeVisible()
+        await page.getByRole('button', { name: 'Ke langkah pertama' }).click()
+        await expect(page.getByRole('region', { name: /^Penjelasan langkah/ })).toContainText('Program dimulai')
 
-      // Tab tantangan berisi kartu tantangan.
-      await page.getByRole('tab', { name: /Tantangan/ }).click()
-      await expect(page.getByRole('button', { name: 'Periksa' }).first()).toBeVisible()
-      expect(galat).toEqual([])
-    })
-  }
-})
+        // Grafik pertumbuhan (bila ada) berhasil diukur.
+        if (/^pertumbuhan:/m.test(md)) {
+          await page.getByRole('tab', { name: /Pertumbuhan/ }).click()
+          await expect(page.getByRole('img', { name: /Pola ini paling mirip/ }).first()).toBeVisible({ timeout: 10_000 })
+        }
+
+        // Tab tantangan berisi kartu tantangan.
+        await page.getByRole('tab', { name: /Tantangan/ }).click()
+        await expect(page.getByRole('button', { name: 'Periksa' }).first()).toBeVisible()
+        expect(galat).toEqual([])
+      })
+    }
+  })
+}
 
 test.describe('Ketahanan visual terhadap edit', () => {
   test('variabel visual yang diganti nama: pesan jelas, array tetap terlihat di memori', async ({ page }) => {

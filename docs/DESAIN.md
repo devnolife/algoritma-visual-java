@@ -234,6 +234,12 @@ Renderer dipilih lewat `visual:` di frontmatter. Jika variabel yang dirujuk tida
 | `konsol` | Output besar di panggung; pola terbentuk per langkah | 1, 10 |
 | `input` | Buffer stdin; bagian yang sudah dibaca Scanner ditandai | 5 |
 | `string` | Karakter sebagai sel berindeks; mode String sebagai objek di heap (untuk `==` vs `equals`) | 15 |
+| `array` + `rentang` | Elemen di luar `kiri..kanan` dipudarkan; variabel rentang dibaca dari frame teratas (ikut rekursi) | Modul 3: pencarian biner, merge sort, quick sort |
+| `pohonPanggilan` | Pohon semua pemanggilan sampai langkah ini dengan nilai kembali; panggilan aktif disorot, panggilan berulang (argumen sama) bergaris putus-putus | Modul 3: D&C, sorting rekursif, DP, backtracking |
+| `array2d` gaya `tabel`/`papan` | Tabel DP berlabel dengan panah dari sel yang dibaca ke sel yang ditulis; papan catur untuk N-Queens | Modul 3: knapsack, LCS, N-Queens |
+| `graf` | Graf dari matriks ketetanggaan: bobot, simpul dikunjungi, label jarak, simpul aktif/tetangga dan sisi yang diperiksa | Modul 3: BFS/DFS, Dijkstra |
+
+**Grafik pertumbuhan** (tab Pertumbuhan, Modul 3): program dijalankan ulang di worker terpisah untuk beberapa ukuran n (opsi mesin `ganti` + `modeHitung`, tanpa rekaman langkah). Nilai yang diukur (`langkah`, `method:<nama>`, atau variabel penghitung) digambar terhadap n bersama kurva acuan yang diskalakan. Kelas kompleksitas dipilih dari kemiringan log-log pada dua interval terbesar, dan grafik diperbarui setiap kali kode diedit.
 
 **Aturan animasi** (mengikuti skill `animate`/`emil-design-eng`, ditinjau dengan `review-animations`):
 - **Properti & waktu:** hanya `transform`/`opacity`; durasi 180–320 ms pada 1× (ikut skala kecepatan); `ease-out` untuk masuk/keluar, `ease-in-out` untuk perpindahan; tidak ada `scale(0)` (mulai dari 0.96 + opacity 0).
@@ -282,7 +288,8 @@ Kita hanya mengganti maks bila menemukan nilai yang lebih besar.
   - `output` (persis, per input uji), `outputMemuat`, `outputPola` (regex);
   - `variabel` (nilai akhir di `main`, opsional dengan tipe), `arrayTerurut` (naik/turun);
   - `harusMemakai` / `dilarangMemakai`: `for`, `while`, `do-while`, `for-each`, `if`, `switch`, `ternary`, `casting`, `array`, `break`, `continue`, `rekursi`, `scanner`, `method:<nama>`, `pustaka:<Kelas.method>` (mis. `pustaka:Math.random`, `pustaka:String.charAt`);
-  - `tanpaError`, `maksLangkah`.
+  - `tanpaError`, `maksLangkah`;
+  - `kompleksitas`: kelas pertumbuhan terukur tidak lebih buruk dari `maks` (memakai konfigurasi `pertumbuhan` pelajaran bila tidak ditulis ulang; `seri` opsional).
 - **Hasil cek:** ditampilkan per butir (✔/✘ + pesan Indonesia); petunjuk dibuka bertahap; status lulus disimpan di localStorage.
 - **Folder `solusi/`:** hanya dibaca oleh validator, tidak ikut ter-bundle.
 - **`pnpm cek-konten` memastikan:**
