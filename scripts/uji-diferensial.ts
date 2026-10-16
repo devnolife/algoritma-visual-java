@@ -1,20 +1,43 @@
 /**
- * Uji diferensial: bandingkan mesin Java Mini dengan JDK asli. `pnpm uji:diferensial [filter]`
+ * Uji diferensial: bandingkan mesin Java Mini dengan JDK asli. `pnpm uji:diferensial [filter] [--opsi]`
  * - tests/korpus/*.java (+ .in): stdout, stderr (exception + stack trace), dan kode keluar harus identik.
  * - tests/korpus-error/*.java: baris dan teks error pertama harus sama dengan javac (kolom dilaporkan bila beda).
  * Hasil JDK disimpan di node_modules/.cache/uji-diferensial agar run berikutnya cepat.
+ *
+ * `--hanya-jdk`: hanya memproses korpus calon fase berikutnya (tests/korpus-fase2 dan tests/korpus-error-fase2)
+ * dengan JDK saja, tanpa mesin, lalu menampilkan cuplikan hasilnya untuk diperiksa mata.
+ * `--ulang` (bersama `--hanya-jdk`): jalankan tiap program dua kali lagi tanpa cache dan laporkan keluaran yang berubah.
  */
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { jalankan, kompilasi } from '@/engine'
+import type * as Mesin from '@/engine'
 
 const VERSI_CACHE = 'v2'
 const CACHE = join('node_modules', '.cache', 'uji-diferensial')
 const PARALEL = 6
-const filter = process.argv[2] ?? ''
+
+const OPSI = ['--hanya-jdk', '--ulang']
+// Pemisah `--` (pnpm 10 membuangnya sendiri, pemanggil lain bisa meneruskannya) bukan opsi; abaikan.
+const argumen = process.argv.slice(2).filter((a) => a !== '--')
+const bendera = argumen.filter((a) => a.startsWith('--'))
+const filter = argumen.find((a) => !a.startsWith('--')) ?? ''
+const opsiAsing = bendera.filter((b) => !OPSI.includes(b))
+if (opsiAsing.length > 0) {
+  console.error(`Opsi tidak dikenal: ${opsiAsing.join(', ')}. Opsi yang tersedia: ${OPSI.join(', ')}.`)
+  process.exit(2)
+}
+const hanyaJdk = bendera.includes('--hanya-jdk')
+const ulang = bendera.includes('--ulang')
+if (ulang && !hanyaJdk) {
+  console.error('Opsi --ulang hanya berlaku bersama --hanya-jdk.')
+  process.exit(2)
+}
+
+/** Dimuat dinamis agar mode `--hanya-jdk` tetap berjalan walau mesin sedang diubah atau rusak. */
+let modulMesin: typeof Mesin
 
 const warna = (kode: number) => (s: string) => (process.stdout.isTTY ? `\x1b[${kode}m${s}\x1b[0m` : s)
 const merah = warna(31)
@@ -74,18 +97,25 @@ const tanpaFrameJdk = (s: string) =>
     .filter((b) => !/^\tat java\.base\//.test(b))
     .join('\n')
 
-async function jdkJalan(sumber: string, input: string): Promise<HasilProses & { galatKompilasi?: string }> {
+type HasilJdk = HasilProses & { galatKompilasi?: string }
+
+/** Kompilasi sekali lalu jalankan `kali` kali, selalu tanpa cache. */
+async function jdkJalanLangsung(kunci: string, sumber: string, input: string, kali: number): Promise<HasilJdk[]> {
+  const dir = await siapkanDir(kunci, sumber)
+  try {
+    const c = await proses('javac', JAVAC, { cwd: dir })
+    if (c.kode !== 0) return [{ stdout: '', stderr: '', kode: null, galatKompilasi: c.stderr }]
+    const hasil: HasilJdk[] = []
+    for (let i = 0; i < kali; i++) hasil.push(await proses('java', JAVA, { cwd: dir, stdin: input }))
+    return hasil
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+}
+
+async function jdkJalan(sumber: string, input: string): Promise<HasilJdk> {
   const kunci = hash(VERSI_CACHE, 'jalan', sumber, input)
-  return denganCache(kunci, async () => {
-    const dir = await siapkanDir(kunci, sumber)
-    try {
-      const c = await proses('javac', JAVAC, { cwd: dir })
-      if (c.kode !== 0) return { stdout: '', stderr: '', kode: null, galatKompilasi: c.stderr }
-      return await proses('java', JAVA, { cwd: dir, stdin: input })
-    } finally {
-      rmSync(dir, { recursive: true, force: true })
-    }
-  })
+  return denganCache(kunci, async () => (await jdkJalanLangsung(kunci, sumber, input, 1))[0])
 }
 
 interface ErrorPertama {
@@ -96,9 +126,10 @@ interface ErrorPertama {
   detail: string[]
 }
 
-async function jdkError(sumber: string): Promise<ErrorPertama | null> {
+/** Keluaran stderr javac apa adanya (dari cache bila ada). */
+async function javacStderr(sumber: string): Promise<string> {
   const kunci = hash(VERSI_CACHE, 'error', sumber)
-  const keluaran = await denganCache(kunci, async () => {
+  return denganCache(kunci, async () => {
     const dir = await siapkanDir(kunci, sumber)
     try {
       return (await proses('javac', JAVAC, { cwd: dir })).stderr
@@ -106,6 +137,9 @@ async function jdkError(sumber: string): Promise<ErrorPertama | null> {
       rmSync(dir, { recursive: true, force: true })
     }
   })
+}
+
+function errorPertama(keluaran: string): ErrorPertama | null {
   const baris = keluaran.split('\n')
   const i = baris.findIndex((b) => /^Main\.java:\d+: error: /.test(b))
   if (i < 0) return null
@@ -122,13 +156,17 @@ async function jdkError(sumber: string): Promise<ErrorPertama | null> {
   return { baris: Number(m[1]), pesan: m[2], kolom: caret ? caret.indexOf('^') + 1 : 0, detail }
 }
 
+async function jdkError(sumber: string): Promise<ErrorPertama | null> {
+  return errorPertama(await javacStderr(sumber))
+}
+
 function mesinJalan(sumber: string, input: string): { stdout: string; stderr: string; kode: number | null; catatan?: string } {
-  const k = kompilasi(sumber)
+  const k = modulMesin.kompilasi(sumber)
   if (!k.ok) {
     const d = k.diagnostik[0]
     return { stdout: '', stderr: '', kode: null, catatan: `gagal kompilasi: ${d?.baris}: ${d?.pesan}` }
   }
-  const t = jalankan(k, { stdin: input })
+  const t = modulMesin.jalankan(k, { stdin: input })
   let stdout = ''
   let stderr = ''
   let pos = 0
@@ -143,14 +181,15 @@ function mesinJalan(sumber: string, input: string): { stdout: string; stderr: st
   return { stdout, stderr, kode, catatan }
 }
 
-function bedaTeks(nama: string, jdk: string, mesin: string): string | null {
+function bedaTeks(nama: string, jdk: string, mesin: string, label: [string, string] = ['JDK', 'Mesin']): string | null {
   if (jdk === mesin) return null
   const a = jdk.split('\n')
   const b = mesin.split('\n')
+  const lebar = Math.max(label[0].length, label[1].length) + 2
   for (let i = 0; i < Math.max(a.length, b.length); i++) {
     if (a[i] !== b[i]) {
       const f = (s: string | undefined) => (s === undefined ? redup('(tidak ada)') : JSON.stringify(s))
-      return `${nama} berbeda di baris ${i + 1}:\n      JDK:   ${f(a[i])}\n      Mesin: ${f(b[i])}`
+      return `${nama} berbeda di baris ${i + 1}:\n      ${`${label[0]}:`.padEnd(lebar)}${f(a[i])}\n      ${`${label[1]}:`.padEnd(lebar)}${f(b[i])}`
     }
   }
   return `${nama} berbeda`
@@ -223,7 +262,7 @@ async function ujiKorpusError(): Promise<{ total: number; gagal: number }> {
   const hasil = await paralel(berkas, async (f) => {
     const sumber = rapikan(readFileSync(join(dir, f), 'utf8'))
     const jdk = await jdkError(sumber)
-    const k = kompilasi(sumber)
+    const k = modulMesin.kompilasi(sumber)
     const d = k.diagnostik[0]
     if (!jdk) return { f, masalah: 'javac tidak melaporkan error (perbaiki korpus)' }
     if (!d) return { f, masalah: `mesin tidak menemukan error; javac: ${jdk.baris}: ${jdk.pesan}` }
@@ -250,7 +289,105 @@ async function ujiKorpusError(): Promise<{ total: number; gagal: number }> {
   return { total: hasil.length, gagal }
 }
 
+/** Batas aman di bawah batas keluaran simulator (10.000 karakter). */
+const BATAS_KELUARAN = 8_000
+/** `Object.toString()` bawaan (mis. `Simpul@1b6d3586`, `[I@4554617c`) memuat hash identitas yang tidak bisa ditiru simulator. */
+const POLA_HASH_IDENTITAS = /(?:\[+[BCDFIJSZ]|\[+L[\w$.]+;|\b[A-Z][\w$.]*)@[0-9a-f]{1,8}(?![\w.@])/
+
+/** `n` baris pertama, ditambah keterangan jumlah baris yang disembunyikan. */
+function cuplikan(teks: string, awalan: string, n = 2): string[] {
+  const baris = teks.replace(/\n$/, '').split('\n')
+  const tampil = baris.slice(0, n).map((b) => `      ${awalan} ${b}`)
+  if (baris.length > n) tampil.push(`      ${awalan} ${redup(`… (+${baris.length - n} baris)`)}`)
+  return tampil
+}
+
+/** Perbedaan stdout, stderr (tanpa frame JDK), dan kode keluar antara dua run JDK. */
+function bedaRun(a: HasilJdk, b: HasilJdk, label: [string, string]): string[] {
+  const beda = [bedaTeks('stdout', a.stdout, b.stdout, label), bedaTeks('stderr', tanpaFrameJdk(a.stderr), tanpaFrameJdk(b.stderr), label)]
+  if (a.kode !== b.kode) beda.push(`kode keluar berbeda: ${label[0]} ${a.kode}, ${label[1]} ${b.kode}`)
+  return beda.filter((x): x is string => x !== null)
+}
+
+async function ujiJdkKorpus(): Promise<{ total: number; gagal: number }> {
+  const dir = join('tests', 'korpus-fase2')
+  const berkas = daftarBerkas(dir)
+  const hasil = await paralel(berkas, async (f) => {
+    const sumber = rapikan(readFileSync(join(dir, f), 'utf8'))
+    const fileInput = join(dir, f.replace(/\.java$/, '.in'))
+    const input = existsSync(fileInput) ? rapikan(readFileSync(fileInput, 'utf8')) : ''
+    const jdk = await jdkJalan(sumber, input)
+    const masalah: string[] = []
+    if (jdk.galatKompilasi !== undefined) {
+      masalah.push(`javac gagal mengompilasi:\n      ${jdk.galatKompilasi.split('\n').slice(0, 3).join('\n      ')}`)
+      return { f, kode: jdk.kode, masalah, info: [] }
+    }
+    const stderr = tanpaFrameJdk(jdk.stderr)
+    const info = [...(jdk.stdout ? cuplikan(jdk.stdout, '│') : []), ...(stderr ? cuplikan(stderr, kuning('!')) : [])]
+    if (jdk.kode === null) masalah.push('java dihentikan karena melewati batas waktu')
+    const panjang = jdk.stdout.length + stderr.length
+    if (panjang >= BATAS_KELUARAN) masalah.push(`keluaran ${panjang} karakter, melewati batas aman ${BATAS_KELUARAN}`)
+    const identitas = POLA_HASH_IDENTITAS.exec(jdk.stdout + stderr)
+    if (identitas) masalah.push(`keluaran memuat hash identitas "${identitas[0]}" (toString/hashCode bawaan Object tidak deterministik)`)
+    if (ulang) {
+      const [r1, r2] = await jdkJalanLangsung(hash(VERSI_CACHE, 'ulang', sumber, input), sumber, input, 2)
+      if (r1.galatKompilasi !== undefined || !r2) masalah.push('run ulang: javac gagal mengompilasi')
+      else {
+        for (const b of bedaRun(r1, r2, ['Ulang 1', 'Ulang 2'])) masalah.push(`tidak deterministik, ${b}`)
+        for (const b of bedaRun(jdk, r1, ['Awal', 'Ulang 1'])) masalah.push(`hasil awal (cache) tidak terulang, ${b}`)
+      }
+    }
+    return { f, kode: jdk.kode, masalah, info }
+  })
+  console.log(`\nKorpus program fase 2, hanya JDK ${redup(`(${dir})`)}`)
+  for (const h of hasil) {
+    console.log(`  ${h.masalah.length ? merah('✘') : hijau('✔')} ${h.f} ${redup(`kode keluar ${h.kode}`)}`)
+    for (const b of h.info) console.log(b)
+    for (const m of h.masalah) console.log(`    ${merah(m)}`)
+  }
+  const gagal = hasil.filter((h) => h.masalah.length > 0).length
+  console.log(`  ${gagal === 0 ? hijau('✔') : merah('✘')} ${hasil.length - gagal}/${hasil.length} lolos${ulang ? ' (termasuk cek determinisme)' : ''}`)
+  return { total: hasil.length, gagal }
+}
+
+async function ujiJdkKorpusError(): Promise<{ total: number; gagal: number }> {
+  const dir = join('tests', 'korpus-error-fase2')
+  const berkas = daftarBerkas(dir)
+  const hasil = await paralel(berkas, async (f) => {
+    const keluaran = await javacStderr(rapikan(readFileSync(join(dir, f), 'utf8')))
+    const jdk = errorPertama(keluaran)
+    if (!jdk) return { f, masalah: 'javac tidak melaporkan error', info: [] }
+    const jumlah = /^(\d+) errors?$/m.exec(keluaran)?.[0] ?? '?'
+    const info = [
+      `      Main.java:${jdk.baris}: error: ${jdk.pesan} ${redup(`(kolom ${jdk.kolom}; javac: ${jumlah})`)}`,
+      ...jdk.detail.map((d) => `        ${redup(d)}`),
+    ]
+    return { f, masalah: null, info }
+  })
+  console.log(`\nKorpus error kompilasi fase 2, hanya javac ${redup(`(${dir})`)}`)
+  for (const h of hasil) {
+    console.log(`  ${h.masalah ? merah('✘') : hijau('✔')} ${h.f}`)
+    for (const b of h.info) console.log(b)
+    if (h.masalah) console.log(`    ${merah(h.masalah)}`)
+  }
+  const gagal = hasil.filter((h) => h.masalah).length
+  console.log(`  ${gagal === 0 ? hijau('✔') : merah('✘')} ${hasil.length - gagal}/${hasil.length} lolos`)
+  return { total: hasil.length, gagal }
+}
+
+async function utamaHanyaJdk(): Promise<void> {
+  const mulai = performance.now()
+  const a = await ujiJdkKorpus()
+  const b = await ujiJdkKorpusError()
+  const durasi = ((performance.now() - mulai) / 1000).toFixed(1)
+  const gagal = a.gagal + b.gagal
+  console.log(`\n${a.total + b.total} program fase 2 diperiksa dengan JDK dalam ${durasi} dtk: ${gagal ? merah(`${gagal} gagal`) : hijau('semua lolos')}.`)
+  process.exit(gagal ? 1 : 0)
+}
+
 async function utama(): Promise<void> {
+  if (hanyaJdk) return utamaHanyaJdk()
+  modulMesin = await import('@/engine')
   const mulai = performance.now()
   const a = await ujiKorpus()
   const b = await ujiKorpusError()
