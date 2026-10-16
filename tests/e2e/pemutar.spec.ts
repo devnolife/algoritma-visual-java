@@ -89,6 +89,18 @@ test.describe('Pemutar pelajaran', () => {
     await expect(slider(page)).not.toHaveAttribute('aria-valuemax', '19')
   })
 
+  test('memendekkan kode saat berada di langkah terakhir tidak membuat aplikasi galat', async ({ page }) => {
+    await page.goto(URL_PELAJARAN)
+    await tungguLangkah(page, 20)
+    await page.getByRole('button', { name: 'Ke langkah terakhir' }).click()
+    // Posisi baris aktif lama berada di luar dokumen baru yang jauh lebih pendek.
+    await gantiKode(page, KODE_AWAL.replace(/ {8}for \(int i = 1;[\s\S]*?\n {8}\}\n/, ''))
+    await expect(output(page)).toContainText('Nilai terbesar: 4')
+    await page.locator('.cm-content').press('End')
+    await expect(page.getByRole('heading', { name: 'Terjadi kesalahan pada aplikasi' })).toHaveCount(0)
+    await expect(output(page)).toContainText('Nilai terbesar: 4')
+  })
+
   test('indeks di luar batas → ArrayIndexOutOfBoundsException dengan sel bayangan', async ({ page }) => {
     await page.goto(URL_PELAJARAN)
     await tungguLangkah(page, 20)

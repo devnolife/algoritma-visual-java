@@ -37,14 +37,16 @@ const medanAktif = StateField.define<InfoAktif | null>({
   },
 })
 
-const dekorasiAktif = EditorView.decorations.compute([medanAktif], (state) => {
+// `doc` ikut jadi dependensi: posisi baris lama tidak boleh tertinggal setelah kode dipendekkan
+// (CodeMirror akan memetakan posisi di luar dokumen baru dan melempar RangeError).
+const dekorasiAktif = EditorView.decorations.compute(['doc', medanAktif], (state) => {
   const aktif = state.field(medanAktif)
   if (!aktif || aktif.baris < 1 || aktif.baris > state.doc.lines) return Decoration.none
   const baris = state.doc.line(aktif.baris)
   return Decoration.set([Decoration.line({ class: `cm-baris-jalan cm-baris-jalan-${aktif.jenis}` }).range(baris.from)])
 })
 
-const gutterAktif = gutterLineClass.compute([medanAktif], (state) => {
+const gutterAktif = gutterLineClass.compute(['doc', medanAktif], (state) => {
   const aktif = state.field(medanAktif)
   if (!aktif || aktif.baris < 1 || aktif.baris > state.doc.lines) return RangeSet.empty
   const tanda = aktif.jenis === 'exception' || aktif.jenis === 'batas' ? tandaAktifGalat : tandaAktif
