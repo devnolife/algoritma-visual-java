@@ -6,11 +6,12 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import type { KonfigPertumbuhan } from '@/engine/pertumbuhan'
 import { EditorJava } from '@/editor/EditorJava'
 import { cn } from '@/lib/utils'
 import { Panggung, VISUAL_BAWAAN, type KonfigVisual } from '@/viz/Panggung'
 import { BilahKontrol } from './BilahKontrol'
-import { useJalankanOtomatis, usePintasanPemutar, usePutarOtomatis } from './hooks'
+import { useJalankanOtomatis, usePintasanPemutar, usePutarOtomatis, useUkurPertumbuhan } from './hooks'
 import { KartuPenjelasan } from './KartuPenjelasan'
 import { PanelIO } from './PanelIO'
 import { traceBasi, usePemutar } from './store'
@@ -22,6 +23,7 @@ export interface PropsPemutar {
   catatan?: Record<string, string>
   pantau?: string[]
   batasLangkah?: number
+  pertumbuhan?: KonfigPertumbuhan
 }
 
 function Tunggu({ ikon, judul, isi }: { ikon: React.ReactNode; judul: string; isi?: React.ReactNode }) {
@@ -36,8 +38,9 @@ function Tunggu({ ikon, judul, isi }: { ikon: React.ReactNode; judul: string; is
   )
 }
 
-export function Pemutar({ kodeAwal, konfigVisual = VISUAL_BAWAAN, catatan, pantau, batasLangkah }: PropsPemutar) {
+export function Pemutar({ kodeAwal, konfigVisual = VISUAL_BAWAAN, catatan, pantau, batasLangkah, pertumbuhan }: PropsPemutar) {
   useJalankanOtomatis(batasLangkah)
+  useUkurPertumbuhan(pertumbuhan)
   usePutarOtomatis()
   usePintasanPemutar()
 
@@ -171,7 +174,7 @@ export function Pemutar({ kodeAwal, konfigVisual = VISUAL_BAWAAN, catatan, panta
           />
         </div>
         <div className="h-[210px] shrink-0 border-t [@media(max-height:760px)]:h-[164px]">
-          <PanelIO />
+          <PanelIO pertumbuhan={pertumbuhan} />
         </div>
       </section>
 

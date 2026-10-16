@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
-import { klienEngine } from '@/worker/klienEngine'
+import type { KonfigPertumbuhan } from '@/engine/pertumbuhan'
+import { klienEngine, klienUkur } from '@/worker/klienEngine'
 import { usePemutar } from './store'
 
 export const JEDA_KETIK_MS = 400
@@ -29,6 +30,18 @@ export function useJalankanOtomatis(batasLangkah?: number): void {
     )
     return () => clearTimeout(timer)
   }, [sumber, stdin, versi, batasLangkah, seed])
+}
+
+/** Ukur ulang grafik pertumbuhan setiap kali program berhasil dijalankan ulang. */
+export function useUkurPertumbuhan(konfig: KonfigPertumbuhan | undefined): void {
+  const jumlahRun = usePemutar((s) => s.jumlahRun)
+  useEffect(() => {
+    const s = usePemutar.getState()
+    if (!konfig || !s.hasil?.ok || jumlahRun === 0) return
+    const versi = s.versi
+    s.mulaiUkur()
+    void klienUkur.ukur(s.sumber, konfig, { stdin: s.stdin, seed: s.seed }).then((h) => usePemutar.getState().terimaPertumbuhan(versi, h))
+  }, [jumlahRun, konfig])
 }
 
 /** Maju otomatis saat mode putar aktif. */

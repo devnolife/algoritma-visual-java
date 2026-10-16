@@ -1,4 +1,5 @@
 import type { Diagnostik, Trace } from '@/engine'
+import { kalimatKesimpulan, klasifikasi, labelKelas, urutanKelas, type HasilPertumbuhan, type KonfigPertumbuhan } from '@/engine/pertumbuhan'
 import type { Cek, Tantangan } from '../skema'
 
 /** Hasil satu kali menjalankan kode mahasiswa (bentuk minimal dari HasilEngine worker). */
@@ -12,6 +13,15 @@ export interface HasilJalan {
 }
 
 export type Penjalan = (sumber: string, input: string) => Promise<HasilJalan>
+
+/** Mengukur program pada beberapa ukuran n (untuk cek `kompleksitas`). */
+export type Pengukur = (sumber: string, konfig: KonfigPertumbuhan) => Promise<HasilPertumbuhan>
+
+export interface OpsiPeriksa {
+  ukur?: Pengukur
+  /** Konfigurasi `pertumbuhan` pelajaran, dipakai cek kompleksitas yang tidak menulis konfigurasinya sendiri. */
+  pertumbuhan?: KonfigPertumbuhan
+}
 
 export interface HasilCek {
   cek: Cek
@@ -49,7 +59,7 @@ export function namaKonstruksi(k: string): string {
   return NAMA_KONSTRUKSI[k] ?? `\`${k}\``
 }
 
-const butuhJalan = (c: Cek) => c.jenis !== 'harusMemakai' && c.jenis !== 'dilarangMemakai'
+const butuhJalan = (c: Cek) => c.jenis !== 'harusMemakai' && c.jenis !== 'dilarangMemakai' && c.jenis !== 'kompleksitas'
 const inputCek = (c: Cek) => ('input' in c ? c.input : '')
 
 /** Output stdout saja (bagian stderr seperti pesan exception dibuang). */
@@ -124,16 +134,60 @@ const teksNilai = (v: unknown, tipe?: string): string => {
   return String(v)
 }
 
-function periksaSatu(c: Cek, h: HasilJalan): HasilCek {
-  const gagal = (pesan: string, rincian?: string): HasilCek => ({ cek: c, lulus: false, pesan, rincian })
-  const lulus = (pesan: string): HasilCek => ({ cek: c, lulus: true, pesan })
+type CekJalan = Exclude<Cek, { jenis: 'kompleksitas' }>
 
+/** Kode belum bisa dinilai sama sekali (timeout, galat simulator, atau error kompilasi). */
+function gagalAwal(c: Cek, h: HasilJalan): HasilCek | null {
+  const gagal = (pesan: string, rincian?: string): HasilCek => ({ cek: c, lulus: false, pesan, rincian })
   if (h.timeout) return gagal('Program berjalan terlalu lama dan dihentikan. Periksa apakah ada perulangan yang tidak pernah berhenti.')
   if (h.galat) return gagal('Simulator mengalami galat saat menjalankan kode ini.', h.galat.split('\n')[0])
   if (!h.ok) {
     const d = h.diagnostik[0]
     return gagal('Kode belum bisa dikompilasi. Perbaiki dulu error di tab Masalah.', d ? `Baris ${d.baris}: ${d.pesan}` : undefined)
   }
+  return null
+}
+
+async function periksaKompleksitas(c: Extract<Cek, { jenis: 'kompleksitas' }>, sumber: string, h: HasilJalan, opsi: OpsiPeriksa): Promise<HasilCek> {
+  const gagal = (pesan: string, rincian?: string): HasilCek => ({ cek: c, lulus: false, pesan, rincian })
+  const awal = gagalAwal(c, h)
+  if (awal) return awal
+  const konfig = c.pertumbuhan ?? opsi.pertumbuhan
+  if (!konfig || !opsi.ukur) return gagal('Cek kompleksitas ini belum dikonfigurasi dengan benar (hubungi dosen).')
+  const hasil = await opsi.ukur(sumber, konfig)
+  if (hasil.galat) return gagal('Pertumbuhan program belum bisa diukur.', hasil.galat)
+  const daftar = c.seri ? hasil.seri.filter((s) => s.nama === c.seri) : hasil.seri
+  if (daftar.length === 0) return gagal(`Seri "${c.seri}" tidak ada di konfigurasi pertumbuhan (hubungi dosen).`)
+  const rincian: string[] = []
+  let terburuk: { kelas: Parameters<typeof labelKelas>[0]; nama: string } | null = null
+  for (const s of daftar) {
+    const k = klasifikasi(s.titik)
+    const macet = s.titik.find((t) => t.status === 'batas' || t.status === 'exception' || t.status === 'galat')
+    if (!k || macet) {
+      return gagal(
+        `Program tidak selesai normal untuk semua ukuran n${daftar.length > 1 ? ` (seri ${s.nama})` : ''}.`,
+        macet ? `n = ${macet.n}: ${macet.pesan ?? macet.status}` : 'Belum cukup titik untuk menyimpulkan pola.',
+      )
+    }
+    rincian.push(`${daftar.length > 1 ? `${s.nama}: ` : ''}${kalimatKesimpulan(k, konfig.ukur).replace(/\*\*/g, '')}`)
+    if (!terburuk || urutanKelas(k.kelas) > urutanKelas(terburuk.kelas)) terburuk = { kelas: k.kelas, nama: s.nama }
+  }
+  const kelas = terburuk!.kelas
+  if (urutanKelas(kelas) <= urutanKelas(c.maks)) {
+    return { cek: c, lulus: true, pesan: `Pertumbuhannya ${labelKelas(kelas)}, tidak lebih buruk dari ${labelKelas(c.maks)}.` }
+  }
+  return gagal(
+    `Pertumbuhannya masih ${labelKelas(kelas)}${daftar.length > 1 ? ` (seri ${terburuk!.nama})` : ''}; yang diminta paling buruk ${labelKelas(c.maks)}.`,
+    rincian.join('\n'),
+  )
+}
+
+function periksaSatu(c: CekJalan, h: HasilJalan): HasilCek {
+  const gagal = (pesan: string, rincian?: string): HasilCek => ({ cek: c, lulus: false, pesan, rincian })
+  const lulus = (pesan: string): HasilCek => ({ cek: c, lulus: true, pesan })
+
+  const awal = gagalAwal(c, h)
+  if (awal) return awal
 
   switch (c.jenis) {
     case 'harusMemakai':
@@ -198,12 +252,16 @@ function periksaSatu(c: Cek, h: HasilJalan): HasilCek {
 }
 
 /** Jalankan semua cek sebuah tantangan. Program dijalankan sekali untuk setiap input uji yang berbeda. */
-export async function periksaTantangan(t: Tantangan, sumber: string, jalankan: Penjalan): Promise<HasilTantangan> {
+export async function periksaTantangan(t: Tantangan, sumber: string, jalankan: Penjalan, opsi: OpsiPeriksa = {}): Promise<HasilTantangan> {
   const masukan = new Set(t.cek.filter(butuhJalan).map(inputCek))
   if (masukan.size === 0) masukan.add('')
   const hasilPer = new Map<string, HasilJalan>()
   for (const input of masukan) hasilPer.set(input, await jalankan(sumber, input))
   const pertama = hasilPer.values().next().value as HasilJalan
-  const butir = t.cek.map((c) => periksaSatu(c, butuhJalan(c) ? hasilPer.get(inputCek(c))! : pertama))
+  const butir: HasilCek[] = []
+  for (const c of t.cek) {
+    if (c.jenis === 'kompleksitas') butir.push(await periksaKompleksitas(c, sumber, pertama, opsi))
+    else butir.push(periksaSatu(c, butuhJalan(c) ? hasilPer.get(inputCek(c))! : pertama))
+  }
   return { lulus: butir.every((b) => b.lulus), butir }
 }

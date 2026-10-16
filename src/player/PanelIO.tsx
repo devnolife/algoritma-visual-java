@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { Diagnostik } from '@/engine'
+import { labelKelas, type KonfigPertumbuhan } from '@/engine/pertumbuhan'
 import { cn } from '@/lib/utils'
+import { PanelPertumbuhan } from './PanelPertumbuhan'
 import { usePemutar } from './store'
 import { TeksSebaris } from './TeksSebaris'
 
@@ -76,10 +78,11 @@ function Output() {
   )
 }
 
-export function PanelIO() {
+export function PanelIO({ pertumbuhan }: { pertumbuhan?: KonfigPertumbuhan }) {
   const hasil = usePemutar((s) => s.hasil)
   const trace = usePemutar((s) => s.trace)
   const stdin = usePemutar((s) => s.stdin)
+  const kelasPertumbuhan = usePemutar((s) => s.pertumbuhan?.seri[0]?.kelas)
   const diagnostik = hasil && !hasil.ok ? hasil.diagnostik : []
   const galat = hasil && !hasil.ok && hasil.galat ? hasil.galat : undefined
   const jumlahMasalah = diagnostik.length + (galat ? 1 : 0)
@@ -109,6 +112,12 @@ export function PanelIO() {
               {jumlahMasalah}
             </span>
           </TabsTrigger>
+          {pertumbuhan && (
+            <TabsTrigger value="pertumbuhan">
+              Pertumbuhan
+              {kelasPertumbuhan && <span className="ml-1 rounded-full bg-muted px-1.5 text-[11px] text-muted-foreground">{labelKelas(kelasPertumbuhan)}</span>}
+            </TabsTrigger>
+          )}
         </TabsList>
       </div>
       <TabsContent value="output" className="min-h-0 flex-1 overflow-auto px-4 py-3">
@@ -130,6 +139,11 @@ export function PanelIO() {
       <TabsContent value="masalah" className="min-h-0 flex-1 overflow-auto px-4 py-3">
         <DaftarMasalah diagnostik={diagnostik} galat={galat} simulator={trace?.pesanSimulator} />
       </TabsContent>
+      {pertumbuhan && (
+        <TabsContent value="pertumbuhan" className="min-h-0 flex-1 overflow-hidden px-4 py-2.5">
+          <PanelPertumbuhan konfig={pertumbuhan} />
+        </TabsContent>
+      )}
     </Tabs>
   )
 }

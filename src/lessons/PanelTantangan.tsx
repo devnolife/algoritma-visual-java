@@ -5,10 +5,14 @@ import { cn } from '@/lib/utils'
 import { useProgres } from '@/app/progres'
 import { usePemutar } from '@/player/store'
 import { TeksSebaris } from '@/player/TeksSebaris'
-import { klienEngine } from '@/worker/klienEngine'
+import type { KonfigPertumbuhan } from '@/engine/pertumbuhan'
+import { klienEngine, KlienUkur } from '@/worker/klienEngine'
 import type { Tantangan } from './skema'
 import { periksaTantangan, type HasilTantangan } from './tantangan/periksa'
 import type { Pelajaran } from './urai'
+
+/** Pengukur terpisah dari tab Pertumbuhan agar pemeriksaan tidak membatalkan grafik yang sedang diukur. */
+const klienUkurTantangan = new KlienUkur()
 
 const KOSONG: string[] = []
 
@@ -30,6 +34,7 @@ export function PanelTantangan({ pelajaran }: { pelajaran: Pelajaran }) {
           kunci={pelajaran.kunci}
           sudahLulus={lulus.includes(t.id)}
           batasLangkah={pelajaran.meta.batasLangkah}
+          pertumbuhan={pelajaran.meta.pertumbuhan}
         />
       ))}
     </div>
@@ -42,12 +47,14 @@ function KartuTantangan({
   kunci,
   sudahLulus,
   batasLangkah,
+  pertumbuhan,
 }: {
   tantangan: Tantangan
   nomor: number
   kunci: string
   sudahLulus: boolean
   batasLangkah?: number
+  pertumbuhan?: KonfigPertumbuhan
 }) {
   const [hasil, setHasil] = useState<{ h: HasilTantangan; sumber: string } | null>(null)
   const [memeriksa, setMemeriksa] = useState(false)
@@ -59,7 +66,11 @@ function KartuTantangan({
     setMemeriksa(true)
     const kode = usePemutar.getState().sumber
     try {
-      const h = await periksaTantangan(t, kode, (s, input) => klienEngine.jalankan(s, { stdin: input, batasLangkah }))
+      const s = usePemutar.getState()
+      const h = await periksaTantangan(t, kode, (src, input) => klienEngine.jalankan(src, { stdin: input, batasLangkah }), {
+        pertumbuhan,
+        ukur: (src, konfig) => klienUkurTantangan.ukur(src, konfig, { stdin: s.stdin, seed: s.seed }),
+      })
       setHasil({ h, sumber: kode })
       if (h.lulus) useProgres.getState().tandaiLulus(kunci, t.id)
     } finally {

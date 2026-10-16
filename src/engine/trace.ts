@@ -98,7 +98,15 @@ export interface Trace {
   barisTerpanas?: number
   /** Nilai akhir variabel di method main (untuk pemeriksa tantangan). */
   akhirMain: Record<string, NilaiAkhir>
+  /** Nilai akhir field static. */
+  akhirStatik?: Record<string, NilaiAkhir>
   kodeKeluar?: number
+  /** Jumlah langkah yang dijalankan (juga terisi pada mode hitung, saat `langkah` kosong). */
+  jumlahLangkah?: number
+  /** Langkah selama method `opsi.ukurMethod` berjalan. */
+  langkahUkur?: number
+  /** Nama variabel yang nilai awalnya diganti lewat opsi `ganti`. */
+  gantiDipakai?: string[]
 }
 
 // ---------- Reducer ----------

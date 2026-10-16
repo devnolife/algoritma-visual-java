@@ -3,14 +3,18 @@ import type { Langkah, StateMesin, Trace } from '@/engine'
 import { cn } from '@/lib/utils'
 import { Array2DView, ArrayView, idArrayDari, type KonfigArray, type KonfigArray2D } from './ArrayView'
 import { hitungSorotan, namaVariabelDiTrace } from './bersama'
+import { GrafView, type KonfigGraf } from './Graf'
 import { Evaluasi, InputView, Konsol, StringView, type KonfigString } from './LainLain'
 import { Memori, objekTerjangkau } from './Memori'
 import { WadahPanah, type Panah } from './panah'
+import { PohonPanggilan, type KonfigPohonPanggilan } from './PohonPanggilan'
 
 export type KonfigVisual =
   | KonfigArray
   | KonfigArray2D
   | KonfigString
+  | KonfigGraf
+  | KonfigPohonPanggilan
   | { jenis: 'memori'; stringSebagaiObjek?: boolean }
   | { jenis: 'evaluasi' }
   | { jenis: 'konsol' }
@@ -36,12 +40,12 @@ export function Panggung({ trace, state, indeks, output, stdin, konfig, instan }
   // Objek heap yang sudah digambar oleh renderer array (tidak digambar lagi di kolom Heap).
   const sudahTampil = new Set<number>()
   for (const k of konfig) {
-    if (k.jenis !== 'array' && k.jenis !== 'array2d') continue
+    if (k.jenis !== 'array' && k.jenis !== 'array2d' && k.jenis !== 'graf') continue
     const id = idArrayDari(state, k.variabel)
     if (typeof id !== 'number') continue
     sudahTampil.add(id)
     const o = state.heap[id]
-    if (k.jenis === 'array2d' && o?.k === 'array') for (const r of o.nilai) if (typeof r === 'number') sudahTampil.add(r)
+    if (k.jenis !== 'array' && o?.k === 'array') for (const r of o.nilai) if (typeof r === 'number') sudahTampil.add(r)
   }
   const stringObjek = konfig.some((k) => k.jenis === 'memori' && k.stringSebagaiObjek)
   const adaMemori = konfig.some((k) => k.jenis === 'memori')
@@ -73,6 +77,10 @@ export function Panggung({ trace, state, indeks, output, stdin, konfig, instan }
             return <Array2DView key={i} state={state} sorotan={sorotan} instan={instan} konfig={k} adaDiKode={namaDiKode.has(k.variabel)} adaMemori={adaMemori} />
           case 'string':
             return <StringView key={i} state={state} konfig={k} adaDiKode={namaDiKode.has(k.variabel)} adaMemori={adaMemori} />
+          case 'graf':
+            return <GrafView key={i} state={state} sorotan={sorotan} konfig={k} adaDiKode={namaDiKode.has(k.variabel)} adaMemori={adaMemori} />
+          case 'pohonPanggilan':
+            return <PohonPanggilan key={i} trace={trace} indeks={indeks} konfig={k} instan={instan} />
           case 'evaluasi':
             return <Evaluasi key={i} langkah={langkah} instan={instan} />
           case 'konsol':

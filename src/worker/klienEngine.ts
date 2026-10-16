@@ -1,5 +1,6 @@
 import type { OpsiJalan } from '@/engine'
-import type { HasilEngine, PermintaanEngine } from './protokol'
+import type { HasilPertumbuhan, KonfigPertumbuhan } from '@/engine/pertumbuhan'
+import type { HasilEngine, HasilUkur, PermintaanEngine, PermintaanUkur } from './protokol'
 
 const BATAS_WAKTU_MS = 3000
 
@@ -61,3 +62,57 @@ export class KlienEngine {
 }
 
 export const klienEngine = new KlienEngine()
+
+const BATAS_WAKTU_UKUR_MS = 8000
+
+/**
+ * Pengukur grafik pertumbuhan dengan worker sendiri, agar run utama (animasi) tidak pernah menunggu.
+ * Permintaan baru membatalkan permintaan lama: worker yang sedang sibuk dihentikan lalu dibuat ulang.
+ */
+export class KlienUkur {
+  private worker: Worker | null = null
+  private idBerikut = 1
+  private tunggu: { id: number; resolve: (h: HasilPertumbuhan) => void; timer: ReturnType<typeof setTimeout> } | null = null
+
+  private hentikan(galat: string): void {
+    this.worker?.terminate()
+    this.worker = null
+    if (this.tunggu) {
+      clearTimeout(this.tunggu.timer)
+      this.tunggu.resolve({ seri: [], galat })
+      this.tunggu = null
+    }
+  }
+
+  private pastikanWorker(): Worker {
+    if (this.worker) return this.worker
+    const w = new Worker(new URL('./engine.worker.ts', import.meta.url), { type: 'module' })
+    w.onmessage = (ev: MessageEvent<HasilUkur>) => {
+      const t = this.tunggu
+      if (!t || ev.data.id !== t.id) return
+      clearTimeout(t.timer)
+      this.tunggu = null
+      t.resolve(ev.data.hasil)
+    }
+    w.onerror = (ev) => {
+      ev.preventDefault()
+      this.hentikan(`Pengukur gagal: ${ev.message}`)
+    }
+    this.worker = w
+    return w
+  }
+
+  ukur(sumber: string, konfig: KonfigPertumbuhan, opsi: PermintaanUkur['opsi'] = {}): Promise<HasilPertumbuhan> {
+    if (this.tunggu) this.hentikan('dibatalkan')
+    const id = this.idBerikut++
+    const w = this.pastikanWorker()
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => this.hentikan('Pengukuran dihentikan karena terlalu lama.'), BATAS_WAKTU_UKUR_MS)
+      this.tunggu = { id, resolve, timer }
+      const pesan: PermintaanUkur = { jenis: 'ukur', id, sumber, konfig, opsi }
+      w.postMessage(pesan)
+    })
+  }
+}
+
+export const klienUkur = new KlienUkur()

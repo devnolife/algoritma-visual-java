@@ -23,6 +23,15 @@ export interface OpsiJalan {
   batasOutput?: number
   batasElemen?: number
   batasObjek?: number
+  /**
+   * Ganti nilai awal variabel lokal di `main` (deklarasi pertama dengan nama itu); initializer aslinya tidak dievaluasi.
+   * Dipakai grafik pertumbuhan untuk menjalankan program dengan beberapa ukuran n.
+   */
+  ganti?: Record<string, number | boolean | string>
+  /** Jalankan tanpa merekam langkah, checkpoint, maupun output (hanya hitungan). */
+  modeHitung?: boolean
+  /** Hitung juga langkah yang terjadi selama method ini sedang berjalan (termasuk panggilan di dalamnya). */
+  ukurMethod?: string
 }
 
 export const OPSI_BAWAAN: Required<OpsiJalan> = {
@@ -35,7 +44,13 @@ export const OPSI_BAWAAN: Required<OpsiJalan> = {
   batasOutput: 10_000,
   batasElemen: 10_000,
   batasObjek: 50_000,
+  ganti: {},
+  modeHitung: false,
+  ukurMethod: '',
 }
+
+/** Nilai pengganti (opsi `ganti`) tidak cocok dengan tipe variabelnya. */
+export class GalatGanti extends Error {}
 
 const REF_OUT = -1
 const REF_ERR = -2
@@ -146,6 +161,11 @@ class Mesin {
   /** true bila StackOverflowError dipicu oleh habisnya stack JavaScript, bukan oleh `batasKedalaman`. */
   private stackBrowserHabis = false
   private readonly ctx: KonteksPustaka
+  private jumlahLangkah = 0
+  /** Langkah selama `opsi.ukurMethod` sedang berjalan. */
+  private langkahUkur = 0
+  private dalamUkur = 0
+  private readonly gantiDipakai = new Set<string>()
 
   constructor(
     private readonly program: ProgramTerperiksa,
@@ -175,7 +195,7 @@ class Mesin {
       keluar: (kode) => {
         throw new KeluarProgram(kode)
       },
-      waktuNano: () => 1_700_000_000_000_000_000n + BigInt(this.langkah.length) * 1_000_000n,
+      waktuNano: () => 1_700_000_000_000_000_000n + BigInt(this.jumlahLangkah) * 1_000_000n,
     }
   }
 
@@ -194,26 +214,30 @@ class Mesin {
 
   private emit(p: Peristiwa): void {
     terapkan(this.state, p)
-    this.pending.push(p)
+    if (!this.opsi.modeHitung) this.pending.push(p)
   }
 
   private catat(span: Span | undefined, jenis: JenisLangkah, baris?: number): void {
     const b = baris ?? (span ? this.baris(span) : 0)
-    const l: Langkah = {
-      baris: b,
-      jenis,
-      span: span ? { awal: span.awal, akhir: span.akhir } : undefined,
-      peristiwa: this.pending,
-      panjangOutput: this.output.length,
-      kedalaman: this.state.frames.length,
-    }
-    this.pending = []
-    this.langkah.push(l)
+    this.jumlahLangkah++
+    if (this.dalamUkur > 0) this.langkahUkur++
     this.hitung[b] = (this.hitung[b] ?? 0) + 1
-    if ((this.langkah.length - 1) % JARAK_CHECKPOINT === 0) {
-      this.checkpoint.push({ indeks: this.langkah.length - 1, state: klonState(this.state) })
+    if (!this.opsi.modeHitung) {
+      const l: Langkah = {
+        baris: b,
+        jenis,
+        span: span ? { awal: span.awal, akhir: span.akhir } : undefined,
+        peristiwa: this.pending,
+        panjangOutput: this.output.length,
+        kedalaman: this.state.frames.length,
+      }
+      this.pending = []
+      this.langkah.push(l)
+      if ((this.langkah.length - 1) % JARAK_CHECKPOINT === 0) {
+        this.checkpoint.push({ indeks: this.langkah.length - 1, state: klonState(this.state) })
+      }
     }
-    if (!this.selesai && this.langkah.length >= this.opsi.batasLangkah) {
+    if (!this.selesai && this.jumlahLangkah >= this.opsi.batasLangkah) {
       throw new BatasTercapai('langkah', `Program dihentikan setelah ${this.opsi.batasLangkah.toLocaleString('id-ID')} langkah.`)
     }
   }
@@ -224,7 +248,7 @@ class Mesin {
   }
 
   private cetak(teks: string, err: boolean): void {
-    if (teks.length === 0) return
+    if (teks.length === 0 || this.opsi.modeHitung) return
     let t = teks
     let lewat = false
     if (this.output.length + t.length > this.opsi.batasOutput) {
@@ -408,7 +432,11 @@ class Mesin {
       hitunganBaris: this.hitung,
       barisTerpanas: this.barisTerpanas(),
       akhirMain: this.nilaiAkhirMain(),
+      akhirStatik: Object.fromEntries([...this.statik].map(([nama, v]) => [nama, { tipe: teksTipe(v.tipe), nilai: this.json(v.nilai, teksTipe(v.tipe), 0) }])),
       kodeKeluar,
+      jumlahLangkah: this.jumlahLangkah,
+      langkahUkur: this.opsi.ukurMethod ? this.langkahUkur : undefined,
+      gantiDipakai: this.gantiDipakai.size ? [...this.gantiDipakai] : undefined,
     }
   }
 
@@ -486,23 +514,29 @@ class Mesin {
       throw new LemparanJava('java.lang.StackOverflowError')
     }
     const d = m.deklarasi
-    const frame = this.frameBaru(m, arg)
-    this.catat(d.spanNama, 'panggil')
-    const r = this.execBadan(d.badan)
-    const nilai = r?.k === 'return' ? r.nilai : undefined
-    const barisKembali = frame.barisReturn ?? this.baris(d.spanTutup)
-    frame.barisAktif = barisKembali
-    this.emit({
-      k: 'kembali',
-      frame: frame.id,
-      method: m.nama,
-      nilai: nilai !== undefined ? this.tampil(nilai, m.kembali) : undefined,
-      tipe: m.kembali.k === 'void' ? undefined : teksTipe(m.kembali),
-    })
-    this.catat(frame.spanReturn ?? d.spanTutup, 'kembali', barisKembali)
-    this.frames.pop()
-    this.emit({ k: 'buang-frame', frame: frame.id })
-    return nilai
+    const diukur = this.opsi.ukurMethod !== '' && m.nama === this.opsi.ukurMethod
+    if (diukur) this.dalamUkur++
+    try {
+      const frame = this.frameBaru(m, arg)
+      this.catat(d.spanNama, 'panggil')
+      const r = this.execBadan(d.badan)
+      const nilai = r?.k === 'return' ? r.nilai : undefined
+      const barisKembali = frame.barisReturn ?? this.baris(d.spanTutup)
+      frame.barisAktif = barisKembali
+      this.emit({
+        k: 'kembali',
+        frame: frame.id,
+        method: m.nama,
+        nilai: nilai !== undefined ? this.tampil(nilai, m.kembali) : undefined,
+        tipe: m.kembali.k === 'void' ? undefined : teksTipe(m.kembali),
+      })
+      this.catat(frame.spanReturn ?? d.spanTutup, 'kembali', barisKembali)
+      this.frames.pop()
+      this.emit({ k: 'buang-frame', frame: frame.id })
+      return nilai
+    } finally {
+      if (diukur) this.dalamUkur--
+    }
   }
 
   // ---------- pernyataan ----------
@@ -529,13 +563,54 @@ class Mesin {
   private deklarasi(p: A.DeklarasiLokal): void {
     for (const d of p.deklarator) {
       const info = d.info!
-      const nilai = d.init ? this.nilaiUntuk(d.init, info.tipe) : undefined
+      let nilai: Nilai | undefined
+      if (this.frames.length === 1 && this.f.simbol === this.program.main && this.perluGanti(info.nama)) {
+        nilai = this.nilaiGanti(info.nama, this.opsi.ganti[info.nama], info.tipe)
+        this.gantiDipakai.add(info.nama)
+      } else {
+        nilai = d.init ? this.nilaiUntuk(d.init, info.tipe) : undefined
+      }
       const f = this.f
       f.lokal[info.slot] = nilai
       f.terdeklarasi.add(info.slot)
       f.tipeLokal.set(info.slot, info.tipe)
       this.emit({ k: 'deklarasi', frame: f.id, slot: info.slot, nama: info.nama, tipe: teksTipe(info.tipe), nilai })
     }
+  }
+
+  private perluGanti(nama: string): boolean {
+    return Object.prototype.hasOwnProperty.call(this.opsi.ganti, nama) && !this.gantiDipakai.has(nama)
+  }
+
+  /** Nilai dari opsi `ganti` dikonversi ke tipe variabel; ditolak bila tidak cocok. */
+  private nilaiGanti(nama: string, mentah: number | boolean | string, tipe: Tipe): Nilai {
+    const gagal = () => new GalatGanti(`Nilai ${JSON.stringify(mentah)} tidak cocok untuk variabel ${nama} bertipe ${teksTipe(tipe)}.`)
+    const bulat = typeof mentah === 'number' && Number.isInteger(mentah)
+    if (tipe.k === 'primitif') {
+      switch (tipe.nama) {
+        case 'boolean':
+          if (typeof mentah !== 'boolean') throw gagal()
+          return mentah
+        case 'double':
+        case 'float':
+          if (typeof mentah !== 'number') throw gagal()
+          return tipe.nama === 'float' ? Math.fround(mentah) : mentah
+        case 'long':
+          if (!bulat) throw gagal()
+          return BigInt(mentah as number)
+        case 'char':
+          if (typeof mentah === 'string' && mentah.length === 1) return mentah.charCodeAt(0)
+          if (bulat && (mentah as number) >= 0 && (mentah as number) <= 0xffff) return mentah as number
+          throw gagal()
+        default: {
+          const batas = tipe.nama === 'byte' ? 0x7f : tipe.nama === 'short' ? 0x7fff : 0x7fffffff
+          if (!bulat || (mentah as number) > batas || (mentah as number) < -batas - 1) throw gagal()
+          return mentah as number
+        }
+      }
+    }
+    if (adalahString(tipe) && typeof mentah === 'string') return this.buatString(mentah)
+    throw gagal()
   }
 
   private exec(p: A.Pernyataan): Selesai {
@@ -961,14 +1036,15 @@ class Mesin {
     if (op === '<' || op === '>' || op === '<=' || op === '>=') return bandingkan(op as OpBanding, pa, pb)
     if (op === '&' || op === '|' || op === '^') return operasiBit(op as OpBit, pa, pb, p.nama)
     const h = aritmetika(op as OpAritmetika, pa, pb, p.nama)
-    const teks = `${this.tampil(pa, p)} ${op} ${this.tampil(pb, p)}`
-    if (h.overflow) this.emit({ k: 'aritmetika', jenis: 'overflow', teks, hasil: this.tampil(h.nilai, p), tepat: h.overflow, tipe: p.nama })
+    if (this.opsi.modeHitung) return h.nilai
+    const teks = () => `${this.tampil(pa, p)} ${op} ${this.tampil(pb, p)}`
+    if (h.overflow) this.emit({ k: 'aritmetika', jenis: 'overflow', teks: teks(), hasil: this.tampil(h.nilai, p), tepat: h.overflow, tipe: p.nama })
     else if (op === '/' && adalahIntegral(p) && (typeof pa === 'bigint' ? (pa as bigint) % (pb as bigint) !== 0n : (pa as number) % (pb as number) !== 0)) {
-      this.emit({ k: 'aritmetika', jenis: 'bagi-bulat', teks, hasil: this.tampil(h.nilai, p), tipe: p.nama })
+      this.emit({ k: 'aritmetika', jenis: 'bagi-bulat', teks: teks(), hasil: this.tampil(h.nilai, p), tipe: p.nama })
     } else if (op === '%' && adalahIntegral(p)) {
-      this.emit({ k: 'aritmetika', jenis: 'sisa', teks, hasil: this.tampil(h.nilai, p), tipe: p.nama })
+      this.emit({ k: 'aritmetika', jenis: 'sisa', teks: teks(), hasil: this.tampil(h.nilai, p), tipe: p.nama })
     } else if (op === '/' && !adalahIntegral(p) && pb === 0) {
-      this.emit({ k: 'aritmetika', jenis: 'bagi-nol-pecahan', teks, hasil: this.tampil(h.nilai, p), tipe: p.nama })
+      this.emit({ k: 'aritmetika', jenis: 'bagi-nol-pecahan', teks: teks(), hasil: this.tampil(h.nilai, p), tipe: p.nama })
     }
     return h.nilai
   }
@@ -1135,6 +1211,7 @@ class Mesin {
     konteks: 'if' | 'while' | 'for' | 'do-while' | 'ternary',
     tambahan: { adaLain?: boolean; pertama?: boolean } = {},
   ): boolean {
+    if (this.opsi.modeHitung) return this.eval(e) as boolean
     const { nilai, pohon } = this.evalPohon(e)
     this.emit({ k: 'evaluasi', konteks, teks: this.src(e), pohon, hasil: nilai ? 'true' : 'false', ...tambahan })
     return nilai as boolean

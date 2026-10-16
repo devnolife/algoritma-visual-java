@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { periksaTantangan, rapikanOutput } from '@/lessons/tantangan/periksa'
-import { penjalanLangsung } from '@/lessons/tantangan/penjalanLangsung'
+import { pengukurLangsung, penjalanLangsung } from '@/lessons/tantangan/penjalanLangsung'
 import type { Tantangan } from '@/lessons/skema'
 
 const jalan = penjalanLangsung()
@@ -139,5 +139,63 @@ describe('periksaTantangan', () => {
     )
     expect(h.butir[0].rincian).toBe('Diharapkan 7.5, ternyata 7.0.')
     expect(h.butir[1].rincian).toBe("Diharapkan 'A', ternyata 'B'.")
+  })
+})
+
+describe('cek kompleksitas', () => {
+  const konfig = {
+    variabel: 'n',
+    nilai: [8, 16, 32, 64, 128],
+    ukur: 'perbandingan',
+    seri: [
+      { nama: 'acak', ganti: {} },
+      { nama: 'terurut', ganti: { terurut: true } },
+    ],
+  }
+  const bubble = (berhentiDini: boolean) =>
+    program(`        int n = 8;
+        boolean terurut = false;
+        int[] data = new int[n];
+        for (int i = 0; i < n; i++) data[i] = terurut ? i : (i * 37 + 11) % n;
+        int perbandingan = 0;
+        for (int i = 0; i < n - 1; i++) {
+            boolean tukar = false;
+            for (int j = 0; j < n - 1 - i; j++) {
+                perbandingan++;
+                if (data[j] > data[j + 1]) {
+                    int t = data[j]; data[j] = data[j + 1]; data[j + 1] = t;
+                    tukar = true;
+                }
+            }
+            ${berhentiDini ? 'if (!tukar) break;' : ''}
+        }`)
+  const opsi = { ukur: pengukurLangsung(), pertumbuhan: konfig }
+
+  it('lulus bila seri yang diminta tidak lebih buruk dari batas', async () => {
+    const t = tantangan([{ jenis: 'kompleksitas', maks: 'n', seri: 'terurut' }])
+    const lulus = await periksaTantangan(t, bubble(true), jalan, opsi)
+    expect(lulus.lulus).toBe(true)
+    expect(lulus.butir[0].pesan).toBe('Pertumbuhannya O(n), tidak lebih buruk dari O(n).')
+    const gagal = await periksaTantangan(t, bubble(false), jalan, opsi)
+    expect(gagal.lulus).toBe(false)
+    expect(gagal.butir[0].pesan).toBe('Pertumbuhannya masih O(n²); yang diminta paling buruk O(n).')
+    expect(gagal.butir[0].rincian).toMatch(/naik 4×/)
+  })
+
+  it('tanpa nama seri, semua seri harus memenuhi', async () => {
+    const t = tantangan([{ jenis: 'kompleksitas', maks: 'n' }])
+    const h = await periksaTantangan(t, bubble(true), jalan, opsi)
+    expect(h.lulus).toBe(false)
+    expect(h.butir[0].pesan).toMatch(/O\(n²\) \(seri acak\)/)
+    expect((await periksaTantangan(tantangan([{ jenis: 'kompleksitas', maks: 'n^2' }]), bubble(true), jalan, opsi)).lulus).toBe(true)
+  })
+
+  it('melaporkan konfigurasi yang hilang dan variabel yang dihapus', async () => {
+    const t = tantangan([{ jenis: 'kompleksitas', maks: 'n' }])
+    expect((await periksaTantangan(t, bubble(true), jalan)).butir[0].pesan).toMatch(/belum dikonfigurasi/)
+    const tanpaN = bubble(true).replace('int n = 8;', 'int n = 8 + 0 * 1;').replace(/\bn\b/g, 'ukuran')
+    const h = await periksaTantangan(t, tanpaN, jalan, opsi)
+    expect(h.butir[0].pesan).toBe('Pertumbuhan program belum bisa diukur.')
+    expect(h.butir[0].rincian).toMatch(/`n` tidak ditemukan/)
   })
 })

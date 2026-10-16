@@ -119,6 +119,7 @@ export function HalamanPelajaran() {
           catatan={p.catatan}
           pantau={p.meta.pantau}
           batasLangkah={p.meta.batasLangkah}
+          pertumbuhan={p.meta.pertumbuhan}
         />
       </div>
     </div>

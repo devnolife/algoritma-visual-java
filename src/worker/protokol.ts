@@ -1,9 +1,29 @@
 import type { Diagnostik, OpsiJalan, Trace } from '@/engine'
+import type { HasilPertumbuhan, KonfigPertumbuhan } from '@/engine/pertumbuhan'
 
-export interface PermintaanEngine {
+export interface PermintaanJalan {
+  jenis?: 'jalan'
   id: number
   sumber: string
   opsi: OpsiJalan
+}
+
+/** Ukur program pada beberapa ukuran n untuk grafik pertumbuhan. */
+export interface PermintaanUkur {
+  jenis: 'ukur'
+  id: number
+  sumber: string
+  konfig: KonfigPertumbuhan
+  opsi: { stdin?: string; seed?: number }
+}
+
+export type PermintaanEngine = PermintaanJalan | PermintaanUkur
+
+export interface HasilUkur {
+  jenis: 'ukur'
+  id: number
+  hasil: HasilPertumbuhan
+  durasiMs: number
 }
 
 export interface HasilEngine {

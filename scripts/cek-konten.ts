@@ -5,13 +5,16 @@
  * - setiap tantangan punya solusi `solusi/<id>.java` yang lulus semua cek;
  * - kode awal belum langsung lulus tantangan;
  * - setiap penanda `// #nama` punya `## Catatan #nama`, dan sebaliknya;
- * - variabel yang disebut di `visual`/`pantau` memang muncul saat program berjalan.
+ * - variabel yang disebut di `visual`/`pantau` memang muncul saat program berjalan;
+ * - grafik `pertumbuhan` bisa diukur pada kode awal.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { jalankan, kompilasi, PembacaTrace } from '@/engine'
+import { analisisKonstruksi } from '@/engine/analisis'
+import { ukurPertumbuhan } from '@/engine/ukurPertumbuhan'
 import { periksaTantangan } from '@/lessons/tantangan/periksa'
-import { penjalanLangsung } from '@/lessons/tantangan/penjalanLangsung'
+import { pengukurLangsung, penjalanLangsung } from '@/lessons/tantangan/penjalanLangsung'
 import { GalatKonten, susunKonten, type Pelajaran } from '@/lessons/urai'
 
 const AKAR = process.env.KONTEN ?? 'content'
@@ -57,7 +60,9 @@ function namaVariabelTerpakai(sumber: string, input: string, batasLangkah?: numb
   const trace = jalankan(k, { stdin: input, batasLangkah })
   const pembaca = new PembacaTrace(trace)
   for (let i = 0; i < trace.langkah.length; i++) {
-    for (const f of pembaca.stateDi(i).frames) for (const v of f.vars) nama.add(v.nama)
+    const s = pembaca.stateDi(i)
+    for (const f of s.frames) for (const v of f.vars) nama.add(v.nama)
+    for (const v of s.statik) nama.add(v.nama)
   }
   return nama
 }
@@ -92,13 +97,37 @@ async function cekPelajaran(p: Pelajaran): Promise<void> {
   const disebut = new Set<string>(p.meta.pantau)
   for (const v of p.meta.visual) {
     if ('variabel' in v) disebut.add(v.variabel)
-    if (v.jenis === 'array') for (const x of v.penunjuk ?? []) disebut.add(x)
-    if (v.jenis === 'array2d') for (const x of [v.baris, v.kolom]) if (x) disebut.add(x)
+    if (v.jenis === 'array') for (const x of [...(v.penunjuk ?? []), ...(v.rentang ?? [])]) disebut.add(x)
+    if (v.jenis === 'array2d') {
+      for (const x of [v.baris, v.kolom]) if (x) disebut.add(x)
+      for (const x of [v.labelBaris, v.labelKolom]) if (typeof x === 'string') disebut.add(x)
+    }
+    if (v.jenis === 'graf') {
+      for (const x of [v.dikunjungi, v.label, ...(v.simpul ?? [])]) if (x) disebut.add(x)
+      if (typeof v.nama === 'string') disebut.add(v.nama)
+    }
+    if (v.jenis === 'pohonPanggilan' && v.method && !analisisKonstruksi(k.program!).includes(`method:${v.method}`)) {
+      peringatan(`${lokasi}/pelajaran.md`, `Visual pohonPanggilan memfilter method \`${v.method}\`, tetapi method itu tidak ada di Main.java.`)
+    }
   }
   for (const n of disebut) if (!terpakai.has(n)) peringatan(`${lokasi}/pelajaran.md`, `Variabel \`${n}\` disebut di visual/pantau, tetapi tidak pernah muncul saat kode awal dijalankan.`)
 
-  // 4. Tantangan: solusi lulus, kode awal belum lulus.
+  // 4. Grafik pertumbuhan bisa diukur pada kode awal.
+  if (p.meta.pertumbuhan) {
+    const h = ukurPertumbuhan(k, p.meta.pertumbuhan, { stdin: p.meta.input, anggaranMs: Infinity })
+    if (h.galat) error(`${lokasi}/pelajaran.md`, `Grafik pertumbuhan tidak bisa diukur: ${h.galat}`)
+    for (const s of h.seri) {
+      const ok = s.titik.filter((t) => t.status === 'ok')
+      if (ok.length < 2) error(`${lokasi}/pelajaran.md`, `Seri pertumbuhan "${s.nama}" butuh minimal 2 ukuran n yang selesai normal.`)
+      for (const t of s.titik.filter((x) => x.status !== 'ok')) {
+        peringatan(`${lokasi}/pelajaran.md`, `Seri "${s.nama}", n = ${t.n}: ${t.status}${t.pesan ? ` (${t.pesan})` : ''}. Pertimbangkan ukuran n yang lebih kecil.`)
+      }
+    }
+  }
+
+  // 5. Tantangan: solusi lulus, kode awal belum lulus.
   const jalan = penjalanLangsung(p.meta.batasLangkah)
+  const opsiPeriksa = { ukur: pengukurLangsung(p.meta.input), pertumbuhan: p.meta.pertumbuhan }
   const idTantangan = new Set<string>()
   for (const t of p.tantangan) {
     if (idTantangan.has(t.id)) error(`${lokasi}/tantangan.yaml`, `id tantangan "${t.id}" dipakai lebih dari sekali.`)
@@ -109,12 +138,12 @@ async function cekPelajaran(p: Pelajaran): Promise<void> {
       continue
     }
     const solusi = readFileSync(berkasSolusi, 'utf8').replace(/\r\n/g, '\n')
-    const hs = await periksaTantangan(t, solusi, jalan)
+    const hs = await periksaTantangan(t, solusi, jalan, opsiPeriksa)
     if (!hs.lulus) {
       const gagal = hs.butir.filter((b) => !b.lulus).map((b) => `- ${b.pesan}${b.rincian ? `\n  ${b.rincian.replace(/\n/g, '\n  ')}` : ''}`)
       error(`${lokasi}/solusi/${t.id}.java`, `Solusi tidak lulus tantangan "${t.id}":\n${gagal.join('\n')}`)
     }
-    const ha = await periksaTantangan(t, p.kode, jalan)
+    const ha = await periksaTantangan(t, p.kode, jalan, opsiPeriksa)
     if (ha.lulus) error(`${lokasi}/tantangan.yaml`, `Kode awal sudah lulus tantangan "${t.id}" tanpa diubah. Tambahkan cek yang menuntut perubahan.`)
   }
   if (existsSync(join(dir, 'solusi'))) {

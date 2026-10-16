@@ -316,15 +316,15 @@ Kita hanya mengganti maks bila menemukan nilai yang lebih besar.
 
 Ditambah halaman **Ruang Coba**: editor bebas dengan visual otomatis (memori, array, evaluasi, konsol) dan panel input.
 
-### Roadmap (di luar eksekusi Fase 1)
-- **Fase 2: Modul 2 Struktur Data.**
-  - Mesin: class & objek (`this`, `null`, static nested class), heap/referensi, koleksi generik bawaan, autoboxing, `try/catch`.
-  - Renderer: node + panah (linked list), stack/queue, tabel hash, pohon/BST, heap, graf.
-  - Materi: ArrayList, Linked List, Stack, Queue, HashMap, Tree/BST, Heap/PriorityQueue, Graph.
-- **Fase 3: Modul 3 Strategi Algoritma.**
-  - Mesin: penghitung operasi untuk kompleksitas (grafik pertumbuhan).
-  - Renderer: batang untuk sorting, tabel DP, papan backtracking, graf berbobot.
-  - Materi: brute force, searching (linear, binary), sorting (bubble, selection, insertion, merge, quick), divide & conquer, greedy (koin, activity selection, Dijkstra), DP (fibonacci memo, knapsack 0/1, LCS), backtracking (N-Queens, subset sum), BFS/DFS.
+### Roadmap
+- **Modul 3: Strategi Algoritma** (dikerjakan lebih dulu karena cukup memakai subset Fase 1).
+  - Mesin: grafik pertumbuhan, yaitu program dijalankan untuk beberapa ukuran n lalu jumlah operasinya dibandingkan dengan kurva acuan.
+  - Renderer: rentang aktif pada array, pohon panggilan, tabel DP berlabel, papan backtracking, graf dari matriks.
+  - Materi (16 pelajaran): analisis & Big-O, brute force, pencarian linear & biner, bubble/selection/insertion/merge/quick sort, divide & conquer, greedy, DP (Fibonacci, knapsack 0/1, LCS), N-Queens, BFS & DFS, Dijkstra.
+- **Fase 2 + Modul 2: Struktur Data.**
+  - Mesin: lihat [§11](#11-fase-2-perluasan-mesin-untuk-struktur-data).
+  - Renderer: memori objek dan alur exception, rantai node, pohon, tumpukan, antrean, tabel hash, koleksi `java.util` (abstrak + "Lihat isi dalam"), graf dari daftar ketetanggaan.
+  - Materi (15 pelajaran): class & objek, konstruktor & `this`, exception, ArrayList & wrapper, singly/doubly linked list, stack, queue, hashing, HashMap & HashSet, pohon biner, BST, heap & PriorityQueue, graf, mengurutkan objek & Iterator.
 
 ## 10. Pengujian & kualitas
 - **Unit (Vitest):**
@@ -347,3 +347,82 @@ Ditambah halaman **Ruang Coba**: editor bebas dengan visual otomatis (memori, ar
 - **QA desain:** `review-animations`, `fixing-accessibility`, `web-design-guidelines`, `impeccable`; cek tema terang untuk proyektor.
 - **Target performa:** kompilasi + jalan pelajaran biasa < 100 ms; `stateAt` < 5 ms; animasi 60 fps.
 
+
+## 11. Fase 2: perluasan mesin untuk Struktur Data
+
+Prinsipnya sama dengan Fase 1: setiap perilaku harus identik dengan JDK 21 dan dibuktikan lewat uji diferensial. Konstruksi di luar subset ini tetap mendapat pesan "[Simulator] … belum didukung" beserta alternatifnya.
+
+### 11.1 Subset Java tambahan
+- **Struktur:** beberapa class dalam satu file (`public class Main` + class non-public), class bersarang `static`, dan inner class (non-static) yang dibuat dari konteks instance. Nama biner JVM (`Main$Node`) dipakai di `toString` bawaan, stack trace, dan nama exception.
+- **Anggota class:** field instance/static dengan initializer, konstruktor (overload, konstruktor bawaan, `this(...)`), method instance, `this`, modifier akses dengan aturan javac, dan field `final` yang wajib terisi di konstruktor.
+- **Override method `Object`:** `toString()`, `equals(Object)`, `hashCode()`, dengan `@Override` divalidasi. Ketiganya dipanggil otomatis oleh `println`, konkatenasi, dan koleksi. Casting `Object` → class sendiri didukung (`ClassCastException`).
+- **`implements Comparable<T>`** dan **lambda yang bertarget `Comparator<T>`**. Variabel yang ditangkap lambda wajib *effectively final*.
+- **Exception:** `try/catch` (termasuk multi-catch), `finally`, `throw`, `throws`, checked vs unchecked. `extends` hanya diizinkan untuk exception (`Exception`, `RuntimeException`, atau exception bawaan lain) dengan `super(pesan)`. Tersedia `getMessage()`, `toString()`, `printStackTrace()`; `StackOverflowError` bisa ditangkap.
+- **Wrapper & autoboxing:** `Integer`, `Long`, `Double`, `Character`, `Boolean`, dengan cache −128..127 persis JDK; unboxing `null` menghasilkan NPE.
+- **Generik untuk tipe pustaka saja:** argumen tipe, bentuk bersarang, diamond `<>`, tipe antarmuka (`List`, `Map`, `Set`, `Queue`, `Deque`, `Collection`, `Iterable`, `Iterator`, `Map.Entry`), dan for-each pada koleksi.
+- **Pustaka:** `StringBuilder`; `ArrayList`, `LinkedList`, `ArrayDeque`, `Stack`, `HashMap`, `HashSet`, `LinkedHashMap`, `LinkedHashSet`, `TreeMap`, `TreeSet`, `PriorityQueue`, `Iterator`; `Collections`, `Arrays.asList`, `List.of`, `Integer.compare`; `Random` dengan seed (deret LCG identik dengan JDK).
+- **Tetap ditolak:** class/method generik buatan sendiri, wildcard, pewarisan antar-class biasa, interface/abstract buatan sendiri, `instanceof`, enum, record, anonymous/local class, lambda selain `Comparator`, method reference, stream, `var`, `Map.of`/`Set.of` (urutan iterasinya diacak JDK per run), thread, I/O file.
+
+### 11.2 Model runtime
+- **Objek heap baru:**
+  - `objek` `{ kelas, field, tipeField, internal? }`: class mahasiswa, exception, dan objek internal koleksi;
+  - `boks` (wrapper), `pembangun` (StringBuilder), `lambda` (AST + nilai tangkapan).
+- **Exception** adalah objek biasa. Jejak stack-nya direkam saat objek dibuat (seperti `fillInStackTrace`), bukan saat dilempar.
+- **Frame:** `this` tampil sebagai variabel pertama method instance. Konstruktor menjadi frame `Node(…)`, dan di stack trace bernama `Node.<init>`.
+- **Peristiwa baru:** `tulis-field` (mengubah state); `baca-field`, `lempar`, `tangkap`, `finally`, `boxing` (informatif).
+- **Callback pustaka → kode mahasiswa:** `KonteksPustaka.panggil(objek, method, argumen)` menjalankan `toString`, `compareTo`, `compare`, `equals`, atau `hashCode` milik mahasiswa secara rekursif. Frame dan langkahnya ikut terekam, dengan baris pemanggil = baris pemanggilan pustaka.
+- **Pesan NPE** mengikuti JDK 21 (JEP 358), misalnya `Cannot read field "next" because "curr" is null`.
+- **Nilai akhir untuk cek tantangan:** objek → `{field: nilai}`, List/Set → array, Map → objek kunci → nilai.
+- **Nilai yang tidak deterministik di JVM** (hash identitas, `toString` bawaan `Node@1b6d3586`) dibuat deterministik oleh simulator; narasi menjelaskannya dan korpus tidak mencetaknya.
+
+### 11.3 Koleksi `java.util`
+Setiap koleksi dimodelkan sebagai objek heap dengan field yang sama seperti JDK 21:
+
+| Koleksi | Field yang dimodelkan |
+|---|---|
+| `ArrayList` | `elementData`, `size`, `modCount` |
+| `HashMap` | `table`, `size`, `threshold`, `modCount`; node `HashMap$Node{hash, key, value, next}` |
+| `LinkedHashMap` | seperti `HashMap`, ditambah `head`, `tail`, dan `before`/`after` per node |
+| `HashSet` / `LinkedHashSet` | `map` |
+| `LinkedList` | `first`, `last`, `size`; node `LinkedList$Node{item, next, prev}` |
+| `ArrayDeque` | `elements`, `head`, `tail` |
+| `Stack` (`Vector`) | `elementData`, `elementCount` |
+| `PriorityQueue` | `queue`, `size` |
+| `TreeMap` / `TreeSet` | `root`, `size`; node `TreeMap$Entry{key, value, left, right, parent, color}` |
+
+- **Perilaku yang wajib identik:** urutan iterasi dan `toString`, pertumbuhan kapasitas, penyebaran hash dan pemecahan bucket saat resize, siftUp/siftDown, penyeimbangan red-black, `modCount` + iterator → `ConcurrentModificationException` (termasuk kasus yang tidak melempar), pesan exception, serta urutan pemanggilan `compareTo`/`compare` saat sort dan pada heap.
+- **Implementasi ditulis sendiri** dari dokumentasi dan perilaku teramati, tanpa menyalin kode OpenJDK. Verifikasinya dua lapis: korpus diferensial, dan harness refleksi JDK (`--add-opens java.base/java.util=ALL-UNNAMED`) yang membuang isi field internal sebagai fixture unit test.
+- **"Lihat isi dalam"** menggambar objek-objek internal ini; tampilan abstrak dihitung darinya.
+- **Batasan:** treeification bucket HashMap (≥ 8 tabrakan dengan tabel ≥ 64) tidak dimodelkan.
+
+### 11.4 Type checker & analisis alur
+- **Class:** tabel class (mahasiswa + pustaka), pencarian nama bertingkat (lokal → field class → class luar), konteks static/instance, konstruktor + overload, aturan akses, `@Override`.
+- **Tipe:** argumen dan variabel tipe pustaka, hierarki antarmuka pustaka, invariansi generik, diamond yang tipenya diambil dari target, boxing/unboxing, resolusi overload 3 fase (JLS 15.12.2; contoh `list.remove(1)` vs `remove(Integer)`).
+- **Lambda → `Comparator<T>`:** tipe parameter dari target, badan ekspresi atau blok, analisis *effectively final*.
+- **Exception:** hierarki `Throwable`, analisis checked exception, `throws`, urutan catch.
+- **Analisis alur:** *definite assignment* dan keterjangkauan untuk try/catch/finally (JLS 16.2.15), `throw`, field `final` di konstruktor, badan lambda.
+
+### 11.5 Katalog error tambahan (teks persis javac 21)
+- **Class dan objek:**
+  - `non-static variable this cannot be referenced from a static context`;
+  - `constructor X in class X cannot be applied to given types;`, `no suitable constructor found for …`;
+  - `x has private access in X`;
+  - `variable x not initialized in the default constructor`;
+  - `call to super must be first statement in constructor`;
+  - `duplicate class: X`, `modifier static not allowed here`.
+- **Override:**
+  - `method does not override or implement a method from a supertype`;
+  - `toString() in X cannot override toString() in Object`;
+  - `X is not abstract and does not override abstract method compareTo(X) in Comparable`.
+- **Generik:** `unexpected type`, `incompatible types: String cannot be converted to Integer`, `generic array creation`.
+- **Exception:**
+  - `unreported exception X; must be caught or declared to be thrown`;
+  - `exception X is never thrown in body of corresponding try statement`;
+  - `exception X has already been caught`;
+  - `'try' without 'catch', 'finally' or resource declarations`.
+- **Lambda:** `local variables referenced from a lambda expression must be final or effectively final`, `incompatible types: bad return type in lambda expression`.
+
+### 11.6 Pengujian
+- **Korpus Fase 2:** disiapkan di folder staging `tests/korpus-fase2/` dan `tests/korpus-error-fase2/` (≥ 150 program jalan, ≥ 100 program error). Selama staging, `pnpm uji:diferensial -- --hanya-jdk` hanya menjalankan JDK pada folder ini. Setelah integrasi, korpus dipindah ke folder utama.
+- **Target:** seluruh korpus lama dan baru identik dengan JDK 21. Untuk diagnostik generik yang sangat panjang, minimal baris pertama dan posisinya identik; kasus ini dilaporkan terpisah.
+- **Anggaran performa:** kompilasi + eksekusi satu pelajaran < 5 ms (median), `stateDi` < 1 ms, 60 fps pada build produksi.

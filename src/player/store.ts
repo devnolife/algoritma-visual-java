@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { PembacaTrace, type Trace } from '@/engine'
+import type { HasilPertumbuhan } from '@/engine/pertumbuhan'
 import type { HasilEngine } from '@/worker/protokol'
 
 export type Kecepatan = 0.5 | 1 | 2 | 4
@@ -25,6 +26,9 @@ export interface StatePemutar {
   jumlahRun: number
   /** Seed Math.random; undefined = seed bawaan mesin (hasil acak stabil saat kode diedit). */
   seed: number | undefined
+  /** Hasil grafik pertumbuhan untuk kode valid terakhir. */
+  pertumbuhan: HasilPertumbuhan | null
+  memuatPertumbuhan: boolean
 
   muat: (sumber: string, stdin: string) => void
   setSumber: (sumber: string) => void
@@ -33,6 +37,8 @@ export interface StatePemutar {
   acakUlang: () => void
   mulaiJalan: () => void
   terimaHasil: (versi: number, h: HasilEngine) => void
+  mulaiUkur: () => void
+  terimaPertumbuhan: (versi: number, h: HasilPertumbuhan) => void
   keLangkah: (i: number) => void
   maju: (n?: number) => void
   mundur: (n?: number) => void
@@ -60,6 +66,8 @@ export const usePemutar = create<StatePemutar>((set, get) => ({
   menyeret: false,
   jumlahRun: 0,
   seed: undefined,
+  pertumbuhan: null,
+  memuatPertumbuhan: false,
 
   muat: (sumber, stdin) =>
     set({
@@ -75,6 +83,8 @@ export const usePemutar = create<StatePemutar>((set, get) => ({
       bermain: false,
       jumlahRun: 0,
       seed: undefined,
+      pertumbuhan: null,
+      memuatPertumbuhan: false,
     }),
   setSumber: (sumber) => {
     if (sumber === get().sumber) return
@@ -110,6 +120,12 @@ export const usePemutar = create<StatePemutar>((set, get) => ({
     } else {
       set({ sedangJalan: false, hasil: h, bermain: false })
     }
+  },
+  mulaiUkur: () => set({ memuatPertumbuhan: true }),
+  terimaPertumbuhan: (versi, h) => {
+    // Hasil basi (kode sudah berubah lagi) atau permintaan yang dibatalkan diabaikan; permintaan yang lebih baru sedang berjalan.
+    if (versi !== get().versi || h.galat === 'dibatalkan') return
+    set({ pertumbuhan: h, memuatPertumbuhan: false })
   },
   keLangkah: (i) => {
     const n = get().trace?.langkah.length ?? 0
