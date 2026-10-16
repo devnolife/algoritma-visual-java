@@ -11,6 +11,7 @@ export function KartuPenjelasan({
   sumber,
   penanda,
   catatan,
+  diam = false,
 }: {
   trace: Trace
   indeks: number
@@ -18,6 +19,8 @@ export function KartuPenjelasan({
   sumber: string
   penanda: Record<number, string>
   catatan?: Record<string, string>
+  /** true saat putar otomatis: narasi tidak diumumkan pembaca layar agar tidak menumpuk. */
+  diam?: boolean
 }) {
   const narasi = useMemo(() => narasikan(trace, indeks, state, { sumber, penanda, catatan }), [trace, indeks, state, sumber, penanda, catatan])
   const l = trace.langkah[indeks]
@@ -30,7 +33,7 @@ export function KartuPenjelasan({
         {l && l.baris > 0 ? `baris ${l.baris}` : `langkah ${indeks + 1}`}
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-2">
-      <div aria-live="polite" className="flex flex-col gap-1.5 text-[15px] leading-relaxed">
+      <div aria-live={diam ? 'off' : 'polite'} className="flex flex-col gap-1.5 text-[15px] leading-relaxed">
         {narasi.kalimat.map((k, i) => (
           <p key={i}>
             <TeksSebaris teks={k} />
@@ -38,7 +41,7 @@ export function KartuPenjelasan({
         ))}
         {narasi.peringatan.map((k, i) => (
           <p key={`p${i}`} className="flex gap-2 rounded-lg bg-banding-lembut px-3 py-2 text-[14px]">
-            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-banding" aria-hidden="true" />
+            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-banding-teks" aria-hidden="true" />
             <span>
               <TeksSebaris teks={k} />
             </span>

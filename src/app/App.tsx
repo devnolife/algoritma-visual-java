@@ -1,17 +1,44 @@
 import { MotionConfig } from 'motion/react'
+import { lazy, Suspense, useEffect } from 'react'
 import { HashRouter, Route, Routes } from 'react-router'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { Beranda } from './halaman/Beranda'
 import { HalamanModul } from './halaman/HalamanModul'
-import { HalamanPelajaran } from './halaman/HalamanPelajaran'
-import { RuangCoba } from './halaman/RuangCoba'
 import { TidakDitemukan } from './halaman/TidakDitemukan'
 import { PemberitahuanLayar } from './komponen/PemberitahuanLayar'
 import { BatasGalat } from './komponen/BatasGalat'
 import { GalatMateri } from './komponen/GalatMateri'
 import './tema'
 
+// Halaman pemutar (editor, visualisasi, Markdown) dimuat terpisah agar Beranda dan daftar modul tampil cepat.
+const muatPelajaran = () => import('./halaman/HalamanPelajaran')
+const muatRuangCoba = () => import('./halaman/RuangCoba')
+const HalamanPelajaran = lazy(() => muatPelajaran().then((m) => ({ default: m.HalamanPelajaran })))
+const RuangCoba = lazy(() => muatRuangCoba().then((m) => ({ default: m.RuangCoba })))
+
+function MemuatHalaman() {
+  return (
+    <div className="grid h-dvh place-items-center text-[14px] text-muted-foreground" role="status">
+      Memuat…
+    </div>
+  )
+}
+
 export function App() {
+  // Unduh halaman pemutar di latar belakang saat browser senggang, sehingga berpindah halaman tetap instan.
+  useEffect(() => {
+    const unduh = () => {
+      void muatPelajaran()
+      void muatRuangCoba()
+    }
+    if (typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(unduh, { timeout: 3000 })
+      return () => window.cancelIdleCallback(id)
+    }
+    const id = setTimeout(unduh, 1500)
+    return () => clearTimeout(id)
+  }, [])
+
   return (
     <HashRouter>
       <MotionConfig reducedMotion="user">
@@ -19,13 +46,15 @@ export function App() {
           <PemberitahuanLayar />
           <GalatMateri />
           <BatasGalat>
-            <Routes>
-              <Route path="/" element={<Beranda />} />
-              <Route path="/ruang-coba" element={<RuangCoba />} />
-              <Route path="/modul/:modul" element={<HalamanModul />} />
-              <Route path="/modul/:modul/:pelajaran" element={<HalamanPelajaran />} />
-              <Route path="*" element={<TidakDitemukan />} />
-            </Routes>
+            <Suspense fallback={<MemuatHalaman />}>
+              <Routes>
+                <Route path="/" element={<Beranda />} />
+                <Route path="/ruang-coba" element={<RuangCoba />} />
+                <Route path="/modul/:modul" element={<HalamanModul />} />
+                <Route path="/modul/:modul/:pelajaran" element={<HalamanPelajaran />} />
+                <Route path="*" element={<TidakDitemukan />} />
+              </Routes>
+            </Suspense>
           </BatasGalat>
         </TooltipProvider>
       </MotionConfig>

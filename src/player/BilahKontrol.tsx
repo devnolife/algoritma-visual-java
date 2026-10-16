@@ -136,7 +136,7 @@ export function BilahKontrol({ pantau = [] }: { pantau?: string[] }) {
           Langkah <b className="text-foreground">{n === 0 ? 0 : langkah + 1}</b> / {n}
         </span>
         {jumlahRun > 1 && (
-          <span key={jumlahRun} className="info-run absolute -bottom-3 whitespace-nowrap text-[11px] text-tulis" role="status">
+          <span key={jumlahRun} className="info-run absolute -bottom-3 whitespace-nowrap text-[11px] text-tulis-teks" role="status">
             Dijalankan ulang · {n} langkah
           </span>
         )}
@@ -151,7 +151,7 @@ export function BilahKontrol({ pantau = [] }: { pantau?: string[] }) {
         aria-label="Kecepatan putar"
       >
         {(['0.5', '1', '2', '4'] as const).map((k) => (
-          <ToggleGroupItem key={k} value={k} aria-label={`Kecepatan ${k === '0.5' ? 'setengah' : k} kali`} className="px-2 text-[12px] tabular-nums">
+          <ToggleGroupItem key={k} value={k} className="px-2 text-[12px] tabular-nums">
             {k === '0.5' ? '½' : k}×
           </ToggleGroupItem>
         ))}

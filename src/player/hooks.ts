@@ -49,20 +49,28 @@ export function usePutarOtomatis(): void {
   }, [bermain, langkah, kecepatan, total])
 }
 
-function fokusDiInput(): boolean {
+/** Elemen yang memakai sendiri tombol panah/Home/End (navigasi bawaan widget). */
+const PEMILIK_PANAH =
+  '.cm-editor, input, textarea, select, [contenteditable="true"], [role="slider"], [role="tab"], [role="tablist"], [role="radio"], [role="radiogroup"], [role="menuitem"], [role="option"], [role="listbox"], [role="combobox"]'
+/** Elemen yang diaktifkan dengan Spasi (tombol, tautan, kotak centang, …). */
+const PEMILIK_SPASI = `${PEMILIK_PANAH}, button, a[href], summary, [role="button"], [role="checkbox"], [role="switch"], [role="link"]`
+
+/** Apakah elemen yang sedang fokus (atau dialog yang terbuka) seharusnya menangani tombol ini sendiri. */
+function tombolMilikElemenLain(key: string): boolean {
+  if (document.querySelector('[role="dialog"], [role="alertdialog"]')) return true
   const el = document.activeElement
-  if (!el) return false
-  return el.closest('.cm-editor, input, textarea, select, [contenteditable="true"], [role="slider"]') !== null
+  if (!el || el === document.body) return false
+  return el.closest(key === ' ' ? PEMILIK_SPASI : PEMILIK_PANAH) !== null
 }
 
-/** Pintasan keyboard pemutar: ←/→, Shift+←/→ (±10), Home/End, Spasi. Tidak aktif saat mengetik. */
+/** Pintasan keyboard pemutar: ←/→, Shift+←/→ (±10), Home/End, Spasi. Tidak aktif saat mengetik atau memakai widget lain. */
 export function usePintasanPemutar(): void {
   useEffect(() => {
     const lepas = () => {
       if (usePemutar.getState().menyeret) usePemutar.getState().setMenyeret(false)
     }
     const tangani = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey || fokusDiInput()) return
+      if (e.ctrlKey || e.metaKey || e.altKey || tombolMilikElemenLain(e.key)) return
       const s = usePemutar.getState()
       if (!s.trace) return
       // Tombol ditahan: render instan tanpa transisi.

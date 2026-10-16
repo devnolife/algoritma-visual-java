@@ -38,6 +38,7 @@ export function RuangCoba() {
         <Remah>Ruang Coba</Remah>
         <span className="hidden text-[13px] xl:inline">· tulis kode Java apa saja dan lihat langkahnya</span>
       </Kepala>
+      <h1 className="sr-only">Ruang Coba: tulis kode Java dan lihat langkah eksekusinya</h1>
       <div className="flex min-h-0 flex-1">
         <Pemutar kodeAwal={KODE_AWAL} konfigVisual={visual} />
       </div>

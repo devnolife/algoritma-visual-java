@@ -49,6 +49,7 @@ export function Pemutar({ kodeAwal, konfigVisual = VISUAL_BAWAAN, catatan, panta
   const hasil = usePemutar((s) => s.hasil)
   const sedangJalan = usePemutar((s) => s.sedangJalan)
   const menyeret = usePemutar((s) => s.menyeret)
+  const bermain = usePemutar((s) => s.bermain)
   const penanda = usePemutar((s) => s.penanda)
   const pakaiAcak = usePemutar((s) => s.konstruksi.includes('pustaka:Math.random'))
   const basi = traceBasi({ hasil, trace })
@@ -110,7 +111,7 @@ export function Pemutar({ kodeAwal, konfigVisual = VISUAL_BAWAAN, catatan, panta
           )}
         </div>
         {trace && state && !basi && (
-          <KartuPenjelasan trace={trace} indeks={langkah} state={state} sumber={sumber} penanda={penanda} catatan={catatan} />
+          <KartuPenjelasan trace={trace} indeks={langkah} state={state} sumber={sumber} penanda={penanda} catatan={catatan} diam={bermain} />
         )}
       </main>
 

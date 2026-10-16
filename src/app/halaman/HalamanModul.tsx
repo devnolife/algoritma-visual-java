@@ -38,7 +38,7 @@ export function HalamanModul() {
                   to={`/modul/${m.slug}/${p.slug}`}
                   className="group grid grid-cols-[48px_minmax(0,1fr)_150px_20px] items-center gap-5 py-5 outline-none focus-visible:bg-secondary/60"
                 >
-                  <span className="font-heading text-[26px] text-muted-foreground/70">{String(p.meta.urutan).padStart(2, '0')}</span>
+                  <span className="font-heading text-[26px] text-muted-foreground">{String(p.meta.urutan).padStart(2, '0')}</span>
                   <span className="flex flex-col gap-0.5">
                     <span className="font-heading text-[19px] group-hover:underline group-hover:decoration-1 group-hover:underline-offset-4">{p.meta.judul}</span>
                     <span className="text-[14.5px] text-muted-foreground">{p.meta.ringkasan}</span>

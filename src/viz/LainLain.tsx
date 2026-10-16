@@ -51,7 +51,7 @@ export function Evaluasi({ langkah, instan }: { langkah: Langkah | undefined; in
                     <span
                       className={cn(
                         'rounded-md px-2 py-0.5 font-semibold',
-                        t === 'true' ? 'bg-tulis-lembut text-tulis' : t === 'false' ? 'bg-galat-lembut text-galat' : 'bg-card',
+                        t === 'true' ? 'bg-tulis-lembut text-tulis-teks' : t === 'false' ? 'bg-galat-lembut text-galat' : 'bg-card',
                       )}
                     >
                       {t}
@@ -64,7 +64,7 @@ export function Evaluasi({ langkah, instan }: { langkah: Langkah | undefined; in
             )}
           </motion.div>
         ) : (
-          <motion.p key="kosong" className="text-[13px] text-muted-foreground/80" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: instan ? 0 : 0.12 }}>
+          <motion.p key="kosong" className="text-[13px] text-muted-foreground" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: instan ? 0 : 0.12 }}>
             Kondisi if/perulangan akan ditampilkan di sini saat dicek.
           </motion.p>
         )}
@@ -123,7 +123,7 @@ export function InputView({ stdin, state, langkah }: { stdin: string; state: Sta
         <p className="text-[13px] text-muted-foreground">Input kosong. Isi di tab Input di bawah editor.</p>
       ) : (
         <pre className="whitespace-pre-wrap break-all font-mono text-[15px] leading-relaxed">
-          <span className="text-muted-foreground/60 line-through decoration-muted-foreground/40">{terlihat(stdin.slice(0, awalSorot))}</span>
+          <span className="text-muted-foreground line-through decoration-muted-foreground/60">{terlihat(stdin.slice(0, awalSorot))}</span>
           <span className="rounded-sm bg-banding-lembut text-foreground ring-1 ring-banding">{terlihat(stdin.slice(awalSorot, posisi))}</span>
           <span className="relative">
             <span className="absolute -left-px top-0 h-full w-0.5 bg-primary" aria-hidden="true" />

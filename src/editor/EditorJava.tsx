@@ -158,7 +158,7 @@ const temaEditor = EditorView.theme({
     position: 'absolute',
     left: '3px',
     fontSize: '9px',
-    color: 'var(--banding)',
+    color: 'var(--banding-teks)',
   },
   '.cm-baris-jalan': { backgroundColor: 'var(--baris-aktif)' },
   '.cm-baris-jalan-exception, .cm-baris-jalan-batas': { backgroundColor: 'var(--galat-lembut)', boxShadow: 'inset 3px 0 0 var(--galat)' },
@@ -182,6 +182,8 @@ const temaEditor = EditorView.theme({
     backgroundColor: 'var(--muted)',
     color: 'var(--muted-foreground)',
   },
+  // Isi chip mewarisi warna chip, bukan warna komentar (kontras komentar di atas latar chip terlalu rendah).
+  '.cm-penanda *': { color: 'inherit', fontStyle: 'normal' },
   '.cm-diagnostic': { fontFamily: 'var(--font-sans)', fontSize: '13px', padding: '6px 10px' },
   '.cm-lintRange-error': {
     backgroundImage: 'none',

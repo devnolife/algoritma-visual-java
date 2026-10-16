@@ -89,14 +89,17 @@ function bedaOutput(harapan: string, hasil: string): string {
   return ''
 }
 
-/** Mengapa program tidak selesai normal (untuk melengkapi pesan cek), atau null bila selesai. */
+/**
+ * Mengapa program tidak selesai normal (untuk melengkapi pesan cek), atau null bila selesai.
+ * Teks ini tampil apa adanya di blok rincian, jadi tidak memakai format `kode`.
+ */
 function alasanBerhenti(t: NonNullable<HasilJalan['trace']>): string | null {
   switch (t.status) {
     case 'selesai':
     case 'keluar':
       return null
     case 'exception':
-      return `Program berhenti karena \`${t.exception?.kelas.split('.').pop() ?? 'exception'}\` di baris ${t.exception?.baris ?? '?'}.`
+      return `Program berhenti karena ${t.exception?.kelas.split('.').pop() ?? 'exception'} di baris ${t.exception?.baris ?? '?'}.`
     case 'batas-langkah':
       return 'Program dihentikan karena melebihi batas langkah (mungkin perulangan tak berujung).'
     default:
@@ -172,7 +175,7 @@ function periksaSatu(c: Cek, h: HasilJalan): HasilCek {
     }
     case 'variabel': {
       const v = t.akhirMain[c.nama]
-      if (!v) return gagal(`Variabel \`${c.nama}\` tidak ditemukan di akhir method main.`, berhenti ?? `Pastikan \`${c.nama}\` dideklarasikan langsung di dalam main (bukan di dalam blok if/for).`)
+      if (!v) return gagal(`Variabel \`${c.nama}\` tidak ditemukan di akhir method main.`, berhenti ?? `Pastikan ${c.nama} dideklarasikan langsung di dalam main (bukan di dalam blok if/for).`)
       if (c.tipe && v.tipe !== c.tipe) return gagal(`Variabel \`${c.nama}\` harus bertipe \`${c.tipe}\`, bukan \`${v.tipe}\`.`)
       if (!samaNilai(v.nilai, c.harapan)) return gagal(`Nilai akhir \`${c.nama}\` belum tepat${inp}.`, [berhenti, `Diharapkan ${teksNilai(c.harapan, v.tipe)}, ternyata ${teksNilai(v.nilai, v.tipe)}.`].filter(Boolean).join('\n'))
       return lulus(`\`${c.nama}\` bernilai ${teksNilai(c.harapan, v.tipe)}${inp}.`)

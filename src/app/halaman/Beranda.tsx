@@ -25,7 +25,7 @@ function Ilustrasi() {
           <span className="text-muted-foreground"> 3 </span>
           <span className="font-semibold text-tipe-int">int</span> umur = <span className="text-[var(--kode-angka)]">19</span>;{'\n'}
           <span className="-mx-4 block bg-baris-aktif px-4">
-            <span className="text-banding">▶</span>
+            <span className="text-banding-teks">▶</span>
             <span className="text-muted-foreground">4 </span>
             umur = umur + <span className="text-[var(--kode-angka)]">1</span>;
           </span>
@@ -111,7 +111,7 @@ export function Beranda() {
                     to={`/modul/${m.slug}`}
                     className="group grid grid-cols-[72px_minmax(0,1fr)_200px_24px] items-center gap-6 py-6 outline-none focus-visible:bg-secondary/60"
                   >
-                    <span className="font-heading text-[40px] leading-none text-muted-foreground/70">{String(i + 1).padStart(2, '0')}</span>
+                    <span className="font-heading text-[40px] leading-none text-muted-foreground">{String(i + 1).padStart(2, '0')}</span>
                     <span className="flex flex-col gap-1">
                       <span className="font-heading text-[22px] leading-tight group-hover:underline group-hover:decoration-1 group-hover:underline-offset-4">
                         {m.meta.judul}
@@ -132,13 +132,13 @@ export function Beranda() {
               )
             })}
             {SEGERA.map((s) => (
-              <li key={s.nomor} className="grid grid-cols-[72px_minmax(0,1fr)_200px_24px] items-center gap-6 border-b py-6 opacity-60">
-                <span className="font-heading text-[40px] leading-none text-muted-foreground/70">{s.nomor}</span>
+              <li key={s.nomor} className="grid grid-cols-[72px_minmax(0,1fr)_200px_24px] items-center gap-6 border-b py-6">
+                <span className="font-heading text-[40px] leading-none text-muted-foreground">{s.nomor}</span>
                 <span className="flex flex-col gap-1">
-                  <span className="font-heading text-[22px] leading-tight">{s.judul}</span>
+                  <span className="font-heading text-[22px] leading-tight text-muted-foreground">{s.judul}</span>
                   <span className="text-[15px] text-muted-foreground">{s.ringkasan}</span>
                 </span>
-                <span className="text-[13px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Segera hadir</span>
+                <span className="w-fit rounded-full border border-dashed px-2.5 py-0.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Segera hadir</span>
                 <span />
               </li>
             ))}

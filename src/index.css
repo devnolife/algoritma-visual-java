@@ -40,8 +40,10 @@
   --color-tipe-ref: var(--tipe-ref);
   --color-baca: var(--baca);
   --color-banding: var(--banding);
+  --color-banding-teks: var(--banding-teks);
   --color-banding-lembut: var(--banding-lembut);
   --color-tulis: var(--tulis);
+  --color-tulis-teks: var(--tulis-teks);
   --color-tulis-lembut: var(--tulis-lembut);
   --color-galat: var(--galat);
   --color-galat-lembut: var(--galat-lembut);
@@ -88,13 +90,15 @@
   --tipe-string: oklch(0.5 0.1 195);
   --tipe-ref: oklch(0.45 0.02 262);
 
-  /* Warna peristiwa langkah. */
+  /* Warna peristiwa langkah. Varian -teks dipakai untuk teks/ikon kecil (kontras ≥ 4,5:1). */
   --baca: oklch(0.6 0.13 230);
   --banding: oklch(0.72 0.15 72);
+  --banding-teks: oklch(0.5 0.12 62);
   --banding-lembut: oklch(0.955 0.045 85);
   --tulis: oklch(0.6 0.15 152);
+  --tulis-teks: oklch(0.47 0.13 152);
   --tulis-lembut: oklch(0.955 0.04 152);
-  --galat: oklch(0.56 0.2 27);
+  --galat: oklch(0.52 0.2 27);
   --galat-lembut: oklch(0.96 0.025 27);
   --baris-aktif: oklch(0.95 0.06 85);
   --titik-grid: oklch(0.87 0.01 85);
@@ -102,7 +106,7 @@
   /* Pewarnaan sintaks (warna tipe memakai --tipe-*). */
   --kode-kunci: oklch(0.5 0.16 355);
   --kode-angka: oklch(0.52 0.12 70);
-  --kode-komentar: oklch(0.6 0.012 262);
+  --kode-komentar: oklch(0.52 0.012 262);
   --kode-fungsi: oklch(0.36 0.06 262);
 }
 
@@ -136,17 +140,19 @@
 
   --baca: oklch(0.72 0.12 230);
   --banding: oklch(0.8 0.14 75);
+  --banding-teks: oklch(0.82 0.13 75);
   --banding-lembut: oklch(0.32 0.06 75);
   --tulis: oklch(0.74 0.14 152);
+  --tulis-teks: oklch(0.8 0.13 152);
   --tulis-lembut: oklch(0.3 0.05 152);
-  --galat: oklch(0.7 0.18 25);
+  --galat: oklch(0.74 0.16 25);
   --galat-lembut: oklch(0.3 0.06 25);
   --baris-aktif: oklch(0.33 0.06 80);
   --titik-grid: oklch(0.32 0.012 262);
 
   --kode-kunci: oklch(0.77 0.13 355);
   --kode-angka: oklch(0.8 0.11 75);
-  --kode-komentar: oklch(0.62 0.012 262);
+  --kode-komentar: oklch(0.74 0.012 262);
   --kode-fungsi: oklch(0.86 0.04 262);
 }
 

@@ -132,7 +132,7 @@ export function ArrayView({
               <span className="font-mono text-[11px] text-muted-foreground">[{i}]</span>
               <div className="flex min-h-6 flex-col items-center leading-none">
                 {disini.map((p) => (
-                  <span key={p.nama} className="flex flex-col items-center font-mono text-[11.5px] font-bold text-banding">
+                  <span key={p.nama} className="flex flex-col items-center font-mono text-[11.5px] font-bold text-banding-teks">
                     <span aria-hidden="true">▲</span>
                     {p.nama}
                   </span>
@@ -199,7 +199,7 @@ export function Array2DView({
           <tr>
             <th />
             {Array.from({ length: jumlahKolom }, (_, j) => (
-              <th key={j} className={cn('text-[11px] font-normal text-muted-foreground', pk === j && 'font-bold text-banding')}>
+              <th key={j} className={cn('text-[11px] font-normal text-muted-foreground', pk === j && 'font-bold text-banding-teks')}>
                 [{j}]{pk === j && konfig.kolom ? ` ${konfig.kolom}` : ''}
               </th>
             ))}
@@ -208,7 +208,7 @@ export function Array2DView({
         <tbody>
           {barisArr.map((r, i) => (
             <tr key={i}>
-              <th className={cn('pr-1 text-right text-[11px] font-normal text-muted-foreground', pb === i && 'font-bold text-banding')}>
+              <th className={cn('pr-1 text-right text-[11px] font-normal text-muted-foreground', pb === i && 'font-bold text-banding-teks')}>
                 {pb === i && konfig.baris ? `${konfig.baris} ` : ''}[{i}]
               </th>
               {Array.from({ length: jumlahKolom }, (_, j) => {

@@ -12,4 +12,8 @@ export default defineConfig({
   },
   worker: { format: 'es' },
   server: { port: 5173 },
+  build: {
+    // Chunk terbesar (editor CodeMirror + animasi) hanya dimuat di halaman pemutar dan di-prefetch saat idle.
+    chunkSizeWarningLimit: 800,
+  },
 })

@@ -49,7 +49,7 @@ function KotakVariabel({
       </span>
     )
   } else if (referensi && v.nilai !== null) {
-    isi = <span ref={jangkar} className="block size-2.5 rounded-full bg-tipe-ref" aria-label={`menunjuk ke ${tampilNilai(v.nilai, v.tipe, heap)}`} />
+    isi = <span ref={jangkar} role="img" className="block size-2.5 rounded-full bg-tipe-ref" aria-label={`menunjuk ke ${tampilNilai(v.nilai, v.tipe, heap)}`} />
   } else {
     const teks = tampilNilai(v.nilai, v.tipe, heap)
     isi = (
@@ -115,7 +115,7 @@ function KotakFrame({
     <motion.section
       layout="position"
       data-bingkai
-      className={cn('gerak relative rounded-xl border bg-card/80 px-4 pb-3.5 pt-5', aktif ? 'border-primary/45 shadow-sm' : 'border-border opacity-80')}
+      className={cn('gerak relative rounded-xl border bg-card/80 px-4 pb-3.5 pt-5', aktif ? 'border-primary/45 shadow-sm' : 'border-dashed border-border')}
       initial={{ opacity: 0, transform: 'translateY(-8px) scale(0.98)' }}
       animate={{ opacity: 1, transform: 'translateY(0px) scale(1)' }}
       exit={{ opacity: 0, transform: 'translateY(-8px) scale(0.98)' }}
