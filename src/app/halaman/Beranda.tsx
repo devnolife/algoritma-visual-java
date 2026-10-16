@@ -7,10 +7,17 @@ import { cn } from '@/lib/utils'
 import { Kepala } from '../komponen/Kepala'
 import { useProgres } from '../progres'
 
+/** Modul yang belum ada di folder content/. Otomatis hilang begitu modul dengan urutan yang sama ditambahkan. */
 const SEGERA = [
-  { nomor: '02', judul: 'Struktur Data', ringkasan: 'ArrayList, linked list, stack, queue, hash map, pohon, heap, dan graf.' },
-  { nomor: '03', judul: 'Strategi Algoritma', ringkasan: 'Kompleksitas, searching & sorting, divide & conquer, greedy, dynamic programming, backtracking.' },
+  { urutan: 2, judul: 'Struktur Data', ringkasan: 'ArrayList, linked list, stack, queue, hash map, pohon, heap, dan graf.' },
+  { urutan: 3, judul: 'Strategi Algoritma', ringkasan: 'Kompleksitas, searching & sorting, divide & conquer, greedy, dynamic programming, backtracking.' },
 ]
+
+/** Modul yang tersedia dan modul yang segera hadir, diurutkan menurut nomor modul. */
+const PETA = [
+  ...DAFTAR_MODUL.map((modul) => ({ urutan: modul.meta.urutan, modul })),
+  ...SEGERA.filter((s) => !DAFTAR_MODUL.some((m) => m.meta.urutan === s.urutan)).map((segera) => ({ urutan: segera.urutan, segera })),
+].sort((a, b) => a.urutan - b.urutan)
 
 /** Ilustrasi kecil: satu baris kode dan kotak variabelnya di memori. */
 function Ilustrasi() {
@@ -100,7 +107,24 @@ export function Beranda() {
             Peta belajar
           </h2>
           <ol className="flex flex-col border-t">
-            {DAFTAR_MODUL.map((m, i) => {
+            {PETA.map((e) => {
+              if (!('modul' in e)) {
+                const s = e.segera
+                return (
+                  <li key={`segera-${s.urutan}`} className="grid grid-cols-[72px_minmax(0,1fr)_200px_24px] items-center gap-6 border-b py-6">
+                    <span className="font-heading text-[40px] leading-none text-muted-foreground">{String(s.urutan).padStart(2, '0')}</span>
+                    <span className="flex flex-col gap-1">
+                      <span className="font-heading text-[22px] leading-tight text-muted-foreground">{s.judul}</span>
+                      <span className="text-[15px] text-muted-foreground">{s.ringkasan}</span>
+                    </span>
+                    <span className="w-fit rounded-full border border-dashed px-2.5 py-0.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                      Segera hadir
+                    </span>
+                    <span />
+                  </li>
+                )
+              }
+              const m = e.modul
               const total = m.pelajaran.length
               const sudah = m.pelajaran.filter((p) => dibuka[p.kunci]).length
               const tantanganTotal = m.pelajaran.reduce((n, p) => n + p.tantangan.length, 0)
@@ -111,7 +135,7 @@ export function Beranda() {
                     to={`/modul/${m.slug}`}
                     className="group grid grid-cols-[72px_minmax(0,1fr)_200px_24px] items-center gap-6 py-6 outline-none focus-visible:bg-secondary/60"
                   >
-                    <span className="font-heading text-[40px] leading-none text-muted-foreground">{String(i + 1).padStart(2, '0')}</span>
+                    <span className="font-heading text-[40px] leading-none text-muted-foreground">{String(m.meta.urutan).padStart(2, '0')}</span>
                     <span className="flex flex-col gap-1">
                       <span className="font-heading text-[22px] leading-tight group-hover:underline group-hover:decoration-1 group-hover:underline-offset-4">
                         {m.meta.judul}
@@ -131,17 +155,6 @@ export function Beranda() {
                 </li>
               )
             })}
-            {SEGERA.map((s) => (
-              <li key={s.nomor} className="grid grid-cols-[72px_minmax(0,1fr)_200px_24px] items-center gap-6 border-b py-6">
-                <span className="font-heading text-[40px] leading-none text-muted-foreground">{s.nomor}</span>
-                <span className="flex flex-col gap-1">
-                  <span className="font-heading text-[22px] leading-tight text-muted-foreground">{s.judul}</span>
-                  <span className="text-[15px] text-muted-foreground">{s.ringkasan}</span>
-                </span>
-                <span className="w-fit rounded-full border border-dashed px-2.5 py-0.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Segera hadir</span>
-                <span />
-              </li>
-            ))}
           </ol>
         </section>
 

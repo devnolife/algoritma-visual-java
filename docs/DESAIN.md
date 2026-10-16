@@ -168,7 +168,7 @@ Semua perilaku di bawah harus identik dengan Java 21 dan diverifikasi lewat uji 
 ### 5.6 Batas pengaman
 Pesan berlabel `[Simulator]` bila bukan perilaku Java.
 - **Batas langkah:** 20.000, bisa diubah per pelajaran. Pesannya: "Program dihentikan setelah 20.000 langkah, kemungkinan infinite loop. Baris yang paling sering dijalankan: N."
-- **Kedalaman rekursi:** 1.000, lalu `java.lang.StackOverflowError` disertai catatan `[Simulator]` bahwa batas ini lebih kecil dari JVM asli. Korpus uji diferensial menghindari rekursi lebih dari 1.000 tingkat.
+- **Kedalaman rekursi:** 200, lalu `java.lang.StackOverflowError` disertai catatan `[Simulator]` bahwa batas ini lebih kecil dari JVM asli. Rekursi Java dijalankan dengan rekursi JavaScript, sedangkan stack worker browser jauh lebih kecil dari JVM (diukur ±380 level untuk method bersarang di worker Chromium yang "dingin"). Batas 200 dipilih agar hasilnya sama di semua browser; sebagai jaring pengaman, sisa stack JavaScript juga diperiksa sebelum setiap pemanggilan sehingga simulator tidak pernah mogok dengan `RangeError`. Korpus uji diferensial menghindari rekursi lebih dari 200 tingkat.
 - **Ukuran:** array ≤ 10.000 elemen, String ≤ 100.000 karakter, output ≤ 10.000 karakter.
 - **Timeout worker:** 3 detik; worker lalu dihentikan dan dibuat ulang.
 
@@ -195,9 +195,9 @@ Pesan berlabel `[Simulator]` bila bukan perilaku Java.
 
 ### Tata letak
 - **Header:** identitas aplikasi, breadcrumb, posisi pelajaran, tautan Ruang Coba, tombol tema.
-- **Kiri** (300 px, bisa diciutkan): tab Materi | Tantangan (n/m).
-- **Tengah:** panggung visualisasi + kartu penjelasan langkah (narasi + catatan dosen, `aria-live="polite"`).
-- **Kanan** (470 px): editor `Main.java` (✎ bisa diedit, ↺ Reset kode) + tab Output | Input | Masalah.
+- **Kiri** (±20% lebar layar, 264–340 px, bisa diciutkan): tab Materi | Tantangan (n/m).
+- **Tengah:** panggung visualisasi + kartu penjelasan langkah (narasi + catatan dosen, `aria-live="polite"`, dibisukan selama putar otomatis).
+- **Kanan** (±50% sisa lebar, 400–640 px, cukup untuk baris 70 karakter di layar 1366 px): editor `Main.java` (✎ bisa diedit, 🎲 Acak ulang bila memakai `Math.random()`, ↺ Reset kode) + tab Output | Input | Masalah.
 - **Bawah:**
   - kontrol ⏮ ◀ ▶/⏸ ▶▏ ⏭;
   - slider dengan tanda warna: hijau = variabel di `pantau` (frontmatter) berubah, biru = output, merah = exception;
@@ -219,7 +219,7 @@ Pesan berlabel `[Simulator]` bila bukan perilaku Java.
   - makna warna selalu disertai ikon atau teks;
   - kontras AA;
   - `prefers-reduced-motion` mengganti transisi dengan crossfade singkat.
-- **Tema:** terang sebagai bawaan, gelap tersedia; pilihan disimpan di localStorage.
+- **Tema:** mengikuti pengaturan terang/gelap sistem operasi sampai mahasiswa memilih sendiri lewat tombol tema; pilihan disimpan di localStorage. Skrip kecil di `index.html` memasang tema sebelum halaman digambar sehingga tidak ada kedipan.
 
 ## 7. Visualisasi
 
@@ -281,7 +281,7 @@ Kita hanya mengganti maks bila menemukan nilai yang lebih besar.
 - **Jenis cek:**
   - `output` (persis, per input uji), `outputMemuat`, `outputPola` (regex);
   - `variabel` (nilai akhir di `main`, opsional dengan tipe), `arrayTerurut` (naik/turun);
-  - `harusMemakai` / `dilarangMemakai`: `for`, `while`, `do-while`, `for-each`, `if`, `switch`, `rekursi`, `casting`, `scanner`, `method:<nama>`;
+  - `harusMemakai` / `dilarangMemakai`: `for`, `while`, `do-while`, `for-each`, `if`, `switch`, `ternary`, `casting`, `array`, `break`, `continue`, `rekursi`, `scanner`, `method:<nama>`, `pustaka:<Kelas.method>` (mis. `pustaka:Math.random`, `pustaka:String.charAt`);
   - `tanpaError`, `maksLangkah`.
 - **Hasil cek:** ditampilkan per butir (✔/✘ + pesan Indonesia); petunjuk dibuka bertahap; status lulus disimpan di localStorage.
 - **Folder `solusi/`:** hanya dibaca oleh validator, tidak ikut ter-bundle.
