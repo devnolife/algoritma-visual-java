@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { jalankan, kompilasi } from '@/engine'
 
-const VERSI_CACHE = 'v1'
+const VERSI_CACHE = 'v2'
 const CACHE = join('node_modules', '.cache', 'uji-diferensial')
 const PARALEL = 6
 const filter = process.argv[2] ?? ''
@@ -92,6 +92,8 @@ interface ErrorPertama {
   baris: number
   kolom: number
   pesan: string
+  /** Baris detail setelah caret, mis. `symbol:   method printn(String)` dan `location: …`. */
+  detail: string[]
 }
 
 async function jdkError(sumber: string): Promise<ErrorPertama | null> {
@@ -108,9 +110,16 @@ async function jdkError(sumber: string): Promise<ErrorPertama | null> {
   const i = baris.findIndex((b) => /^Main\.java:\d+: error: /.test(b))
   if (i < 0) return null
   const m = /^Main\.java:(\d+): error: (.*)$/.exec(baris[i])!
-  const caret = baris.slice(i + 1).find((b) => /^\s*\^\s*$/.test(b))
+  const iCaret = baris.findIndex((b, j) => j > i && /^\s*\^\s*$/.test(b))
+  const caret = iCaret >= 0 ? baris[iCaret] : undefined
+  const detail: string[] = []
+  for (let j = iCaret + 1; iCaret >= 0 && j < baris.length; j++) {
+    const b = baris[j]
+    if (/^Main\.java:\d+: /.test(b) || /^\d+ errors?$/.test(b) || b.startsWith('Note:') || b.trim() === '') break
+    detail.push(b.trim())
+  }
   // javac menampilkan TAB apa adanya; kolom dihitung sebagai indeks karakter + 1.
-  return { baris: Number(m[1]), pesan: m[2], kolom: caret ? caret.indexOf('^') + 1 : 0 }
+  return { baris: Number(m[1]), pesan: m[2], kolom: caret ? caret.indexOf('^') + 1 : 0, detail }
 }
 
 function mesinJalan(sumber: string, input: string): { stdout: string; stderr: string; kode: number | null; catatan?: string } {
@@ -220,6 +229,10 @@ async function ujiKorpusError(): Promise<{ total: number; gagal: number }> {
     if (!d) return { f, masalah: `mesin tidak menemukan error; javac: ${jdk.baris}: ${jdk.pesan}` }
     if (d.baris !== jdk.baris || d.pesan !== jdk.pesan) {
       return { f, masalah: `error pertama berbeda:\n      JDK:   ${jdk.baris}:${jdk.kolom} ${jdk.pesan}\n      Mesin: ${d.baris}:${d.kolom} ${d.pesan}` }
+    }
+    const detailMesin = d.detail.map((x) => x.trim())
+    if (jdk.detail.join('\n') !== detailMesin.join('\n')) {
+      return { f, masalah: `detail error berbeda untuk "${jdk.pesan}":\n      JDK:   ${JSON.stringify(jdk.detail)}\n      Mesin: ${JSON.stringify(detailMesin)}` }
     }
     if (jdk.kolom && d.kolom !== jdk.kolom) {
       bedaKolom++

@@ -119,7 +119,7 @@ class Pemeriksa {
       this.lapor('belum-didukung', lain.spanNama, katalog.belumDidukung('Lebih dari satu class dalam satu file', 'Class buatan sendiri akan dibahas di Modul 2.'))
     }
     if (this.kelas.nama !== 'Main') {
-      if (this.kelas.modifier.includes('public')) this.lapor('kelas-publik-nama-file', this.kelas.spanNama, katalog.kelasPublikNamaFile(this.kelas.nama))
+      if (this.kelas.modifier.includes('public')) this.lapor('kelas-publik-nama-file', { ...this.kelas.spanNama, fokus: this.kelas.posisiKataKelas }, katalog.kelasPublikNamaFile(this.kelas.nama))
       else this.lapor('tidak-ada-main', this.kelas.spanNama, { ...katalog.tidakAdaMain(), saran: `Ganti nama class ${this.kelas.nama} menjadi Main.` })
     }
     this.kumpulkanField()
@@ -269,7 +269,7 @@ class Pemeriksa {
   /** Pernyataan tunggal sebagai badan if/loop: deklarasi tidak diizinkan di sini. */
   private periksaBadan(p: A.Pernyataan): void {
     if (p.jenis === 'DeklarasiLokal') {
-      this.lapor('deklarasi-tidak-diizinkan', p.span, {
+      this.lapor('deklarasi-tidak-diizinkan', { ...p.span, fokus: p.deklarator[0]?.spanNama.awal }, {
         pesan: 'variable declaration not allowed here',
         artinya: 'Deklarasi variabel tidak boleh menjadi satu-satunya isi if/perulangan tanpa kurawal { }.',
         saran: 'Bungkus dengan kurawal: { int x = ...; }',
@@ -399,9 +399,9 @@ class Pemeriksa {
     this.masukLingkup()
     this.ctx.kedalamanSwitch++
     for (const g of p.grup) {
-      for (const l of g.label) {
+      for (const [idx, l] of g.label.entries()) {
         if (l === 'default') {
-          if (adaDefault) this.lapor('case-duplikat', g.span, { ...katalog.caseDuplikat(), pesan: 'duplicate default label' })
+          if (adaDefault) this.lapor('case-duplikat', { ...g.span, fokus: g.posisiLabel[idx] }, { ...katalog.caseDuplikat(), pesan: 'duplicate default label' })
           adaDefault = true
           continue
         }
@@ -423,7 +423,8 @@ class Pemeriksa {
           continue
         }
         const kunci = String(adalahString(t) ? l.konstan : konversiKonstan(l.konstan, tl, t))
-        if (terlihat.has(kunci)) this.lapor('case-duplikat', l.span, katalog.caseDuplikat())
+        // javac menunjuk ke kata kunci `case` untuk label ganda.
+        if (terlihat.has(kunci)) this.lapor('case-duplikat', { ...l.span, fokus: g.posisiLabel[idx] }, katalog.caseDuplikat())
         terlihat.add(kunci)
       }
       if (p.panah) {
@@ -565,7 +566,8 @@ class Pemeriksa {
     const n = objek.objek.nama
     if (this.cariLokal(n) || this.field.has(n) || this.adalahNamaKelas(n)) return false
     const mirip = saranMirip(n, ['System', 'Math', 'String', 'Integer', 'Double', 'Character', 'Arrays', this.kelas.nama])
-    this.lapor('paket-tidak-ada', objek.objek.span, katalog.paketTidakAda(n, mirip))
+    // javac menunjuk ke titik setelah nama paket (`Sytem.out` → titik).
+    this.lapor('paket-tidak-ada', { ...objek.objek.span, fokus: objek.span.fokus }, katalog.paketTidakAda(n, mirip))
     return true
   }
 
@@ -600,7 +602,9 @@ class Pemeriksa {
   }
 
   private lokasiObjek(objek: A.Ekspresi, tipe: Tipe): string {
-    if (objek.jenis === 'Nama' && objek.ikatan?.k === 'lokal') return `variable ${objek.nama} of type ${teksTipe(tipe)}`
+    // Format javac: variabel/field disebut namanya, hasil ekspresi lain disebut class-nya.
+    if (objek.jenis === 'Nama' && (objek.ikatan?.k === 'lokal' || objek.ikatan?.k === 'field')) return `variable ${objek.nama} of type ${teksTipe(tipe)}`
+    if (objek.jenis === 'AksesField' && (objek.ikatan?.k === 'field' || objek.ikatan?.k === 'field-pustaka')) return `variable ${objek.nama} of type ${teksTipe(tipe)}`
     return `class ${teksTipe(tipe)}`
   }
 
@@ -678,6 +682,11 @@ class Pemeriksa {
     const argTipe = e.argumen.map((a) => this.ekspresi(a))
     const teksArg = argTipe.map(teksTipe).join(',')
     if (argTipe.some(adalahError)) return this.tipeKembaliSaatError(e, kelasQ, tipeObjek)
+    const iVoid = argTipe.findIndex((t) => t.k === 'void')
+    if (iVoid >= 0) {
+      this.lapor('void-tidak-boleh', e.argumen[iVoid].span, katalog.voidTidakBoleh())
+      return this.tipeKembaliSaatError(e, kelasQ, tipeObjek)
+    }
 
     // Method milik class Main.
     if ((!e.objek || kelasQ === this.kelas.nama)) {
@@ -822,8 +831,40 @@ class Pemeriksa {
       this.lapor('referensi-ambigu', e.spanNama, katalog.referensiAmbigu(e.nama))
       return
     }
+    // Seperti javac: kandidat yang jumlah argumennya tidak cocok disisihkan. Bila tersisa satu kandidat,
+    // pesan disederhanakan menjadi `incompatible types` pada argumen pertama yang tidak cocok.
+    const arityCocok = kandidat.filter((k) => (k.varargs ? arg.length >= k.parameter.length - 1 : k.parameter.length === arg.length))
+    if (arityCocok.length === 1) {
+      const k = arityCocok[0]
+      for (let i = 0; i < arg.length; i++) {
+        const tujuan = k.varargs && i >= k.parameter.length - 1 ? (k.parameter[k.parameter.length - 1] as { elemen: Tipe }).elemen : k.parameter[i]
+        if (bisaKonversiLonggar(arg[i], tujuan)) continue
+        const span = e.argumen[i].span
+        if (cekAssign(arg[i], tujuan) === 'lossy') this.lapor('konversi-lossy', span, katalog.konversiLossy(teksTipe(arg[i]), teksTipe(tujuan), this.diag.teks(span)))
+        else this.lapor('tipe-tidak-cocok', span, katalog.tipeTidakCocok(teksTipe(arg[i]), teksTipe(tujuan)))
+        return
+      }
+    }
     if (kandidat.length > 1) {
-      this.lapor('tidak-ada-method-cocok', e.spanNama, katalog.tidakAdaMethodCocok(e.nama, teksArg))
+      // Seperti javac: tampilkan alasan tiap versi; bila ada ≥2 versi dengan jumlah argumen cocok, hanya versi itu.
+      const tampil = arityCocok.length >= 2 ? arityCocok : kandidat
+      const detail = tampil.flatMap((k) => {
+        const tanda = `${namaKelas}.${e.nama}(${k.parameter.map(teksTipe).join(',').replace(/\[\]$/, k.varargs ? '...' : '[]')})`
+        let alasan = 'actual and formal argument lists differ in length'
+        if (k.varargs ? arg.length >= k.parameter.length - 1 : k.parameter.length === arg.length) {
+          for (let i = 0; i < arg.length; i++) {
+            const tujuan = k.varargs && i >= k.parameter.length - 1 ? (k.parameter[k.parameter.length - 1] as { elemen: Tipe }).elemen : k.parameter[i]
+            if (bisaKonversiLonggar(arg[i], tujuan)) continue
+            alasan =
+              cekAssign(arg[i], tujuan) === 'lossy'
+                ? `argument mismatch; possible lossy conversion from ${teksTipe(arg[i])} to ${teksTipe(tujuan)}`
+                : `argument mismatch; ${teksTipe(arg[i])} cannot be converted to ${teksTipe(tujuan)}`
+            break
+          }
+        }
+        return [`method ${tanda} is not applicable`, `(${alasan})`]
+      })
+      this.lapor('tidak-ada-method-cocok', e.spanNama, katalog.tidakAdaMethodCocok(e.nama, teksArg, detail))
       return
     }
     const k = kandidat[0]
@@ -917,7 +958,7 @@ class Pemeriksa {
     if ((target.jenis === 'Nama' || target.jenis === 'AksesField') && target.ikatan?.k === 'field') {
       const f = target.ikatan.field
       if (f.final) {
-        this.lapor('final-diubah', target.span, katalog.finalDiubah(f.nama))
+        this.lapor('final-diubah', target.span, f.statik ? { ...katalog.finalDiubah(f.nama), pesan: `cannot assign a value to static final variable ${f.nama}` } : katalog.finalDiubah(f.nama))
         return false
       }
       return true
@@ -965,7 +1006,8 @@ class Pemeriksa {
     const op = e.op
     if (op === '+' && (adalahString(ta) || adalahString(tb))) {
       if (ta.k === 'void' || tb.k === 'void') {
-        this.lapor('void-tidak-boleh', e.span, { pesan: "'void' type not allowed here", artinya: 'Method void tidak menghasilkan nilai, jadi tidak bisa digabung dengan teks.' })
+        // javac menunjuk ke operand yang bertipe void.
+        this.lapor('void-tidak-boleh', ta.k === 'void' ? e.kiri.span : e.kanan.span, katalog.voidTidakBoleh())
         return T.error
       }
       e.tipeOperasi = T.String
@@ -1137,7 +1179,8 @@ class Pemeriksa {
     const dari = this.ekspresi(e.ekspresi)
     if (adalahError(ke) || adalahError(dari)) return adalahError(ke) ? T.error : ke
     if (!bisaCast(dari, ke)) {
-      this.lapor('tipe-tidak-cocok', e.span, katalog.tipeTidakCocok(teksTipe(dari), teksTipe(ke)))
+      // javac menunjuk ke ekspresi yang di-cast, bukan ke tanda kurung tipe.
+      this.lapor('tipe-tidak-cocok', { ...e.span, fokus: e.ekspresi.span.fokus ?? e.ekspresi.span.awal }, katalog.tipeTidakCocok(teksTipe(dari), teksTipe(ke)))
       return ke
     }
     if (e.ekspresi.konstan !== undefined && (ke.k === 'primitif' || adalahString(ke))) {

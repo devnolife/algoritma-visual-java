@@ -250,6 +250,8 @@ export interface ForEach extends Dasar {
 export interface GrupCase extends Dasar {
   /** Label case; 'default' untuk default. */
   label: (Ekspresi | 'default')[]
+  /** Posisi kata kunci `case`/`default` untuk tiap label (sejajar dengan `label`). */
+  posisiLabel: number[]
   pernyataan: Pernyataan[]
 }
 
@@ -319,6 +321,8 @@ export interface DeklarasiField extends Dasar {
 export interface DeklarasiKelas extends Dasar {
   nama: string
   spanNama: Span
+  /** Posisi kata kunci `class` (javac menunjuk ke sini untuk error nama file). */
+  posisiKataKelas: number
   modifier: string[]
   field: DeklarasiField[]
   method: DeklarasiMethod[]

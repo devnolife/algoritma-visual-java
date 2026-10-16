@@ -261,8 +261,15 @@ export function narasikan(trace: Trace, i: number, sesudah: StateMesin, ktx: Kon
       for (const s of cari('scanner')) {
         if (s.metode === 'nextLine') {
           if (s.token === '') {
+            // Cari pembacaan token terakhir sebelum langkah ini (nextInt, nextDouble, next, …).
+            let sebelum: string | undefined
+            for (let j = i - 1; j >= 0 && !sebelum; j--) {
+              for (const q of trace.langkah[j].peristiwa) if (q.k === 'scanner' && q.id === s.id && q.metode !== 'nextLine') sebelum = q.metode
+            }
             hasil.peringatan.push(
-              `${k('nextLine()')} mengambil sisa baris yang **kosong**. Ini jebakan klasik: ${k('nextInt()')} sebelumnya tidak ikut membaca tombol Enter.`,
+              sebelum
+                ? `${k('nextLine()')} mengambil sisa baris yang **kosong**. Ini jebakan klasik: ${k(`${sebelum}()`)} sebelumnya hanya membaca tokennya dan tidak ikut membaca tombol Enter.`
+                : `${k('nextLine()')} membaca baris yang **kosong** dari input.`,
             )
           } else kalimat.push(`${k('nextLine()')} membaca satu baris input: ${k(s.token)}.`)
         } else kalimat.push(`${k(`${s.metode}()`)} membaca token ${k(s.token)} dari input.`)

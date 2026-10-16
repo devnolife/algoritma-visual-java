@@ -26,7 +26,15 @@ export function kompilasi(teks: string): HasilKompilasi {
   const diag = new PengumpulDiagnostik(sumber)
   const { token, penanda } = lex(sumber, diag)
   const objPenanda = Object.fromEntries(penanda)
+  const jumlahErrorLeksikal = diag.daftar.length
   const unit = parse(token, diag)
+  if (jumlahErrorLeksikal > 0) {
+    // Error sintaks setelah error leksikal pertama (mis. string tak tertutup) hanya akibat lanjutannya;
+    // javac juga tidak melaporkannya.
+    const batas = Math.min(...diag.daftar.slice(0, jumlahErrorLeksikal).map((d) => d.span.awal))
+    const lanjutan = diag.daftar.slice(jumlahErrorLeksikal).filter((d) => d.span.awal < batas)
+    diag.daftar.splice(jumlahErrorLeksikal, diag.daftar.length - jumlahErrorLeksikal, ...lanjutan)
+  }
   // Error sintaks & tipe diurutkan menurut posisi; error analisis alur mengikuti urutan javac
   // (semua error keterjangkauan dulu, baru error penugasan).
   const gagal = (urutkan: boolean): HasilKompilasi => ({

@@ -46,8 +46,8 @@ export function lex(sumber: Sumber, diag: PengumpulDiagnostik): HasilLexer {
   const penanda = new Map<number, string>()
   let i = 0
 
-  const error = (awal: number, akhir: number, isi: ReturnType<(typeof katalog)[keyof typeof katalog]>, k: string) =>
-    diag.tambah(k, { awal, akhir }, isi)
+  const error = (awal: number, akhir: number, isi: ReturnType<(typeof katalog)[keyof typeof katalog]>, k: string, fokus?: number) =>
+    diag.tambah(k, { awal, akhir, fokus }, isi)
 
   while (i < s.length) {
     const c = s[i]
@@ -109,7 +109,7 @@ export function lex(sumber: Sumber, diag: PengumpulDiagnostik): HasilLexer {
         if (d === '\n' || d === '\r') break
         if (d === '\\') {
           const e = bacaEscape(s, j)
-          if (e.error) error(j, e.akhir, katalog.escapeIlegal(), 'escape-ilegal')
+          if (e.error) error(j, e.akhir, katalog.escapeIlegal(), 'escape-ilegal', j + 1)
           isi += e.teks
           j = e.akhir
           continue
@@ -139,7 +139,7 @@ export function lex(sumber: Sumber, diag: PengumpulDiagnostik): HasilLexer {
       let kodeChar: number
       if (s[j] === '\\') {
         const e = bacaEscape(s, j)
-        if (e.error) error(j, e.akhir, katalog.escapeIlegal(), 'escape-ilegal')
+        if (e.error) error(j, e.akhir, katalog.escapeIlegal(), 'escape-ilegal', j + 1)
         kodeChar = e.teks.charCodeAt(0) || 0
         j = e.akhir
       } else {

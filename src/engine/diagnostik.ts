@@ -216,6 +216,37 @@ export const katalog = {
     artinya: 'Pernyataan ini tidak mungkin pernah dijalankan, mis. karena berada setelah return, break, continue, atau perulangan tanpa akhir.',
     saran: 'Hapus atau pindahkan pernyataan ini.',
   }),
+  voidTidakBoleh: (): IsiPesan => ({
+    pesan: "'void' type not allowed here",
+    artinya: 'Method bertipe void tidak menghasilkan nilai apa pun, jadi hasilnya tidak bisa dicetak, digabung dengan teks, atau dipakai sebagai argumen.',
+    saran: 'Panggil method void sebagai pernyataan tersendiri, mis. `sapa("Rina");`, atau ubah method agar mengembalikan nilai (return).',
+  }),
+  classDiharapkan: (): IsiPesan => ({
+    pesan: "'.class' expected",
+    artinya: 'Di tempat ini Java mengharapkan sebuah nilai, tetapi yang ditulis adalah nama tipe (mis. `int`) atau `nama[]` tanpa indeks.',
+    saran: 'Tulis nilai atau variabelnya, bukan tipenya. Untuk array, sertakan indeks, mis. `data[0]`, atau tulis `data` saja untuk seluruh array.',
+  }),
+  caseYatim: (kata: 'case' | 'default'): IsiPesan => ({
+    pesan: `orphaned ${kata}`,
+    artinya: `${kode(kata)} hanya boleh ditulis di dalam blok switch.`,
+    saran: 'Pastikan kurawal { } switch belum tertutup sebelum label ini, atau tulis bagian ini di dalam switch.',
+  }),
+  badanMethodHilang: (): IsiPesan => ({
+    pesan: 'missing method body, or declare abstract',
+    artinya: 'Method ini tidak punya badan { … }. Tanda ; setelah tanda kurung parameter mengakhiri deklarasi sebelum badannya ditulis.',
+    saran: 'Hapus tanda ; lalu tulis badan method di dalam kurawal, mis. `static void cetakGaris() { … }`.',
+  }),
+  tipeKembaliHilang: (): IsiPesan => ({
+    pesan: 'invalid method declaration; return type required',
+    artinya: 'Setiap method wajib menuliskan tipe nilai kembaliannya sebelum nama method.',
+    saran: 'Tambahkan tipe kembali, mis. `static int hitungLuas(...)`, atau `void` bila method tidak mengembalikan nilai.',
+  }),
+  kelasTanpaNama: (): IsiPesan => ({
+    pesan: 'unnamed classes are a preview feature and are disabled by default.',
+    detail: ['(use --enable-preview to enable unnamed classes)'],
+    artinya: 'Method atau variabel ini ditulis di luar class Main. Di Java, semua method dan variabel harus berada di dalam kurawal class.',
+    saran: 'Pindahkan bagian ini ke dalam class Main, sebelum kurawal penutup } class yang terakhir.',
+  }),
   returnTakTerduga: (): IsiPesan => ({
     pesan: 'incompatible types: unexpected return value',
     artinya: 'Method bertipe void tidak boleh mengembalikan nilai.',
@@ -237,9 +268,10 @@ export const katalog = {
     detail: [`required: ${butuh || 'no arguments'}`, `found:    ${ditemukan || 'no arguments'}`, `reason: ${alasan}`],
     artinya: `Argumen untuk ${kode(m)} tidak sesuai jumlah atau tipenya.`,
   }),
-  tidakAdaMethodCocok: (m: string, argumen: string): IsiPesan => ({
+  tidakAdaMethodCocok: (m: string, argumen: string, detail: string[] = []): IsiPesan => ({
     pesan: `no suitable method found for ${m}(${argumen})`,
-    artinya: `Tidak ada versi method ${kode(m)} yang menerima argumen bertipe (${argumen}).`,
+    detail,
+    artinya: `Tidak ada versi method ${kode(m)} yang menerima argumen bertipe (${argumen}). Detail di bawah menjelaskan mengapa setiap versi tidak cocok.`,
   }),
   referensiAmbigu: (m: string): IsiPesan => ({
     pesan: `reference to ${m} is ambiguous`,
@@ -344,11 +376,12 @@ export class PengumpulDiagnostik {
   }
 
   tambah(kodeDiag: string, span: Span, isi: IsiPesan): Diagnostik {
+    const titik = span.fokus ?? span.awal
     const d: Diagnostik = {
       kode: kodeDiag,
       span,
-      baris: this.sumber.baris(span.awal),
-      kolom: this.sumber.kolom(span.awal),
+      baris: this.sumber.baris(titik),
+      kolom: this.sumber.kolom(titik),
       pesan: isi.pesan,
       detail: isi.detail ?? [],
       artinya: isi.artinya,

@@ -126,4 +126,18 @@ describe('periksaTantangan', () => {
     const h = await periksaTantangan(tantangan([{ jenis: 'tanpaError', input: '' }]), program('int i = 0;\nwhile (i < 10) {\n    i = i;\n}'), penjalanLangsung(undefined))
     expect(h.butir[0].rincian).toContain('batas langkah')
   })
+
+  it('nilai double ditampilkan seperti Java (7.0), char dengan tanda kutip tunggal', async () => {
+    const kode = program('double rata = 7;\nchar c = \'B\';')
+    const h = await periksaTantangan(
+      tantangan([
+        { jenis: 'variabel', input: '', nama: 'rata', harapan: 7.5 },
+        { jenis: 'variabel', input: '', nama: 'c', harapan: 'A' },
+      ]),
+      kode,
+      jalan,
+    )
+    expect(h.butir[0].rincian).toBe('Diharapkan 7.5, ternyata 7.0.')
+    expect(h.butir[1].rincian).toBe("Diharapkan 'A', ternyata 'B'.")
+  })
 })

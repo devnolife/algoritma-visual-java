@@ -113,7 +113,13 @@ function samaNilai(a: unknown, b: unknown): boolean {
   return a === b
 }
 
-const teksNilai = (v: unknown): string => (Array.isArray(v) ? `{${v.map(teksNilai).join(', ')}}` : typeof v === 'string' ? `"${v}"` : String(v))
+const teksNilai = (v: unknown, tipe?: string): string => {
+  if (Array.isArray(v)) return `{${v.map((x) => teksNilai(x, tipe?.replace(/\[\]$/, ''))).join(', ')}}`
+  if (typeof v === 'string') return tipe === 'char' ? `'${v}'` : `"${v}"`
+  // Bilangan pecahan ditulis seperti Java mencetaknya: 7.0, bukan 7.
+  if (typeof v === 'number' && (tipe === 'double' || tipe === 'float') && Number.isInteger(v)) return `${v}.0`
+  return String(v)
+}
 
 function periksaSatu(c: Cek, h: HasilJalan): HasilCek {
   const gagal = (pesan: string, rincian?: string): HasilCek => ({ cek: c, lulus: false, pesan, rincian })
@@ -168,8 +174,8 @@ function periksaSatu(c: Cek, h: HasilJalan): HasilCek {
       const v = t.akhirMain[c.nama]
       if (!v) return gagal(`Variabel \`${c.nama}\` tidak ditemukan di akhir method main.`, berhenti ?? `Pastikan \`${c.nama}\` dideklarasikan langsung di dalam main (bukan di dalam blok if/for).`)
       if (c.tipe && v.tipe !== c.tipe) return gagal(`Variabel \`${c.nama}\` harus bertipe \`${c.tipe}\`, bukan \`${v.tipe}\`.`)
-      if (!samaNilai(v.nilai, c.harapan)) return gagal(`Nilai akhir \`${c.nama}\` belum tepat${inp}.`, [berhenti, `Diharapkan ${teksNilai(c.harapan)}, ternyata ${teksNilai(v.nilai)}.`].filter(Boolean).join('\n'))
-      return lulus(`\`${c.nama}\` bernilai ${teksNilai(c.harapan)}${inp}.`)
+      if (!samaNilai(v.nilai, c.harapan)) return gagal(`Nilai akhir \`${c.nama}\` belum tepat${inp}.`, [berhenti, `Diharapkan ${teksNilai(c.harapan, v.tipe)}, ternyata ${teksNilai(v.nilai, v.tipe)}.`].filter(Boolean).join('\n'))
+      return lulus(`\`${c.nama}\` bernilai ${teksNilai(c.harapan, v.tipe)}${inp}.`)
     }
     case 'arrayTerurut': {
       const v = t.akhirMain[c.nama]
@@ -177,7 +183,7 @@ function periksaSatu(c: Cek, h: HasilJalan): HasilCek {
       const a = v.nilai as unknown[]
       const terurut = a.every((x, i) => i === 0 || (c.arah === 'naik' ? (a[i - 1] as number) <= (x as number) : (a[i - 1] as number) >= (x as number)))
       const arah = c.arah === 'naik' ? 'dari kecil ke besar' : 'dari besar ke kecil'
-      return terurut ? lulus(`\`${c.nama}\` sudah terurut ${arah}.`) : gagal(`\`${c.nama}\` belum terurut ${arah}.`, `Isi akhir: ${teksNilai(a)}`)
+      return terurut ? lulus(`\`${c.nama}\` sudah terurut ${arah}.`) : gagal(`\`${c.nama}\` belum terurut ${arah}.`, `Isi akhir: ${teksNilai(a, v.tipe)}`)
     }
     case 'tanpaError':
       return berhenti ? gagal(`Program belum berjalan sampai selesai${inp}.`, berhenti) : lulus(`Program berjalan sampai selesai tanpa error${inp}.`)

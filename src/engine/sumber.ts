@@ -2,6 +2,11 @@
 export interface Span {
   awal: number
   akhir: number
+  /**
+   * Titik yang ditunjuk pesan error (seperti `^` di javac), bila berbeda dari `awal`:
+   * operator pada ekspresi biner/assignment, `?` pada ternary, titik pada `a.b`, `[` pada `a[i]`.
+   */
+  fokus?: number
 }
 
 export function gabungSpan(a: Span, b: Span): Span {
