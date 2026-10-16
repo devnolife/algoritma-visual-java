@@ -18,6 +18,7 @@ export {
   adalahSet,
   cariModel,
   cariModelMap,
+  containsAll,
   daftarkanKoleksi,
   daftarkanMap,
   iterasi,

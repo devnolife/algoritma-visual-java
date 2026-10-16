@@ -134,8 +134,8 @@ src/
   components/, lib/  Komponen UI dasar (shadcn/ui) dan utilitas
 tests/
   engine/ lessons/ unit/   Unit test (Vitest)
-  korpus/            366 program Java (+ berkas .in) untuk uji diferensial
-  korpus-error/      256 program dengan error kompilasi, dibandingkan dengan javac
+  korpus/            369 program Java (+ berkas .in) untuk uji diferensial
+  korpus-error/      257 program dengan error kompilasi, dibandingkan dengan javac
   e2e/               Skenario Playwright
 ```
 
@@ -160,8 +160,8 @@ tests/
 - **Override `Object`:** `toString()`, `equals(Object)`, `hashCode()`, dipanggil otomatis oleh `println`, konkatenasi, dan koleksi; `implements Comparable<T>`.
 - **Exception:** `try`/`catch` (termasuk multi-catch), `finally`, `throw`, `throws`, checked vs unchecked, dan exception buatan sendiri. Pesan `NullPointerException` sama persis dengan JDK 21, misalnya `Cannot read field "next" because "curr" is null`.
 - **Wrapper & autoboxing:** `Integer`, `Long`, `Double`, `Character`, `Boolean`, dengan cache −128..127 seperti JDK; `StringBuilder`.
-- **Koleksi `java.util` dengan generik:** `ArrayList`, `LinkedList`, `ArrayDeque`, `Stack`, `HashMap`, `HashSet`, `LinkedHashMap`, `LinkedHashSet`, `TreeMap`, `TreeSet`, `PriorityQueue`, dan `Iterator`, beserta `Collections`, `Arrays.asList`, dan `List.of`. Urutan iterasi, pertumbuhan kapasitas, dan `ConcurrentModificationException` identik dengan JDK 21.
-- **Lambda `Comparator`** dan `Random` dengan seed (deretnya sama dengan JDK).
+- **Koleksi `java.util` dengan generik:** `ArrayList`, `LinkedList`, `ArrayDeque`, `Stack`, `HashMap`, `HashSet`, `LinkedHashMap`, `LinkedHashSet`, `TreeMap`, `TreeSet`, `PriorityQueue`, dan `Iterator`, beserta `Collections`, `Arrays.asList`, `List.of`, dan operasi himpunan `addAll`/`retainAll`/`removeAll`/`containsAll`. Urutan iterasi, pertumbuhan kapasitas, dan `ConcurrentModificationException` identik dengan JDK 21.
+- **Comparator:** lambda `Comparator`, `Comparator.naturalOrder()`/`reverseOrder()`, `Collections.reverseOrder()`, `reversed()`, dan `thenComparing(Comparator)`. `Random` dengan seed juga didukung (deretnya sama dengan JDK).
 
 **Belum didukung.** Fitur berikut memunculkan pesan ramah beserta alternatifnya: pewarisan antar-class biasa (selain exception), interface/abstract class/generik buatan sendiri, `instanceof`, enum, record, anonymous class, lambda selain `Comparator`, method reference, stream, `var`, dan `Map.of`/`Set.of`. Rinciannya ada di [DESAIN.md §5](docs/DESAIN.md#5-mesin-java-mini) dan [§11](docs/DESAIN.md#11-fase-2-perluasan-mesin-untuk-struktur-data).
 
@@ -175,10 +175,10 @@ tests/
 ## Pengujian dan jaminan mutu
 
 - **Uji diferensial terhadap JDK 21**
-  - Korpus berisi 622 program: 366 program benar dan 256 program dengan error kompilasi, termasuk 320 program untuk class/objek, exception, wrapper, dan koleksi.
+  - Korpus berisi 626 program: 369 program benar dan 257 program dengan error kompilasi, termasuk 324 program untuk class/objek, exception, wrapper, dan koleksi.
   - Setiap program dijalankan dengan `javac`/`java` asli dan dengan Java Mini.
   - Yang dibandingkan: stdout, kelas dan pesan exception beserta stack trace, serta baris, teks, dan posisi caret error kompilasi.
-  - **Hasil terakhir: 622/622 identik.**
+  - **Hasil terakhir: 626/626 identik.**
 - **Unit test** (Vitest) untuk lexer, parser, checker, analisis alur, runtime, rekonstruksi state per langkah, narasi, dan pemeriksa tantangan.
 - **E2E** (Playwright, build produksi)
   - Sinkronisasi slider, sorotan baris, dan penjelasan.

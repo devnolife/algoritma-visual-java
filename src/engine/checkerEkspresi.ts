@@ -454,12 +454,39 @@ export abstract class PemeriksaEkspresi extends PemeriksaDasar {
       e.tipe = t
       return { e, a: { k: 'biasa', tipe: t } }
     }
+    if (e.jenis === 'PanggilMethod' && e.argumen.length === 0 && e.objek) {
+      const poli = this.panggilStatikPoli(e)
+      if (poli) return { e, a: poli }
+    }
     const t = this.ekspresi(e)
     if (t.k === 'void') {
       this.lapor('void-tidak-boleh', e.span, katalog.voidTidakBoleh())
       return { e, a: { k: 'biasa', tipe: T.error } }
     }
     return { e, a: { k: 'biasa', tipe: t } }
+  }
+
+  /**
+   * `Kelas.method()` statik generik tanpa argumen sebagai argumen method lain, mis. `list.sort(Comparator.naturalOrder())`,
+   * adalah ekspresi poli seperti di javac: variabel tipenya disimpulkan dari tipe parameter yang dituju. Tanpa target,
+   * batas `T extends Comparable<? super T>` tidak bisa dipenuhi.
+   */
+  private panggilStatikPoli(e: A.PanggilMethod): Argumen | undefined {
+    const q = this.kualifierKelas(e.objek!)
+    if (!q) return undefined
+    const kandidat = this.kandidatMethod({ k: 'kelas', nama: this.namaHasil(q) }, e.nama).filter((k) => k.parameter.length === 0 && !k.varargs)
+    const generik = (k: KandidatMethod) => k.data.statik && memuatVariabel(k.kembali, new Set(k.tipeParam.map((p) => p.nama)))
+    if (!kandidat.length || !kandidat.every(generik)) return undefined
+    const coba = (target: Tipe | undefined): Tipe | null => {
+      const h = resolusi(this.dunia, kandidat, [], target)
+      if (!h.pilih) return null
+      return memuatVariabel(h.pilih.kembali) ? this.hapusVariabel(h.pilih.kembali) : h.pilih.kembali
+    }
+    const mandiri = coba(undefined)
+    // Tanpa target, tipenya hanya diketahui sampai kelasnya (mis. Comparator), cukup untuk menyaring overload.
+    const kembali = kandidat[0].kembali
+    const kelasSaja: Tipe = kembali.k === 'kelas' ? { k: 'kelas', nama: kembali.nama } : T.error
+    return { k: 'poly', tipe: mandiri ?? kelasSaja, denganTarget: coba, tunda: mandiri === null }
   }
 
   /** Teks daftar tipe argumen untuk pesan (`int,String`); lambda dan kondisional poli dicetak seperti javac. */
@@ -475,6 +502,7 @@ export abstract class PemeriksaEkspresi extends PemeriksaDasar {
   private argumenError(a: Argumen): boolean {
     if (a.k === 'lambda') return false
     if (a.k === 'kondisional') return a.cabang.some((c) => this.argumenError(c))
+    if (a.k === 'poly' && a.tunda) return false
     return adalahError(a.tipe)
   }
 
@@ -851,6 +879,14 @@ export abstract class PemeriksaEkspresi extends PemeriksaDasar {
       const lokasi = (k: KandidatMethod) => this.teks({ k: 'kelas', nama: k.data.pemilik.nama })
       const sig = (k: KandidatMethod) => `${k.nama}(${this.teksDaftar(k.parameter, k.varargs)})`
       this.lapor('referensi-ambigu', posisi, katalog.referensiAmbigu(nama, [`both ${jenis} ${sig(a)} in ${lokasi(a)} and ${jenis} ${sig(b)} in ${lokasi(b)} match`]))
+      return
+    }
+    // Method pustaka yang belum didukung (removeIf, forEach, Comparator.comparing, …) memakai parameter `Object`
+    // sebagai pengganti antarmuka fungsionalnya. Lambda yang ditolak di sana bukan kesalahan Java mahasiswa,
+    // jadi laporkan keterbatasan simulator, bukan "Object is not a functional interface".
+    const belum = kandidat.find((k) => k.data.pustaka?.belumDidukung && hasil.alasan.get(k)?.k !== 'arity')
+    if (belum) {
+      this.lapor('belum-didukung', posisi, katalog.belumDidukung(`Method ${nama}`, belum.data.pustaka!.belumDidukung!))
       return
     }
     const entri = kandidat.filter((k) => hasil.alasan.has(k)).map((k) => ({ k, a: hasil.alasan.get(k)! }))

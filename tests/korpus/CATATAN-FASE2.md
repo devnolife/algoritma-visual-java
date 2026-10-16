@@ -1,8 +1,8 @@
 # Catatan perilaku JDK 21 untuk korpus fase 2
 
 Rujukan bagi penulis mesin Java Mini. Semua contoh di bawah **disalin dari keluaran JDK asli** (javac/java 21,
-`-g`, locale `en_US`) melalui `pnpm uji:diferensial --hanya-jdk`. Program korpus fase 2 bernomor 201-404 di
-`tests/korpus/NNN-*.java` dan 201-316 di `tests/korpus-error/NNN-*.java`. Contoh bertanda _(probe)_ berasal dari program uji terpisah dan **tidak**
+`-g`, locale `en_US`) melalui `pnpm uji:diferensial --hanya-jdk`. Program korpus fase 2 bernomor 201-407 di
+`tests/korpus/NNN-*.java` dan 201-317 di `tests/korpus-error/NNN-*.java`. Contoh bertanda _(probe)_ berasal dari program uji terpisah dan **tidak**
 ada di korpus, karena perilakunya terlalu bergantung pada detail internal javac atau di luar subset fase 2.
 
 Uji diferensial membuang frame `at java.base/...`, jadi mesin hanya perlu mencetak frame kode mahasiswa. Contoh

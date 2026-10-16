@@ -364,7 +364,13 @@ Aturan untuk semua jenis cek:
 | `scanner` | Membuat `Scanner` |
 | `rekursi` | Ada method yang memanggil dirinya sendiri, langsung maupun tidak langsung |
 | `method:<nama>` | Ada method bernama `<nama>`, misalnya `method:luasLingkaran` |
-| `pustaka:<Kelas.method>` | Memanggil method pustaka, misalnya `pustaka:Math.sqrt` atau `pustaka:String.charAt` |
+| `pustaka:<Kelas.method>` | Memanggil method pustaka, misalnya `pustaka:Math.sqrt` atau `pustaka:String.charAt`. Method objek juga tercatat menurut tipe variabel penerimanya: `pustaka:ArrayList.add` untuk `ArrayList<Integer> daftar`, `pustaka:Deque.push` untuk `Deque<Integer> tumpukan`. |
+| `class:<Nama>` | Ada class buatan sendiri bernama `<Nama>` selain `Main`, misalnya `class:Node` |
+| `konstruktor` | Ada konstruktor yang ditulis sendiri |
+| `objek` | Membuat objek class buatan sendiri dengan `new` |
+| `koleksi:<Kelas>` | Membuat koleksi java.util dengan `new`, misalnya `koleksi:ArrayList` atau `koleksi:HashMap` |
+| `try`, `throw` | Blok `try` dan pernyataan `throw` |
+| `lambda` | Ekspresi lambda, misalnya `Comparator` `(a, b) -> Double.compare(a.ipk, b.ipk)` |
 
 Nilai yang mengandung `:` wajib diberi kutip, misalnya `konstruksi: "method:pangkat"` ([§8](#8-aturan-menulis-yaml-penting)).
 

@@ -361,7 +361,7 @@ Setiap pelajaran punya 2 tantangan beserta solusinya (32 tantangan). Cek `komple
   - grafik pertumbuhan, yaitu program dijalankan untuk beberapa ukuran n lalu jumlah operasinya dibandingkan dengan kurva acuan;
   - renderer rentang aktif pada array, pohon panggilan, tabel DP berlabel, papan backtracking, dan graf dari matriks.
 - **Fase 2 + Modul 2: Struktur Data.**
-  - ~~Mesin~~ **selesai**: lihat [§11](#11-fase-2-perluasan-mesin-untuk-struktur-data). Seluruh korpus (622 program) identik dengan JDK 21.
+  - ~~Mesin~~ **selesai**: lihat [§11](#11-fase-2-perluasan-mesin-untuk-struktur-data). Seluruh korpus (626 program) identik dengan JDK 21.
   - ~~Renderer~~ **selesai**: memori objek dan alur exception, rantai node, pohon, tumpukan, antrean, tabel hash, koleksi `java.util` (abstrak + "Lihat isi dalam"), graf dari daftar ketetanggaan.
   - Materi (15 pelajaran): class & objek, konstruktor & `this`, exception, ArrayList & wrapper, singly/doubly linked list, stack, queue, hashing, HashMap & HashSet, pohon biner, BST, heap & PriorityQueue, graf, mengurutkan objek & Iterator.
 
@@ -399,7 +399,8 @@ Prinsipnya sama dengan Fase 1: setiap perilaku harus identik dengan JDK 21 dan d
 - **Exception:** `try/catch` (termasuk multi-catch), `finally`, `throw`, `throws`, checked vs unchecked. `extends` hanya diizinkan untuk exception (`Exception`, `RuntimeException`, atau exception bawaan lain) dengan `super(pesan)`. Tersedia `getMessage()`, `toString()`, `printStackTrace()`; `StackOverflowError` bisa ditangkap.
 - **Wrapper & autoboxing:** `Integer`, `Long`, `Double`, `Character`, `Boolean`, dengan cache −128..127 persis JDK; unboxing `null` menghasilkan NPE.
 - **Generik untuk tipe pustaka saja:** argumen tipe, bentuk bersarang, diamond `<>`, tipe antarmuka (`List`, `Map`, `Set`, `Queue`, `Deque`, `Collection`, `Iterable`, `Iterator`, `Map.Entry`), dan for-each pada koleksi.
-- **Pustaka:** `StringBuilder`; `ArrayList`, `LinkedList`, `ArrayDeque`, `Stack`, `HashMap`, `HashSet`, `LinkedHashMap`, `LinkedHashSet`, `TreeMap`, `TreeSet`, `PriorityQueue`, `Iterator`; `Collections`, `Arrays.asList`, `List.of`, `Integer.compare`; `Random` dengan seed (deret LCG identik dengan JDK).
+- **Pustaka:** `StringBuilder`; `ArrayList`, `LinkedList`, `ArrayDeque`, `Stack`, `HashMap`, `HashSet`, `LinkedHashMap`, `LinkedHashSet`, `TreeMap`, `TreeSet`, `PriorityQueue`, `Iterator`; `Collections`, `Arrays.asList`, `List.of`, `Integer.compare`; `Comparator.naturalOrder`/`reverseOrder`, `Collections.reverseOrder`, `reversed`, `thenComparing(Comparator)` (objek pembanding JDK yang sama, termasuk objek tunggalnya); `Random` dengan seed (deret LCG identik dengan JDK).
+- **Pustaka yang memakai antarmuka fungsional lain** (`removeIf`, `forEach`, `computeIfAbsent`, `Comparator.comparing`, …) ditolak dengan pesan "[Simulator] Method … belum didukung", bukan error javac tiruan.
 - **Tetap ditolak:** class/method generik buatan sendiri, wildcard, pewarisan antar-class biasa, interface/abstract buatan sendiri, `instanceof`, enum, record, anonymous/local class, lambda selain `Comparator`, method reference, stream, `var`, `Map.of`/`Set.of` (urutan iterasinya diacak JDK per run), thread, I/O file.
 
 ### 11.2 Model runtime
@@ -462,6 +463,6 @@ Setiap koleksi dimodelkan sebagai objek heap dengan field yang sama seperti JDK 
 - **Lambda:** `local variables referenced from a lambda expression must be final or effectively final`, `incompatible types: bad return type in lambda expression`.
 
 ### 11.6 Pengujian
-- **Korpus Fase 2:** 204 program jalan (nomor 201-404 di `tests/korpus/`) dan 116 program error (nomor 201-316 di `tests/korpus-error/`). Selama staging, korpus ini berada di folder terpisah dan hanya dijalankan dengan JDK. Setelah integrasi, korpus dipindah ke folder utama, sehingga `pnpm uji:diferensial` menjalankan semuanya. Catatan perilaku JDK yang menjadi rujukan ada di `tests/korpus/CATATAN-FASE2.md`. Untuk memeriksa program korpus baru sebelum mesin mendukungnya, pakai `pnpm uji:diferensial <filter> --hanya-jdk`.
+- **Korpus Fase 2:** 207 program jalan (nomor 201-407 di `tests/korpus/`) dan 117 program error (nomor 201-317 di `tests/korpus-error/`). Selama staging, korpus ini berada di folder terpisah dan hanya dijalankan dengan JDK. Setelah integrasi, korpus dipindah ke folder utama, sehingga `pnpm uji:diferensial` menjalankan semuanya. Catatan perilaku JDK yang menjadi rujukan ada di `tests/korpus/CATATAN-FASE2.md`. Untuk memeriksa program korpus baru sebelum mesin mendukungnya, pakai `pnpm uji:diferensial <filter> --hanya-jdk`.
 - **Target:** seluruh korpus lama dan baru identik dengan JDK 21. Untuk diagnostik generik yang sangat panjang, minimal baris pertama dan posisinya identik; kasus ini dilaporkan terpisah.
 - **Anggaran performa:** kompilasi + eksekusi satu pelajaran < 5 ms (median), `stateDi` < 1 ms, 60 fps pada build produksi.

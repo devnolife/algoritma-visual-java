@@ -183,6 +183,13 @@ const PRIMITIF_WRAPPER: Record<string, NamaPrimitif> = {
 
 const adalahReferensiRuntime = (t: Tipe) => t.k === 'kelas' || t.k === 'array' || t.k === 'null' || t.k === 'variabel' || t.k === 'wildcard'
 
+/** Objek Comparator milik JDK (nama kelas persis JDK 21): urutan alami, urutan terbalik, dan hasil reversed/thenComparing. */
+const PEMBANDING_ALAMI = 'java.util.Comparators$NaturalOrderComparator'
+const PEMBANDING_TERBALIK = 'java.util.Collections$ReverseComparator'
+const PEMBANDING_TERBALIK2 = 'java.util.Collections$ReverseComparator2'
+const PEMBANDING_LANJUT = 'java.util.Comparator$$Lambda'
+const KELAS_PEMBANDING = new Set([PEMBANDING_ALAMI, PEMBANDING_TERBALIK, PEMBANDING_TERBALIK2, PEMBANDING_LANJUT])
+
 /** `Kelas.nama` dan daftar tipe parameter dari id pustaka `Kelas.nama(a,b)`. */
 function uraiId(id: string): { kelas: string; nama: string } {
   const kurung = id.indexOf('(')
@@ -233,6 +240,8 @@ class Mesin {
   /** Class yang sudah diinisialisasi (nama kanonik). */
   private readonly terinit = new Set<string>()
   private readonly lambda = new Map<number, InfoLambda>()
+  /** Objek tunggal JDK per run (Comparator.naturalOrder(), Collections.reverseOrder()). */
+  private readonly tunggal = new Map<string, number>()
   private readonly tryAktif: TryAktif[] = []
   private readonly kelasDariBiner = new Map<string, A.InfoKelas>()
   private readonly mainKanonik: string
@@ -669,8 +678,64 @@ class Mesin {
 
   private compareLambda(cmp: number, a: Nilai, b: Nilai): number {
     const o = this.state.heap[cmp]
-    if (o?.k !== 'lambda') throw new LemparanJava('java.lang.UnsupportedOperationException', '[Simulator] Comparator ini belum didukung')
-    return this.panggilLambda(cmp, [a, b]) as number
+    if (o?.k === 'lambda') return this.panggilLambda(cmp, [a, b]) as number
+    if (o?.k === 'objek') {
+      switch (o.kelas) {
+        case PEMBANDING_ALAMI:
+          return this.compareAlami(a, b, 'c1')
+        case PEMBANDING_TERBALIK:
+          return this.compareAlami(b, a, 'c2')
+        case PEMBANDING_TERBALIK2:
+          return this.compareLambda(o.field.cmp as number, b, a)
+        case PEMBANDING_LANJUT: {
+          const r = this.compareLambda(o.field['arg$1'] as number, a, b)
+          return r !== 0 ? r : this.compareLambda(o.field['arg$2'] as number, a, b)
+        }
+      }
+    }
+    throw new LemparanJava('java.lang.UnsupportedOperationException', '[Simulator] Comparator ini belum didukung')
+  }
+
+  /** NaturalOrderComparator/ReverseComparator: `c1.compareTo(c2)` milik elemen pertama. */
+  private compareAlami(a: Nilai, b: Nilai, nama: string): number {
+    if (a === null) throw new LemparanJava('java.lang.NullPointerException', `Cannot invoke "java.lang.Comparable.compareTo(Object)" because "${nama}" is null`)
+    return this.compareToObjek(a as number, b)
+  }
+
+  /** Comparator.naturalOrder() dan Collections.reverseOrder() adalah objek tunggal di JDK. */
+  private pembandingTunggal(kelas: string): number {
+    let id = this.tunggal.get(kelas)
+    if (id === undefined) {
+      id = this.heapKoleksi.baruObjek(kelas, {}, {})
+      this.tunggal.set(kelas, id)
+    }
+    return id
+  }
+
+  /** Collections.reverseOrder(cmp), juga dipakai Comparator.reversed() (`Collections.reverseOrder(this)`). */
+  private balikPembanding(cmp: Nilai): number {
+    if (cmp === null) return this.pembandingTunggal(PEMBANDING_TERBALIK)
+    const o = this.state.heap[cmp as number]
+    if (o?.k === 'objek') {
+      if (o.kelas === PEMBANDING_TERBALIK) return this.pembandingTunggal(PEMBANDING_ALAMI)
+      if (o.kelas === PEMBANDING_ALAMI) return this.pembandingTunggal(PEMBANDING_TERBALIK)
+      if (o.kelas === PEMBANDING_TERBALIK2) return o.field.cmp as number
+    }
+    return this.heapKoleksi.baruObjek(PEMBANDING_TERBALIK2, { cmp }, { cmp: 'java.util.Comparator' })
+  }
+
+  /** compare/reversed/thenComparing pada objek Comparator (lambda mahasiswa atau objek pembanding JDK). */
+  private metodePembanding(ref: number, nama: string, arg: Nilai[]): Nilai | typeof TIDAK_ADA {
+    switch (nama) {
+      case 'compare':
+        return this.compareLambda(ref, arg[0], arg[1])
+      case 'reversed':
+        return this.balikPembanding(ref)
+      case 'thenComparing':
+        if (arg[0] === null) throw new LemparanJava('java.lang.NullPointerException')
+        return this.heapKoleksi.baruObjek(PEMBANDING_LANJUT, { 'arg$1': ref, 'arg$2': arg[0] }, { 'arg$1': 'java.util.Comparator', 'arg$2': 'java.util.Comparator' })
+    }
+    return TIDAK_ADA
   }
 
   /** Nama JVM sebuah tipe statis (untuk pesan ClassCastException). */
@@ -715,6 +780,7 @@ class Mesin {
           if (nama === 'Comparable') return this.adalahComparable(ref as number)
           return (info.exception ?? []).includes(nama)
         }
+        if (KELAS_PEMBANDING.has(o.kelas)) return nama === 'Comparator'
         const sederhana = namaSederhana(o.kelas)
         if (adalahExceptionBawaan(sederhana)) return rantaiException(sederhana).includes(nama)
         return subtipePustaka(sederhana, nama)
@@ -2242,6 +2308,8 @@ class Mesin {
         const elemen = isi && isi.jenis !== 'map' ? isi.elemen : []
         return this.buatString(elemen.map((x) => this.keString(x, T.Object)).join(this.teks(arg[0])))
       }
+      if ((kelas === 'Collections' || kelas === 'Comparator') && nama === 'reverseOrder') return this.balikPembanding(arg.length ? arg[0] : null)
+      if (kelas === 'Comparator' && nama === 'naturalOrder') return this.pembandingTunggal(PEMBANDING_ALAMI)
       const r = panggilStatikFase2(this.ctx2, kelas, nama, t.parameter, arg)
       if (r !== TIDAK_ADA) return r
       return this.panggilFase1(t.id, null, arg, tipeArg, t.parameter)
@@ -2264,7 +2332,7 @@ class Mesin {
         r = panggilPembangun(this.ctx2, ref, nama, t.parameter, arg)
         break
       case 'lambda':
-        if (nama === 'compare') r = this.panggilLambda(ref, arg)
+        r = this.metodePembanding(ref, nama, arg)
         break
       case 'objek':
         r = this.panggilObjek(ref, o, nama, t, arg)
@@ -2294,6 +2362,7 @@ class Mesin {
       if (r !== TIDAK_ADA) return r
     }
     if (o.kelas === 'java.util.Random') return panggilRandom(this.ctx2, ref, nama, arg)
+    if (KELAS_PEMBANDING.has(o.kelas)) return this.metodePembanding(ref, nama, arg)
     if (!info && adalahObjekPustakaKoleksi(this.ctx2, ref)) return panggilKoleksi(this.ctx2, ref, nama, t.parameter, arg)
     return TIDAK_ADA
   }

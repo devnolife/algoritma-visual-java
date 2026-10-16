@@ -19,13 +19,16 @@ import {
   cariModel,
   cariModelMap,
   CollectionsModel,
+  containsAll,
   EntriModel,
   HashMapModel,
   HashSetModel,
+  iterasi,
   LinkedHashMapModel,
   LinkedHashSetModel,
   LinkedListModel,
   ListOfModel,
+  modelDari,
   PriorityQueueModel,
   StackModel,
   TampilanHashMapModel,
@@ -201,6 +204,7 @@ export function panggilKoleksi(c: KonteksFase2, id: number, nama: string, p: Tip
     if (nama === 'comparator' && typeof model.comparator === 'function') return (model.comparator as (h: HeapKoleksi, id: number) => Nilai)(h, id)
     const op = namaOperasi(model, nama, p)
     if (op) return panggilModel(c, model, op, id, arg)
+    if (nama === 'containsAll' || nama === 'removeAll' || nama === 'retainAll') return operasiMassal(c, model, id, nama, arg[0])
     return TIDAK_ADA
   }
   const reg = cariModel(kelas)
@@ -237,6 +241,44 @@ export function panggilKoleksi(c: KonteksFase2, id: number, nama: string, p: Tip
     if (nama === 'toString') return c.buatString(mm.teks(h, c.ops, id))
   }
   return TIDAK_ADA
+}
+
+/** Koleksi yang removeAll/retainAll-nya memakai bulkRemove internal sendiri (belum dimodelkan). */
+const TANPA_HAPUS_MASSAL = new Set(['java.util.ArrayDeque', 'java.util.PriorityQueue', 'java.util.Vector', 'java.util.Stack'])
+
+/**
+ * containsAll/removeAll/retainAll seperti AbstractCollection dan AbstractSet JDK 21: `contains` milik koleksi
+ * argumen dipanggil untuk setiap elemen dalam urutan iterasi, lalu elemen dihapus lewat iterator. ArrayList memakai
+ * batchRemove, tetapi urutan pemanggilan `contains`, isi akhir, dan kenaikan modCount-nya sama.
+ */
+function operasiMassal(c: KonteksFase2, model: Model, id: number, nama: string, lain: Nilai): HasilPustaka {
+  const h = c.h
+  if (nama === 'containsAll') {
+    if (lain === null) throw npe('Cannot invoke "java.util.Collection.iterator()" because "c" is null')
+    return containsAll(h, c.ops, id, lain as number)
+  }
+  const m = modelDari(h, id)
+  if (m.kelas === 'java.util.ImmutableCollections$ListN') throw new LemparanJava('java.lang.UnsupportedOperationException', null)
+  if (TANPA_HAPUS_MASSAL.has(m.kelas)) return TIDAK_ADA
+  if (lain === null) throw npe()
+  const ml = modelDari(h, lain as number)
+  let berubah = false
+  if (nama === 'removeAll' && m.set && m.size(h, c.ops, id) > ml.size(h, c.ops, lain as number)) {
+    // AbstractSet.removeAll: bila set ini lebih besar, hapus setiap elemen argumen satu per satu.
+    const hapus = namaOperasi(model, 'remove', [{ k: 'kelas', nama: 'Object' }])!
+    const it = iterasi(h, c.ops, lain as number)
+    while (it.hasNext()) berubah = (panggilModel(c, model, hapus, id, [it.next()]) as boolean) || berubah
+    return berubah
+  }
+  const hapusBila = nama === 'removeAll'
+  const it = m.iterator(h, c.ops, id)
+  while (m.hasNext(h, c.ops, it)) {
+    if (ml.contains(h, c.ops, lain as number, m.next(h, c.ops, it)) === hapusBila) {
+      m.remove(h, c.ops, it)
+      berubah = true
+    }
+  }
+  return berubah
 }
 
 /** Apakah objek heap ini ditangani `panggilKoleksi` (koleksi, map, entri, iterator, view). */

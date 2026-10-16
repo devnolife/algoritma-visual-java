@@ -23,8 +23,11 @@ export type Argumen =
   | { k: 'biasa'; tipe: Tipe }
   /** Lambda; `eksplisit` berisi tipe parameter bila semua parameternya ditulis bertipe. */
   | { k: 'lambda'; node: A.Lambda; eksplisit?: Tipe[] }
-  /** Ekspresi poli (diamond, pemanggilan generik) yang tipenya bergantung pada target. */
-  | { k: 'poly'; tipe: Tipe; denganTarget: (target: Tipe) => Tipe | null }
+  /**
+   * Ekspresi poli (diamond, pemanggilan generik) yang tipenya bergantung pada target. `tunda`: tipe mandirinya
+   * belum bisa disimpulkan tanpa target (mis. `Comparator.naturalOrder()`), dan itu bukan error.
+   */
+  | { k: 'poly'; tipe: Tipe; denganTarget: (target: Tipe) => Tipe | null; tunda?: boolean }
   /** Kondisional referensi (poli): kedua cabangnya masing-masing harus cocok dengan tipe parameter. */
   | { k: 'kondisional'; node: A.Kondisional; cabang: [Argumen, Argumen] }
 
@@ -355,6 +358,13 @@ function cobaKandidat(d: DuniaTipe, k: Kandidat, arg: Argumen[], fase: 1 | 2 | 3
       if (t === null || !(longgar ? d.longgar(t, f) : d.strict(t, f))) {
         return { k: 'arg', indeks: i, dari: t ?? a.tipe, ke: f, lossy: false, varargs: varargsBagian, generik }
       }
+      return undefined
+    }
+    if (a.k === 'poly' && a.tunda) {
+      // Tipe kembalinya baru disimpulkan setelah target pasti; untuk sekarang cukup kelasnya yang harus cocok
+      // (Comparator tidak bisa menjadi Collection), tanpa menyumbang batas inferensi.
+      const t = a.tipe
+      if (t.k === 'kelas' && f.k === 'kelas' && !d.asSuper(t, f.nama)) return { k: 'arg', indeks: i, dari: t, ke: f, lossy: false, varargs: varargsBagian, generik }
       return undefined
     }
     const tipeArg = a.tipe
