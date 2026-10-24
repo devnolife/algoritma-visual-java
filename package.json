@@ -4,6 +4,9 @@
   "version": "0.1.0",
   "description": "Web app visualisasi algoritma & pemrograman dasar dengan bahasa Java",
   "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

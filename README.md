@@ -78,12 +78,43 @@ Perubahan berkas materi di `content/` langsung terlihat di browser setelah disim
 
 ## Deploy
 
-`pnpm build` menghasilkan situs statis murni di `dist/`, tanpa backend dan tanpa basis data. Salin isi folder itu ke server web mana pun:
+`pnpm build` menghasilkan situs statis murni di `dist/`, tanpa backend dan tanpa basis data.
+
+Tidak perlu aturan *rewrite*, karena aplikasi memakai `base: './'` dan *hash routing* (`…/#/modul/modul-1-dasar`). Tidak ada *environment variable* yang dibutuhkan.
+
+### Vercel
+
+Repositori ini sudah menyertakan [`vercel.json`](vercel.json), jadi tidak ada yang perlu diisi manual saat impor:
+
+| Pengaturan | Nilai | Sumber |
+|---|---|---|
+| Framework Preset | Vite | `vercel.json` |
+| Build Command | `pnpm build` | `vercel.json` |
+| Output Directory | `dist` | `vercel.json` |
+| Install Command | `pnpm install` | terdeteksi dari `pnpm-lock.yaml` |
+| Node.js | 24.x | `engines.node` di `package.json` |
+
+Langkah:
+
+1. Buka <https://vercel.com/new> dan **Import Git Repository** ini.
+2. Biarkan seluruh pengaturan apa adanya, lalu **Deploy**.
+3. Setiap `git push` ke `master` otomatis naik ke produksi; setiap pull request mendapat URL *preview* sendiri.
+
+Lewat CLI juga bisa:
+
+```bash
+npx vercel          # deploy preview
+npx vercel --prod   # deploy produksi
+```
+
+Berkas hasil build di `/assets/` diberi `Cache-Control: immutable` satu tahun karena namanya sudah ber-*hash*, sedangkan `index.html` selalu divalidasi ulang agar rilis baru langsung terlihat.
+
+### Server statis lain
+
+Salin isi `dist/` ke server web mana pun:
 
 - server kampus (Apache, Nginx, IIS), termasuk dari subfolder seperti `https://kampus.ac.id/prodi/algoritma/`;
 - GitHub Pages, Netlify, Cloudflare Pages, dan layanan serupa.
-
-Tidak perlu aturan *rewrite*, karena aplikasi memakai `base: './'` dan *hash routing* (`…/#/modul/modul-1-dasar`).
 
 Berkas harus disajikan lewat HTTP(S). Membuka `index.html` langsung dari disk (`file://`) tidak bisa, karena browser memblokir Web Worker dari origin `file://`.
 

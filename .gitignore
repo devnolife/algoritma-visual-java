@@ -8,6 +8,8 @@ test-results
 playwright-report
 blob-report
 .superpowers
+.taste-skill
+.vercel
 .vite
 *.log
 .DS_Store

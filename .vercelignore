@@ -1,0 +1,12 @@
+.git
+node_modules
+dist
+coverage
+test-results
+playwright-report
+blob-report
+tmp
+.impeccable
+.taste-skill
+docs
+*.log
