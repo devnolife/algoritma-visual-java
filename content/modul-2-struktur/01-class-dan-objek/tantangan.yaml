@@ -1,0 +1,36 @@
+- id: salinan-mandiri
+  judul: Salinan yang benar-benar terpisah
+  soal: "Buat variabel `Mahasiswa salinan` di dalam `main` yang menunjuk objek **baru**, dengan isi keempat field yang sama dengan `ani` (nama, umur, ipk, aktif). Lalu ubah `salinan.ipk` menjadi 4.0, sementara IPK `ani` harus tetap 3.9. Di akhir program, cetak dua baris tambahan: `ani: 3.9` lalu `salinan: 4.0`."
+  cek:
+    - jenis: variabel
+      nama: salinan
+      harapan: { nama: "Ani", umur: 19, ipk: 4.0, aktif: true }
+    - jenis: variabel
+      nama: ani
+      harapan: { nama: "Ani", umur: 19, ipk: 3.9, aktif: true }
+    - jenis: outputMemuat
+      harapan: "ani: 3.9\nsalinan: 4.0"
+  petunjuk:
+    - "`Mahasiswa salinan = ani;` hanya menyalin panah, sehingga mengubah `salinan.ipk` ikut mengubah IPK `ani`. Kamu butuh objek kedua yang terpisah."
+    - "Mulai dengan `Mahasiswa salinan = new Mahasiswa();`, lalu salin field satu per satu, misalnya `salinan.nama = ani.nama;`."
+    - 'Setelah keempat field tersalin, tulis `salinan.ipk = 4.0;`, lalu cetak `System.out.println("ani: " + ani.ipk);` dan `System.out.println("salinan: " + salinan.ipk);`.'
+
+- id: kelompok-belajar
+  judul: Kelompok dengan kursi kosong
+  soal: "Buat array `Mahasiswa[] kelompok = new Mahasiswa[3];` di dalam `main`. Isi `kelompok[0]` dengan `ani` dan `kelompok[1]` dengan `budi`, lalu biarkan `kelompok[2]` tetap `null`. Dengan perulangan `for` berindeks, cetak satu baris per anggota dengan format `Anggota 1: Ani`. Untuk elemen yang masih `null`, cetak `Anggota 3: (kosong)`. Program harus selesai tanpa NullPointerException."
+  cek:
+    - jenis: outputMemuat
+      harapan: "Anggota 1: Ani\nAnggota 2: Budi\nAnggota 3: (kosong)"
+    - jenis: variabel
+      nama: kelompok
+      harapan:
+        - { nama: "Ani", umur: 19, ipk: 3.9, aktif: true }
+        - { nama: "Budi", umur: 20, ipk: 0.0, aktif: false }
+        - null
+    - jenis: harusMemakai
+      konstruksi: for
+    - jenis: tanpaError
+  petunjuk:
+    - "Elemen array objek bernilai awal `null`, sama seperti field bertipe objek. Coba dulu cetak `kelompok[i].nama` tanpa pemeriksaan, lalu baca pesan error-nya."
+    - "Di dalam `for (int i = 0; i < kelompok.length; i++)`, periksa `if (kelompok[i] != null)` sebelum membaca `kelompok[i].nama`."
+    - 'Nomor anggota dimulai dari 1, jadi cetak `"Anggota " + (i + 1) + ": " + kelompok[i].nama`. Di cabang `else`, cetak `"Anggota " + (i + 1) + ": (kosong)"`.'

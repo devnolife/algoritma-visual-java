@@ -1,0 +1,31 @@
+- id: setter-stok
+  judul: Setter yang menolak stok negatif
+  soal: "Tambahkan setter `void setStok(int stok)` di class `Produk`. Bila nilainya negatif, cetak `Stok -3 ditolak` (angkanya mengikuti nilai yang ditolak) dan biarkan stok lama tidak berubah. Bila tidak negatif, simpan nilainya ke field `stok`. Di `main`, tepat sebelum `System.out.println(teh);`, panggil `roti.setStok(9);` lalu `roti.setStok(-3);`. Baris roti di output harus menjadi `Roti bakar Rp13000 (stok 9)`."
+  cek:
+    - jenis: harusMemakai
+      konstruksi: "method:setStok"
+    - jenis: outputMemuat
+      harapan: "Stok -3 ditolak"
+    - jenis: outputPola
+      pola: 'Roti bakar Rp13000 \(stok 9\)$'
+    - jenis: tanpaError
+  petunjuk:
+    - "Polanya sudah ada di `setHarga` (baris 20–26). Setter baru bentuknya hampir sama, hanya field-nya yang berbeda."
+    - "Periksa dulu `if (stok < 0)`. Di dalam blok itu, cetak pesan penolakan lalu `return;` agar baris penyimpanan tidak dijalankan."
+    - "Parameter `stok` menutupi field `stok`, jadi simpan nilainya dengan `this.stok = stok;`. Tanpa `this.`, field-nya tidak pernah berubah."
+
+- id: kategori-produk
+  judul: Konstruktor baru dan toString yang lebih lengkap
+  soal: 'Tambahkan field `private String kategori;` dan konstruktor empat parameter `Produk(String nama, int harga, int stok, String kategori)` yang mengisi keempat field. Ubah konstruktor tiga parameter agar meneruskan pekerjaannya ke konstruktor baru itu dengan `this(...)` dan kategori `"Umum"`. Ubah `toString()` agar kategori tampil di depan dalam kurung siku, misalnya `[Umum] Roti bakar Rp13000 (stok 4)`. Terakhir, buat `teh` dengan `new Produk("Es teh", 5000, 10, "Minuman")`, sehingga baris teh di output menjadi `[Minuman] Es teh Rp5000 (stok 7)`.'
+  cek:
+    - jenis: variabel
+      nama: teh
+      harapan: { nama: "Es teh", harga: 5000, stok: 7, kategori: "Minuman" }
+    - jenis: outputMemuat
+      harapan: "[Minuman] Es teh Rp5000 (stok 7)"
+    - jenis: outputPola
+      pola: '^\[Umum\] Roti bakar Rp13000 \(stok \d+\)$'
+  petunjuk:
+    - "Konstruktor empat parameter isinya seperti konstruktor tiga parameter yang sekarang, ditambah `this.kategori = kategori;`."
+    - 'Badan konstruktor tiga parameter cukup satu baris: `this(nama, harga, stok, "Umum");`. Konstruktor dua parameter tidak perlu diubah, karena ia memanggil konstruktor tiga parameter, yang lalu meneruskan ke konstruktor empat parameter.'
+    - 'Di `toString()`, kembalikan `"[" + kategori + "] " + nama + " Rp" + harga + " (stok " + stok + ")"`.'

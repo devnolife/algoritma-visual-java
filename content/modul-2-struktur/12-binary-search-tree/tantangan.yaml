@@ -1,0 +1,31 @@
+- id: nilai-terbesar
+  judul: Kunci terbesar
+  soal: "Tambahkan method `static int terbesar(Node root)` yang mengembalikan kunci terbesar di BST. Manfaatkan aturan BST: cukup turuni anak **kanan** sampai tidak bisa lagi, tanpa memeriksa seluruh pohon. Cetak satu baris `Terbesar: 124` tepat setelah baris `Terkecil: 15`. Program harus selesai dalam paling banyak 275 langkah."
+  cek:
+    - jenis: outputPola
+      pola: '^Terkecil: 15\nTerbesar: 124$'
+    - jenis: harusMemakai
+      konstruksi: "method:terbesar"
+    - jenis: maksLangkah
+      batas: 275
+  petunjuk:
+    - "Lihat method `terkecil`: kunci terkecil ada di simpul paling kiri. Dengan alasan yang sama, kunci terbesar ada di simpul paling kanan."
+    - "Salin method `terkecil`, ganti namanya menjadi `terbesar`, lalu ganti `left` menjadi `right` di dua tempat. Menelusuri seluruh pohon juga menghasilkan 124, tetapi melewati batas 275 langkah."
+    - 'Di `main`, tepat setelah baris yang mencetak `Terkecil`, tambahkan `System.out.println("Terbesar: " + terbesar(root));`.'
+
+- id: pohon-seimbang
+  judul: Susun agar seimbang
+  soal: "Kunci 10, 20, …, 70 yang disisipkan secara terurut menghasilkan pohon miring setinggi 7. Sisipkan ketujuh kunci yang **sama** dalam urutan lain sehingga pohonnya **seimbang** setinggi 3, yaitu setiap simpul yang bukan daun punya dua anak. Simpan urutan itu di array `int[] urutan`, lalu di dalam perulangan ganti pembangkit kunci menjadi `int kunci = urutan[i];`. Tetap sisipkan dengan `sisip`, sehingga baris pertama output menjadi `Perbandingan saat menyisipkan: 10`."
+  cek:
+    - jenis: isiPohon
+      akar: root
+      urutan: preorder
+      harapan: [40, 20, 10, 30, 60, 50, 70]
+    - jenis: outputMemuat
+      harapan: "Perbandingan saat menyisipkan: 10"
+    - jenis: harusMemakai
+      konstruksi: array
+  petunjuk:
+    - "Kunci yang disisipkan pertama selalu menjadi akar. Agar pohonnya seimbang, akar harus kunci yang berada di **tengah**."
+    - "Akar 40 membagi kunci menjadi 10, 20, 30 di kiri dan 50, 60, 70 di kanan. Setiap kelompok juga butuh akar tengah, yaitu 20 dan 60, yang harus disisipkan sebelum anak-anaknya."
+    - "Salah satu urutan yang benar adalah `int[] urutan = {40, 20, 60, 10, 30, 50, 70};`. Urutan lain juga boleh, asalkan setiap simpul disisipkan sebelum anak-anaknya."

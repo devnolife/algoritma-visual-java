@@ -1,0 +1,33 @@
+- id: jumlah-daun
+  judul: Hitung jumlah daun
+  soal: "Tambahkan method rekursif `static int jumlahDaun(Node node)` yang menghitung banyaknya **daun**, yaitu simpul yang anak kiri dan anak kanannya sama-sama `null`. Di `main`, simpan hasil `jumlahDaun(root)` di variabel `int daun`, lalu cetak satu baris `Jumlah daun: 3` di akhir output."
+  cek:
+    - jenis: variabel
+      nama: daun
+      tipe: int
+      harapan: 3
+    - jenis: outputMemuat
+      harapan: "Jumlah daun: 3"
+    - jenis: harusMemakai
+      konstruksi: "method:jumlahDaun"
+  petunjuk:
+    - "Ada tiga kasus. Subpohon kosong (`node == null`) berisi 0 daun. Simpul yang kedua anaknya `null` adalah 1 daun. Selain itu, jumlahkan daun di subpohon kiri dan subpohon kanan."
+    - "Periksa `null` lebih dulu, baru periksa daun: `if (node.left == null && node.right == null) return 1;`. Urutan ini mencegah `node.left` dibaca dari referensi `null`."
+    - "Kasus terakhir: `return jumlahDaun(node.left) + jumlahDaun(node.right);`. Di `main`, tulis `int daun = jumlahDaun(root);` lalu `System.out.println(\"Jumlah daun: \" + daun);`."
+
+- id: nilai-terbesar
+  judul: Nilai terbesar di pohon
+  soal: "Tambahkan method rekursif `static int maks(Node node)` yang mengembalikan `data` terbesar di seluruh pohon. Pohon ini bukan pohon pencarian, jadi nilai terbesar bisa berada di mana saja: bandingkan `data` simpul itu sendiri dengan hasil dari subpohon kiri dan subpohon kanan. Untuk subpohon kosong, kembalikan `Integer.MIN_VALUE`. Di `main`, simpan hasil `maks(root)` di variabel `int terbesar`, lalu cetak satu baris `Nilai terbesar: 9` di akhir output."
+  cek:
+    - jenis: variabel
+      nama: terbesar
+      tipe: int
+      harapan: 9
+    - jenis: outputMemuat
+      harapan: "Nilai terbesar: 9"
+    - jenis: harusMemakai
+      konstruksi: "method:maks"
+  petunjuk:
+    - "Polanya sama dengan `tinggi`: hitung jawaban subpohon kiri dan subpohon kanan, lalu gabungkan dengan `node.data`. Menelusuri ke kanan saja tidak cukup, karena 9 ada di subpohon kiri."
+    - "Base case: `if (node == null) return Integer.MIN_VALUE;`. Nilai ini lebih kecil daripada `int` mana pun, jadi tidak pernah menang saat dibandingkan."
+    - "Recursive case: `return Math.max(node.data, Math.max(maks(node.left), maks(node.right)));`. Di `main`, tulis `int terbesar = maks(root);` lalu cetak hasilnya."

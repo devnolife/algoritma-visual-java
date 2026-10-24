@@ -1,0 +1,39 @@
+- id: balik-urutan
+  judul: Balik urutan list
+  soal: "Tambahkan method `static void balik()` yang membalik urutan list **di tempat**, tanpa membuat simpul baru: tukar `prev` dan `next` pada setiap simpul, lalu tukar `head` dan `tail`. Panggil `balik();` tepat setelah baris `hapus(head.next.next);`. Dua baris pertama output harus menjadi `Maju: 40 20 10` dan `Mundur: 10 20 40`."
+  cek:
+    - jenis: isiRantai
+      kepala: head
+      harapan: [40, 20, 10]
+    - jenis: isiRantai
+      kepala: tail
+      berikut: prev
+      harapan: [10, 20, 40]
+    - jenis: harusMemakai
+      konstruksi: "method:balik"
+    - jenis: outputMemuat
+      harapan: "Maju: 40 20 10\nMundur: 10 20 40"
+  petunjuk:
+    - "Kunjungi setiap simpul tepat sekali, mulai dari `Node curr = head;` dengan `while (curr != null)`."
+    - "Di dalam perulangan, simpan dulu `Node lanjut = curr.next;`, lalu tukar: `curr.next = curr.prev;` dan `curr.prev = lanjut;`. Majukan dengan `curr = lanjut;`, bukan `curr = curr.next;`, karena `next` sudah ditukar."
+    - "Setelah perulangan, tukar `head` dan `tail` dengan variabel bantu: `Node t = head; head = tail; tail = t;`."
+
+- id: sisip-setelah
+  judul: Sisip setelah simpul
+  soal: "Tambahkan method `static void sisipSetelah(Node n, int x)` yang menyisipkan simpul baru berisi `x` tepat **setelah** simpul `n`. Perbarui semua sambungan di kedua arah, termasuk `tail` bila `n` adalah simpul terakhir. Di `main`, tepat setelah baris `hapus(head.next.next);`, panggil `sisipSetelah(head, 15);` lalu `sisipSetelah(tail, 50);`. Dua baris pertama output harus menjadi `Maju: 10 15 20 40 50` dan `Mundur: 50 40 20 15 10`."
+  cek:
+    - jenis: isiRantai
+      kepala: head
+      harapan: [10, 15, 20, 40, 50]
+    - jenis: isiRantai
+      kepala: tail
+      berikut: prev
+      harapan: [50, 40, 20, 15, 10]
+    - jenis: harusMemakai
+      konstruksi: "method:sisipSetelah"
+    - jenis: outputMemuat
+      harapan: "Maju: 10 15 20 40 50\nMundur: 50 40 20 15 10"
+  petunjuk:
+    - "Ada empat sambungan yang berubah: `prev` dan `next` milik simpul baru, `next` milik `n`, dan `prev` milik simpul sesudah `n`. Gambarkan dulu di kertas."
+    - "Buat `Node baru = new Node(x);`, lalu sambungkan simpul baru ke kedua tetangganya lebih dulu: `baru.prev = n;` dan `baru.next = n.next;`."
+    - "Bila `n.next != null`, isi `n.next.prev = baru;`. Bila tidak, `n` adalah tail, jadi `tail = baru;`. Terakhir `n.next = baru;`. Jangan mengubah `n.next` di awal, karena alamat simpul sesudah `n` akan hilang."

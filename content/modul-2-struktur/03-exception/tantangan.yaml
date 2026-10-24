@@ -1,0 +1,44 @@
+- id: umur-donor
+  judul: Validasi umur dengan exception sendiri
+  soal: "Pendaftaran donor darah hanya menerima umur 17 sampai 60 tahun. Buat exception sendiri `class UmurTidakValidException extends Exception` dengan konstruktor yang menerima pesan. Tulis method `static void daftarDonor(String nama, int umur) throws UmurTidakValidException` yang melempar exception itu dengan pesan `umur 15 di luar 17-60` (angkanya mengikuti umur) bila umur di luar batas, dan mencetak `Rina terdaftar` bila umur sah. Di akhir `main`, daftarkan Rina (20), Doni (15), dan Sari (65) secara berurutan. Pendaftar yang ditolak dicetak dengan format `Doni ditolak: umur 15 di luar 17-60`, lalu pendaftaran berlanjut ke orang berikutnya."
+  cek:
+    - jenis: harusMemakai
+      konstruksi: "class:UmurTidakValidException"
+    - jenis: harusMemakai
+      konstruksi: "method:daftarDonor"
+    - jenis: outputMemuat
+      harapan: "Rina terdaftar\nDoni ditolak: umur 15 di luar 17-60\nSari ditolak: umur 65 di luar 17-60"
+    - jenis: tanpaError
+  petunjuk:
+    - "Contohnya ada di baris 1–5. Class exception cukup berisi satu konstruktor yang meneruskan pesan dengan `super(pesan)`."
+    - 'Di dalam `daftarDonor`, periksa `if (umur < 17 || umur > 60)`, lalu `throw new UmurTidakValidException("umur " + umur + " di luar 17-60");`. Baris sesudah blok `if` itu mencetak `nama + " terdaftar"`.'
+    - 'Agar pendaftaran berlanjut setelah ada yang ditolak, setiap panggilan `daftarDonor` butuh `try`/`catch` sendiri, misalnya di dalam perulangan `for` atas array nama dan umur. Di blok `catch`, cetak `nama[i] + " ditolak: " + e.getMessage()`.'
+
+- id: input-nominal
+  judul: Input yang bukan angka
+  soal: "Tambahkan bagian isi ulang saldo di akhir `main`. Baca satu baris input dengan `Scanner` (`nextLine()`), lalu ubah menjadi `int` dengan `Integer.parseInt`. Bila berhasil, cetak `Isi ulang: 15000`. Bila teksnya bukan angka, `Integer.parseInt` melempar `NumberFormatException`; tangkap exception itu dan cetak teks yang dibaca apa adanya dengan format `Bukan angka: 15rb`. Tutup `Scanner` dengan `close()` di blok `finally`. Program harus selesai tanpa error untuk input apa pun."
+  cek:
+    - jenis: outputMemuat
+      input: "15000\n"
+      harapan: "Isi ulang: 15000"
+    - jenis: outputMemuat
+      input: "50000\n"
+      harapan: "Isi ulang: 50000"
+    - jenis: outputMemuat
+      input: "15rb\n"
+      harapan: "Bukan angka: 15rb"
+    - jenis: outputMemuat
+      input: "lima ribu\n"
+      harapan: "Bukan angka: lima ribu"
+    - jenis: tanpaError
+      input: "15rb\n"
+    - jenis: harusMemakai
+      konstruksi: scanner
+    - jenis: harusMemakai
+      konstruksi: "pustaka:Integer.parseInt"
+    - jenis: harusMemakai
+      konstruksi: "pustaka:Scanner.close"
+  petunjuk:
+    - "Tambahkan `import java.util.Scanner;` di baris paling atas, lalu buat `Scanner sc = new Scanner(System.in);`. Baca teksnya **sebelum** `try` dengan `String teks = sc.nextLine();`, agar `teks` masih bisa dipakai di dalam `catch`."
+    - 'Di dalam `try`, tulis `int nominal = Integer.parseInt(teks);` lalu cetak `"Isi ulang: " + nominal`. Baris cetak itu hanya dijalankan bila `parseInt` berhasil.'
+    - 'Tambahkan `catch (NumberFormatException e)` yang mencetak `"Bukan angka: " + teks`, lalu `finally { sc.close(); }`.'

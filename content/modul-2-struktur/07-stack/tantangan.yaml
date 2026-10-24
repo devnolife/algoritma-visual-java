@@ -1,0 +1,31 @@
+- id: stack-tumbuh
+  judul: Stack yang bisa tumbuh
+  soal: "Saat ini `push` melempar exception bila array penuh. Ubah `push` agar stack **tumbuh**: bila array sudah penuh, buat array baru berkapasitas **dua kali** lipat, salin seluruh isinya, lalu arahkan `data` ke array baru itu. Kapasitas awal tetap `new int[4]`. Kemudian tambahkan di akhir `main` perulangan untuk `i` = 1 sampai 6 yang memanggil `push(i * 100)` lalu mencetak kapasitas saat itu (`data.length`), sehingga baris terakhir output menjadi `Kapasitas: 4 4 4 4 8 8`."
+  cek:
+    - jenis: outputMemuat
+      harapan: "Kapasitas: 4 4 4 4 8 8"
+    - jenis: variabel
+      nama: data
+      harapan: [100, 200, 300, 400, 500, 600, 0, 0]
+    - jenis: variabel
+      nama: atas
+      harapan: 5
+  petunjuk:
+    - "Ganti isi blok `if (atas == data.length - 1)` di `push`. Alih-alih melempar exception, buat `int[] baru = new int[data.length * 2];`."
+    - "Salin isi lama dengan `for (int i = 0; i < data.length; i++) { baru[i] = data[i]; }`, lalu `data = baru;`. Setelah blok `if`, `push` berlanjut seperti biasa."
+    - 'Di akhir `main`, tulis `System.out.print("Kapasitas:");`, lalu `for (int i = 1; i <= 6; i++) { push(i * 100); System.out.print(" " + data.length); }`, lalu `System.out.println();`.'
+
+- id: postfix
+  judul: Menghitung ekspresi postfix
+  soal: "Ekspresi **postfix** menulis operator sesudah kedua operandnya, misalnya `23*4+` berarti `(2 * 3) + 4`. Tulis method `static int hitungPostfix(String ekspresi)` untuk angka satu digit dan operator `+`, `-`, `*`, dengan `Deque<Integer>` sebagai stack: angka di-push, sedangkan operator mengambil dua angka teratas, menghitungnya, lalu mem-push hasilnya. Di akhir `main`, panggil method itu untuk mencetak dua baris `23*4+ = 10` dan `934*+2- = 19`."
+  cek:
+    - jenis: harusMemakai
+      konstruksi: "method:hitungPostfix"
+    - jenis: outputMemuat
+      harapan: "23*4+ = 10"
+    - jenis: outputMemuat
+      harapan: "934*+2- = 19"
+  petunjuk:
+    - "Di dalam method, buat `Deque<Integer> tumpukan = new ArrayDeque<>();`, lalu telusuri `ekspresi` karakter demi karakter dengan `charAt`."
+    - "Bila `c` adalah digit (`c >= '0' && c <= '9'`), push nilainya dengan `tumpukan.push(c - '0');`. Bila operator, ambil `int kanan = tumpukan.pop();` **lebih dulu**, baru `int kiri = tumpukan.pop();`. Hitung `kiri + kanan`, `kiri - kanan`, atau `kiri * kanan`, lalu push hasilnya."
+    - 'Setelah semua karakter diproses, hasilnya adalah satu-satunya angka yang tersisa: `return tumpukan.pop();`. Di `main`, cetak dengan `System.out.println("23*4+ = " + hitungPostfix("23*4+"));`.'
