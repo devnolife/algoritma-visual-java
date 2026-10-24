@@ -84,6 +84,8 @@ Tidak perlu aturan *rewrite*, karena aplikasi memakai `base: './'` dan *hash rou
 
 ### Vercel
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fdevnolife%2Falgoritma-visual-java)
+
 Repositori ini sudah menyertakan [`vercel.json`](vercel.json), jadi tidak ada yang perlu diisi manual saat impor:
 
 | Pengaturan | Nilai | Sumber |
